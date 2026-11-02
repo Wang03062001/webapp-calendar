@@ -1,11 +1,9 @@
 import { YEARS, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData } from './model.js';
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
-import { SyncController, hasData } from './sync.js';
+import { SyncController } from './sync.js';
 import { showAdmin, showPasswordReset, showRecovery } from './admin.js';
 
-// Preserve legacy guest data for an explicit import after authentication only.
-const STORAGE_KEY = 'lich-cua-toi.v1';
 const money = number => new Intl.NumberFormat('vi-VN').format(number) + ' ₫';
 const escape = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const icons = {
@@ -160,7 +158,7 @@ function refreshTotals() {
 root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
-  if ((button.dataset.delete !== undefined || ['add', 'import', 'export', 'save', 'cloud-migrate', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
+  if ((button.dataset.delete !== undefined || ['add', 'import', 'export', 'save', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
   if (button.dataset.year) { year = +button.dataset.year; day = Math.min(day, daysInMonth(year, month)); render(); }
   if (button.dataset.month !== undefined) { month = +button.dataset.month; day = Math.min(day, daysInMonth(year, month)); render(); }
   if (button.dataset.day) { day = +button.dataset.day; render(); }
@@ -176,15 +174,6 @@ root.addEventListener('click', async event => {
     case 'cloud-remote': {
       if (!confirm('Thay bản nháp trên máy bằng dữ liệu đám mây? Hãy xuất dữ liệu trước nếu cần giữ bản nháp.')) break;
       try { await cloud.useRemote(); } catch (error) { notify(error.message); }
-      break;
-    }
-    case 'cloud-migrate': {
-      if (!cloud.user || hasData(data) || cloud.status !== 'ready') break;
-      if (!confirm('Chuyển dữ liệu cũ đang lưu trong trình duyệt này lên tài khoản đang đăng nhập?')) break;
-      try {
-        const local = normalizeData(JSON.parse(localStorage.getItem(STORAGE_KEY)));
-        data = local; persist(); render(); notify('Đã nhập bản nháp. Nhấn Lưu thay đổi để đồng bộ.');
-      } catch { notify('Không đọc được dữ liệu cũ. Hãy nhập từ file sao lưu.'); }
       break;
     }
     case 'add': ensureDay().items.push({ id: crypto.randomUUID(), title: '', amount: 0 }); persist(); render(); document.querySelector('.expense-table tr:last-child input')?.focus(); break;
@@ -275,13 +264,6 @@ function renderCloud() {
     message = escape(cloud.message);
     actions = cloud.status === 'conflict' ? '<button data-action="export">Xuất bản nháp</button><button data-action="cloud-remote">Tải bản đám mây</button>' : `<button data-action="${cloud.user ? 'cloud-retry' : 'account'}">${cloud.user ? 'Thử đồng bộ lại' : 'Đăng nhập'}</button>`;
   } else if (cloud.status === 'loading') message = 'Đang tải dữ liệu tài khoản. Vui lòng chờ trước khi chỉnh sửa.';
-  else if (!cloud.user) {
-    message = '';
-  } else {
-    message = `Tài khoản: ${escape(cloud.user.email)} · ${labels[cloud.status]}.`;
-    if (!hasData(data) && cloud.status === 'ready' && localStorage.getItem(STORAGE_KEY)) actions = '<button data-action="cloud-migrate">Chuyển dữ liệu cũ trên máy lên tài khoản</button>';
-    else actions = cloud.status === 'draft' ? '' : '<button data-action="cloud-retry">Đồng bộ ngay</button>';
-  }
   document.querySelector('#cloud-notice').innerHTML = message ? `<div class="cloud-notice ${['error', 'conflict'].includes(cloud.status) ? 'cloud-warning' : ''}"><span>${message}</span><div>${actions}</div></div>` : '';
 }
 
