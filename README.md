@@ -26,6 +26,17 @@ Không cần chạy `npm install` vì ứng dụng không dùng dependency bên 
 
 Quy trình đã lưu trong `AGENTS.md`: sau khi hoàn tất thay đổi được yêu cầu, agent kiểm tra, commit và push lên `main`. Cần phiên làm việc có quyền truy cập repository; đây không phải đồng bộ nền cho mọi cuộc trò chuyện ChatGPT. Mã nguồn trên GitHub và việc triển khai website là hai bước riêng biệt.
 
+### Xem trực tiếp bằng GitHub Pages
+
+Mã nguồn hỗ trợ chạy trực tiếp từ thư mục gốc trên GitHub Pages, không cần cài đặt trên Windows.
+
+1. Mở repository trên GitHub → **Settings → Pages**.
+2. Trong **Build and deployment**, chọn **Source: Deploy from a branch**.
+3. Chọn nhánh **main**, thư mục **/ (root)** rồi **Save**.
+4. Chờ GitHub triển khai thành công và mở đường dẫn được GitHub hiển thị trong trang Pages.
+
+Sau khi bật Pages, mỗi lần push lên `main`, GitHub sẽ tự triển khai phiên bản mới. Nếu repository riêng tư, GitHub có thể yêu cầu gói hỗ trợ Pages; không thay đổi quyền riêng tư của repository chỉ để bật website. Không đưa bản sao lưu tài chính vào repository.
+
 ## Sử dụng
 
 - Chọn năm, tháng, ngày. Các tháng hiển thị tổng tiền cần chi.
