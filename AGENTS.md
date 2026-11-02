@@ -6,7 +6,7 @@ This is a Vietnamese personal finance calendar for 2026–2033. Use the existing
 
 - Node.js >=22; no dependency installation, database, API keys or credentials are required by the app.
 - Run `npm run dev` to start the development server on port 5173.
-- Run `node test/model.test.js` for the four model tests and `npm run build` for the static production build. Validate relevant browser interactions when changing UI behavior.
+- Run `node test/model.test.js` for the model tests and `npm run build` for the static production build. Validate relevant browser interactions when changing UI behavior.
 - Preserve browser-local financial data. Never commit financial backups, secrets, `.env` files, generated `dist/` files or temporary browser artifacts.
 
 ## User-authorized GitHub updates

@@ -42,7 +42,9 @@ Sau khi bật Pages, mỗi lần push lên `main`, GitHub sẽ tự triển khai
 - Chọn năm, tháng, ngày. Các tháng hiển thị tổng tiền cần chi.
 - Thêm dòng vào bảng chi tiêu của ngày, nhập nội dung và số tiền VNĐ. Tổng tiền tự cập nhật theo ngày, tháng và năm. Xóa dòng bằng nút thùng rác.
 - Ghi chú theo ngày và ghi lương, thưởng, ghi chú thu nhập cho từng tháng.
+- Nhập **Tiết kiệm tháng** và **Mục tiêu tiết kiệm năm** trong panel tiết kiệm phía trên lịch. Mỗi năm có mục tiêu riêng; thanh tiến độ cộng số tiền tiết kiệm từ 12 tháng và cho biết số tiền còn thiếu. Mục tiêu chưa đặt không có phần trăm; vượt mục tiêu vẫn hiển thị đúng tổng tiền.
+- Mục **Tổng kết năm** có cột tiết kiệm theo từng tháng và tổng năm. Tiết kiệm là số tiền dành riêng, được trừ khỏi số dư có thể chi, không cộng vào tổng chi tiêu. Dữ liệu và bản sao lưu phiên bản cũ vẫn được đọc bình thường.
 - Mở **Tổng kết năm** để xem lương, thưởng, chi tiêu, số dư dự kiến và nội dung mọi khoản chi; nhấn tháng hoặc ngày để mở lại lịch.
 - Dữ liệu tự lưu trong localStorage của trình duyệt. **Xuất dữ liệu** tải bản sao lưu JSON; nút nhập bên cạnh khôi phục bản sao lưu sau xác nhận thay thế dữ liệu hiện tại.
 
-Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán). Số dư dự kiến = lương + thưởng − chi tiêu. Dữ liệu không đồng bộ giữa thiết bị; xóa dữ liệu trình duyệt sẽ xóa kế hoạch, nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
+Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán). Số dư dự kiến = lương + thưởng − chi tiêu − tiết kiệm. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Dữ liệu không đồng bộ giữa thiết bị; xóa dữ liệu trình duyệt sẽ xóa kế hoạch, nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.

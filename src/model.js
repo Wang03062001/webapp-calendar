@@ -14,17 +14,23 @@ export function monthSummary(data, year, month) {
   const expense = entries.reduce((sum, [, day]) => sum + dayTotal(day), 0);
   const income = data.incomes[prefix] || {};
   const salary = amount(income.salary), bonus = amount(income.bonus);
-  return { salary, bonus, expense, balance: salary + bonus - expense, count: entries.reduce((sum, [, day]) => sum + day.items.length, 0) };
+  const savings = amount(data.savings?.[prefix]);
+  return { salary, bonus, expense, savings, balance: salary + bonus - expense - savings, count: entries.reduce((sum, [, day]) => sum + day.items.length, 0) };
 }
 export function yearSummary(data, year) {
   return Array.from({ length: 12 }, (_, month) => monthSummary(data, year, month)).reduce((all, item) => {
     for (const key of Object.keys(all)) all[key] += item[key];
     return all;
-  }, { salary: 0, bonus: 0, expense: 0, balance: 0, count: 0 });
+  }, { salary: 0, bonus: 0, expense: 0, savings: 0, balance: 0, count: 0 });
 }
-export const emptyData = () => ({ version: 1, days: {}, incomes: {} });
+export function savingsProgress(data, year) {
+  const saved = yearSummary(data, year).savings;
+  const goal = amount(data.goals?.[year]);
+  return { saved, goal, remaining: Math.max(0, goal - saved), percent: goal ? Math.round(saved / goal * 100) : 0 };
+}
+export const emptyData = () => ({ version: 2, days: {}, incomes: {}, savings: {}, goals: {} });
 export function normalizeData(input) {
-  if (!input || input.version !== 1 || typeof input.days !== 'object' || !input.days || typeof input.incomes !== 'object' || !input.incomes) throw new Error('Dữ liệu không đúng định dạng.');
+  if (!input || ![1, 2].includes(input.version) || typeof input.days !== 'object' || !input.days || typeof input.incomes !== 'object' || !input.incomes) throw new Error('Dữ liệu không đúng định dạng.');
   const result = emptyData();
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(202[6-9]|203[0-3])-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
@@ -33,6 +39,12 @@ export function normalizeData(input) {
   }
   for (const [key, income] of Object.entries(input.incomes)) {
     if (/^(202[6-9]|203[0-3])-(0[1-9]|1[0-2])$/.test(key) && income) result.incomes[key] = { salary: amount(income.salary), bonus: amount(income.bonus), note: String(income.note || '').slice(0, 20000) };
+  }
+  for (const [key, value] of Object.entries(input.savings || {})) {
+    if (/^(202[6-9]|203[0-3])-(0[1-9]|1[0-2])$/.test(key)) result.savings[key] = amount(value);
+  }
+  for (const [key, value] of Object.entries(input.goals || {})) {
+    if (YEARS.includes(Number(key))) result.goals[key] = amount(value);
   }
   return result;
 }

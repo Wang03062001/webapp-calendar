@@ -1,5 +1,6 @@
-import { YEARS, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, emptyData, normalizeData } from './model.js';
+import { YEARS, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData } from './model.js';
 
+// Keep the original key so existing browser data is migrated by normalizeData.
 const STORAGE_KEY = 'lich-cua-toi.v1';
 const money = number => new Intl.NumberFormat('vi-VN').format(number) + ' ₫';
 const escape = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -60,8 +61,9 @@ function render() {
           ${stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập cố định trong năm', 'green')}
           ${stat('spark', 'Tổng thưởng', totals.bonus, 'Những khoản thu thêm', 'amber')}
           ${stat('down', 'Tổng cần chi', totals.expense, `${totals.count} khoản chi đã lên kế hoạch`, 'orange')}
-          ${stat('chart', 'Còn lại dự kiến', totals.balance, `Thu nhập − chi tiêu · Năm ${year}`, 'blue')}
+          ${stat('chart', 'Còn lại dự kiến', totals.balance, `Sau chi tiêu & tiết kiệm · Năm ${year}`, 'blue')}
         </div>
+        ${savingsPanel()}
         ${view === 'calendar' ? calendarView() : yearView()}
         <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span>Đơn vị: VNĐ · Dữ liệu chỉ lưu trong trình duyệt này</span></footer>
       </div>
@@ -69,6 +71,21 @@ function render() {
 }
 function stat(symbol, label, value, detail, color) {
   return `<section class="stat"><div class="stat-top"><span>${label}</span><span class="stat-icon ${color}">${icon(symbol)}</span></div><strong class="${value < 0 ? 'negative' : ''}">${money(value)}</strong><small>${detail}</small></section>`;
+}
+function savingsPanel() {
+  return `<section class="card savings-panel" aria-label="Kế hoạch tiết kiệm"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('spark')}</span><div><h2>Dành cho những dự định lớn</h2><p>Góp từng tháng, tiến gần hơn đến mục tiêu năm ${year}.</p></div></div><span class="tag">TIẾT KIỆM</span></div>
+    <div class="savings-layout"><div class="savings-inputs">
+      ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>VNĐ</span><input id="monthly-savings" type="number" inputmode="numeric" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(data.savings[monthKey(year, month)]) || ''}" /></label>` : ''}
+      <label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>VNĐ</span><input id="annual-savings-goal" type="number" inputmode="numeric" min="0" max="${MAX_AMOUNT}" step="1" placeholder="Nhập mục tiêu của bạn" value="${amount(data.goals[year]) || ''}" /></label>
+    </div><div id="savings-progress">${savingsProgressContent()}</div></div>
+    <p class="savings-hint">Nhập số tiền bạn dành riêng để tiết kiệm mỗi tháng. Còn lại dự kiến = lương + thưởng − chi tiêu − tiết kiệm.</p></section>`;
+}
+function savingsProgressContent() {
+  const progress = savingsProgress(data, year);
+  const percent = Math.min(100, progress.percent);
+  return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong năm</span><strong id="year-savings-total">${money(progress.saved)}</strong></div>
+    <div class="savings-progress-track" role="progressbar" aria-label="Tiến độ tiết kiệm năm ${year}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-valuetext="${progress.goal ? `${progress.percent}% mục tiêu, đã tiết kiệm ${money(progress.saved)}` : 'Chưa đặt mục tiêu'}"><span style="width:${percent}%"></span></div>
+    <div class="savings-progress-caption"><strong>${progress.goal ? `${progress.percent}% mục tiêu` : 'Chưa đặt mục tiêu'}</strong><span>${!progress.goal ? 'Đặt mục tiêu để theo dõi tiến độ' : progress.remaining ? `Còn thiếu ${money(progress.remaining)}` : 'Đã đạt mục tiêu năm!'}</span></div>`;
 }
 function calendarView() {
   return `<div class="section-title"><h2>${icon('grid')} Các tháng trong năm <span>${year}</span></h2><span>Chọn tháng để xem kế hoạch chi tiêu</span></div>
@@ -111,7 +128,7 @@ function dayPanel() {
 }
 function yearView() {
   const total = yearSummary(data, year);
-  return `<section class="card annual-panel"><div class="card-heading"><div><h2>Bức tranh tài chính ${year}</h2><p>Nhấn vào tháng để xem và chỉnh sửa kế hoạch.</p></div><span class="tag">12 tháng</span></div><div class="annual-table-wrap"><table class="annual-table"><thead><tr><th>Tháng</th><th>Lương</th><th>Thưởng</th><th>Cần chi</th><th>Còn lại</th></tr></thead><tbody>${Array.from({ length: 12 }, (_, m) => { const s = monthSummary(data, year, m); return `<tr><td><button data-open-month="${m}">Tháng ${String(m + 1).padStart(2, '0')} ${icon('arrow')}</button></td><td>${money(s.salary)}</td><td>${money(s.bonus)}</td><td>${money(s.expense)}</td><td class="${s.balance < 0 ? 'negative' : ''}">${money(s.balance)}</td></tr>`; }).join('')}</tbody><tfoot><tr><th>Tổng năm</th><td>${money(total.salary)}</td><td>${money(total.bonus)}</td><td>${money(total.expense)}</td><td class="${total.balance < 0 ? 'negative' : ''}">${money(total.balance)}</td></tr></tfoot></table></div></section>
+  return `<section class="card annual-panel"><div class="card-heading"><div><h2>Bức tranh tài chính ${year}</h2><p>Nhấn vào tháng để xem và chỉnh sửa kế hoạch.</p></div><span class="tag">12 tháng</span></div><div class="annual-table-wrap"><table class="annual-table"><thead><tr><th>Tháng</th><th>Lương</th><th>Thưởng</th><th>Cần chi</th><th>Tiết kiệm</th><th>Còn lại</th></tr></thead><tbody>${Array.from({ length: 12 }, (_, m) => { const s = monthSummary(data, year, m); return `<tr><td><button data-open-month="${m}">Tháng ${String(m + 1).padStart(2, '0')} ${icon('arrow')}</button></td><td>${money(s.salary)}</td><td>${money(s.bonus)}</td><td>${money(s.expense)}</td><td>${money(s.savings)}</td><td class="${s.balance < 0 ? 'negative' : ''}">${money(s.balance)}</td></tr>`; }).join('')}</tbody><tfoot><tr><th>Tổng năm</th><td>${money(total.salary)}</td><td>${money(total.bonus)}</td><td>${money(total.expense)}</td><td>${money(total.savings)}</td><td class="${total.balance < 0 ? 'negative' : ''}">${money(total.balance)}</td></tr></tfoot></table></div></section>
     <section class="card annual-details"><div class="card-heading"><div><h2>Nội dung cần chi trong năm</h2><p>Tất cả các khoản đã lên kế hoạch, sắp xếp theo ngày.</p></div><span class="tag">${total.count} khoản</span></div>${annualExpenses()}</section>`;
 }
 function annualExpenses() {
@@ -121,7 +138,9 @@ function annualExpenses() {
 }
 function refreshTotals() {
   const totals = yearSummary(data, year), summary = monthSummary(data, year, month);
-  document.querySelector('.stats').innerHTML = stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập cố định trong năm', 'green') + stat('spark', 'Tổng thưởng', totals.bonus, 'Những khoản thu thêm', 'amber') + stat('down', 'Tổng cần chi', totals.expense, `${totals.count} khoản chi đã lên kế hoạch`, 'orange') + stat('chart', 'Còn lại dự kiến', totals.balance, `Thu nhập − chi tiêu · Năm ${year}`, 'blue');
+  document.querySelector('.stats').innerHTML = stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập cố định trong năm', 'green') + stat('spark', 'Tổng thưởng', totals.bonus, 'Những khoản thu thêm', 'amber') + stat('down', 'Tổng cần chi', totals.expense, `${totals.count} khoản chi đã lên kế hoạch`, 'orange') + stat('chart', 'Còn lại dự kiến', totals.balance, `Sau chi tiêu & tiết kiệm · Năm ${year}`, 'blue');
+  document.querySelector('#savings-progress').innerHTML = savingsProgressContent();
+  if (view === 'year') return;
   document.querySelector('.month-card.active strong').textContent = money(summary.expense);
   document.querySelector('#day-total').textContent = money(dayTotal(currentDay()));
   document.querySelector('#income-total').textContent = money(summary.salary + summary.bonus);
@@ -158,6 +177,8 @@ root.addEventListener('click', event => {
 });
 root.addEventListener('input', event => {
   const target = event.target;
+  if (target.id === 'monthly-savings') { data.savings[monthKey(year, month)] = amount(target.value); persist(); refreshTotals(); }
+  if (target.id === 'annual-savings-goal') { data.goals[year] = amount(target.value); persist(); refreshTotals(); }
   if (target.id === 'day-note') { ensureDay().note = target.value; persist(); document.querySelector('.calendar-panel').outerHTML = calendarPanel(); }
   if (target.dataset.field) {
     const item = ensureDay().items[+target.closest('tr').dataset.item];
