@@ -12,33 +12,36 @@ export function removeYear(data, year) {
   data.years = getYears(data).filter(value => value !== year);
 }
 export const MAX_AMOUNT = 1_000_000_000_000;
+const roundMoney = value => Math.round(value * 1000) / 1000;
+const moneyFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+export const formatAmount = value => moneyFormatter.format(Number.isFinite(Number(value)) ? Number(value) : 0);
 export const amount = value => {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.min(MAX_AMOUNT, Math.max(0, Math.round(number))) : 0;
+  const number = Number(typeof value === 'string' ? value.replace(/,/g, '').trim() : value);
+  return Number.isFinite(number) ? Math.min(MAX_AMOUNT, Math.max(0, roundMoney(number))) : 0;
 };
 export const dayKey = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 export const monthKey = (year, month) => `${year}-${String(month + 1).padStart(2, '0')}`;
 export const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-export const dayTotal = day => (day?.items || []).reduce((sum, item) => sum + amount(item.amount), 0);
+export const dayTotal = day => roundMoney((day?.items || []).reduce((sum, item) => sum + amount(item.amount), 0));
 export function monthSummary(data, year, month) {
   const prefix = monthKey(year, month);
   const entries = Object.entries(data.days).filter(([key]) => key.startsWith(`${prefix}-`));
-  const expense = entries.reduce((sum, [, day]) => sum + dayTotal(day), 0);
+  const expense = roundMoney(entries.reduce((sum, [, day]) => sum + dayTotal(day), 0));
   const income = data.incomes[prefix] || {};
   const salary = amount(income.salary), bonus = amount(income.bonus);
   const savings = amount(data.savings?.[prefix]);
-  return { salary, bonus, expense, savings, balance: salary + bonus - expense, count: entries.reduce((sum, [, day]) => sum + day.items.length, 0) };
+  return { salary, bonus, expense, savings, balance: roundMoney(salary + bonus - expense), count: entries.reduce((sum, [, day]) => sum + day.items.length, 0) };
 }
 export function yearSummary(data, year) {
   return Array.from({ length: 12 }, (_, month) => monthSummary(data, year, month)).reduce((all, item) => {
-    for (const key of Object.keys(all)) all[key] += item[key];
+    for (const key of Object.keys(all)) all[key] = roundMoney(all[key] + item[key]);
     return all;
   }, { salary: 0, bonus: 0, expense: 0, savings: 0, balance: 0, count: 0 });
 }
 export function savingsProgress(data, year) {
   const saved = yearSummary(data, year).savings;
   const goal = amount(data.goals?.[year]);
-  return { saved, goal, remaining: Math.max(0, goal - saved), percent: goal ? Math.round(saved / goal * 100) : 0 };
+  return { saved, goal, remaining: roundMoney(Math.max(0, goal - saved)), percent: goal ? Math.round(saved / goal * 100) : 0 };
 }
 export const emptyData = () => ({ version: 2, years: [...YEARS], days: {}, incomes: {}, savings: {}, goals: {} });
 export function normalizeData(input) {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { YEARS, getYears, addYear, removeYear, amount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT } from '../src/model.js';
+import { YEARS, getYears, addYear, removeYear, amount, formatAmount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT } from '../src/model.js';
 
 test('calendar covers 2026–2033 and handles leap years', () => {
   assert.deepEqual(YEARS, [2026,2027,2028,2029,2030,2031,2032,2033]);
@@ -24,9 +24,9 @@ test('monthly and yearly totals isolate years, aggregate salary, bonus and expen
   assert.equal(monthSummary(data,2026,0).expense,650000);
   assert.deepEqual(yearSummary(data,2033), {salary:0,bonus:0,expense:0,savings:0,balance:0,count:0});
 });
-test('negative balances are retained; monetary input is finite, whole and nonnegative', () => {
+test('negative balances are retained; monetary input is finite and nonnegative with three decimals', () => {
   for (const invalid of [-1,NaN,Infinity,'abc']) assert.equal(amount(invalid),0);
-  assert.equal(amount(1.7),2);
+  assert.equal(amount(1.7),1.7);
   assert.equal(amount(1e20),MAX_AMOUNT);
   const data = emptyData();
   data.days['2026-01-01'] = {items:[{amount:500}]};
@@ -103,4 +103,17 @@ test('year lists and new-year data survive backup normalization and legacy impor
  assert.equal(getYears(normalizeData(legacy)).includes(2040),true);
  assert.throws(()=>normalizeData({...emptyData(),years:[]}));assert.throws(()=>normalizeData({...emptyData(),years:[2026,'2034']}));
  const single={...emptyData(),years:[2026]};assert.throws(()=>removeYear(single,2026),/ít nhất một năm/);
+});
+
+test('money uses comma thousands and three fixed decimal digits without changing its unit', () => {
+ assert.equal(formatAmount(1000000),'1,000,000.000');assert.equal(formatAmount(0),'0.000');
+ assert.equal(formatAmount(1234.5),'1,234.500');assert.equal(formatAmount(-1234.567),'-1,234.567');
+ assert.equal(amount('1,000,000.123'),1000000.123);assert.equal(amount('1,234.5678'),1234.568);
+ assert.equal(amount('invalid'),0);assert.equal(amount('-1,000'),0);
+});
+test('fractional amounts total to three decimals and survive backups', () => {
+ const data=emptyData();data.days['2026-01-01']={note:'',items:[{id:'a',title:'A',amount:0.1},{id:'b',title:'B',amount:0.2}]};
+ data.incomes['2026-01']={salary:1.1,bonus:0.2,note:''};data.savings['2026-01']=0.123;data.goals['2026']=1.234;
+ assert.equal(monthSummary(data,2026,0).expense,0.3);assert.equal(yearSummary(data,2026).balance,1);
+ assert.equal(savingsProgress(data,2026).remaining,1.111);assert.deepEqual(normalizeData(JSON.parse(JSON.stringify(data))),data);
 });

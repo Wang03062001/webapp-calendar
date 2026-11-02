@@ -73,3 +73,5 @@ Xem [hướng dẫn thiết lập quản trị](supabase/ADMIN.md). Cần chạy
 Thay đổi chưa lưu được giữ khi chuyển ngày/tháng và khi mở lại đúng tài khoản trên thiết bị đó. Đóng hoặc tải lại tab khi còn thay đổi sẽ có cảnh báo của trình duyệt. Đăng xuất luôn xóa dữ liệu khỏi màn hình; đăng nhập lại mới tải bản nháp riêng. Dữ liệu của chế độ khách cũ vẫn được giữ nguyên trong trình duyệt.
 
 Dashboard sử dụng các thẻ tổng quan nhiều màu, biểu đồ thu nhập/chi tiêu JPY, tỷ lệ chi trên thu và tiến độ mục tiêu tiết kiệm VNĐ. Biểu đồ lấy số liệu thật trong năm đang chọn; nút thao tác nhanh mở ô nhập chi tiêu, thu nhập, tiết kiệm hoặc tổng kết năm.
+
+Số tiền hiển thị theo dạng `1,000,000.000`: dấu phẩy ngăn hàng nghìn, dấu chấm thập phân và 3 chữ số sau dấu chấm. Ô nhập chấp nhận số có dấu phẩy hoặc số thường, tự định dạng khi rời ô hoặc lưu. Giá trị lưu trong JSON/Supabase vẫn là số, hỗ trợ tối đa 3 chữ số thập phân. Font chữ được tăng 60% và bố cục tự chuyển cột để phù hợp màn hình.

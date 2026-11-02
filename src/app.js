@@ -1,10 +1,10 @@
-import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData } from './model.js';
+import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData } from './model.js';
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
 import { SyncController } from './sync.js';
 import { showAdmin, showPasswordReset, showRecovery } from './admin.js';
 
-const money = (number, currency = 'JPY') => new Intl.NumberFormat('vi-VN').format(number) + (currency === 'VND' ? ' VNĐ' : ' JPY');
+const money = (number, currency = 'JPY') => formatAmount(number) + (currency === 'VND' ? ' VNĐ' : ' JPY');
 const dong = number => money(number, 'VND');
 const escape = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const icons = {
@@ -39,9 +39,11 @@ function persist() {
   catch { notify('Không thể lưu trên trình duyệt. Hãy xuất dữ liệu để tránh mất thay đổi.'); return false; }
 }
 function canEdit() { return Boolean(cloud.user) && cloud.status !== 'loading'; }
+function formatMoneyInput(input) { if (input.validity.valid && input.value.trim()) input.value = formatAmount(amount(input.value)); }
 async function saveChanges() {
   if (!canEdit()) return;
   try {
+    for (const input of root.querySelectorAll('[data-money]')) { if (!input.reportValidity()) return; formatMoneyInput(input); }
     await cloud.commit();
     if (cloud.status === 'ready') notify('Đã lưu thay đổi.');
     else if (['error', 'conflict'].includes(cloud.status)) notify(cloud.message);
@@ -116,8 +118,8 @@ function stat(symbol, label, value, detail, color, currency = 'JPY') {
 function savingsPanel() {
   return `<section class="card savings-panel" aria-label="Kế hoạch tiết kiệm"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('spark')}</span><div><h2>Quỹ tiết kiệm của bạn</h2><p>Góp từng tháng, tiến gần hơn đến mục tiêu năm ${year}.</p></div></div><span class="tag">TIẾT KIỆM</span></div>
     <div class="savings-layout"><div class="savings-inputs">
-      ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>VNĐ</span><input id="monthly-savings" type="number" inputmode="numeric" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(data.savings[monthKey(year, month)]) || ''}" /></label>` : ''}
-      <label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>VNĐ</span><input id="annual-savings-goal" type="number" inputmode="numeric" min="0" max="${MAX_AMOUNT}" step="1" placeholder="Nhập mục tiêu của bạn" value="${amount(data.goals[year]) || ''}" /></label>
+      ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>VNĐ</span><input id="monthly-savings" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0.000" value="${amount(data.savings[monthKey(year, month)]) ? formatAmount(data.savings[monthKey(year, month)]) : ''}" /></label>` : ''}
+      <label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>VNĐ</span><input id="annual-savings-goal" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0.000" value="${amount(data.goals[year]) ? formatAmount(data.goals[year]) : ''}" /></label>
     </div><div id="savings-progress">${savingsProgressContent()}</div></div>
     <p class="savings-hint">Quỹ tiết kiệm VNĐ được theo dõi riêng với thu chi JPY.</p></section>`;
 }
@@ -152,7 +154,7 @@ function incomePanel() {
   const income = data.incomes[monthKey(year, month)] || {};
   const summary = monthSummary(data, year, month);
   return `<section class="card income-panel"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('wallet')}</span><div><h2>Thu nhập tháng ${String(month + 1).padStart(2, '0')}</h2><p>Ghi lại lương và những khoản thưởng của bạn</p></div></div><span class="tag">${year}</span></div>
-    <div class="income-fields"><label>Lương tháng <span>JPY</span><input inputmode="numeric" type="number" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(income.salary) || ''}" data-income="salary" /></label><label>Thưởng & thu nhập thêm <span>JPY</span><input inputmode="numeric" type="number" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(income.bonus) || ''}" data-income="bonus" /></label></div>
+    <div class="income-fields"><label>Lương tháng <span>JPY</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0.000" value="${amount(income.salary) ? formatAmount(income.salary) : ''}" data-income="salary" /></label><label>Thưởng & thu nhập thêm <span>JPY</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0.000" value="${amount(income.bonus) ? formatAmount(income.bonus) : ''}" data-income="bonus" /></label></div>
     <label class="income-note-label" for="income-note">Ghi chú thu nhập</label><textarea id="income-note" class="income-note" data-income="note" maxlength="20000" rows="2" placeholder="Ví dụ: Lương cơ bản, thưởng dự án, ngày nhận lương…">${escape(income.note || '')}</textarea>
     <div class="income-total"><span>Tổng thu nhập tháng</span><strong id="income-total">${money(summary.salary + summary.bonus)}</strong></div></section>`;
 }
@@ -162,7 +164,7 @@ function dayPanel() {
   return `<div class="day-panel-header"><div class="eyebrow">KẾ HOẠCH TRONG NGÀY</div><h2>${String(day).padStart(2, '0')} <span>/ ${String(month + 1).padStart(2, '0')} / ${year}</span></h2><p>${weekday.charAt(0).toUpperCase() + weekday.slice(1)} <span class="day-pill">${entry.items.length} khoản chi</span></p></div>
     <div class="note-section"><label for="day-note">${icon('note')} Ghi chú của bạn</label><textarea id="day-note" maxlength="20000" placeholder="Hôm nay bạn có kế hoạch gì?\nGhi lại những điều cần nhớ…" rows="4">${escape(entry.note)}</textarea></div>
     <div class="expense-heading"><h3>Bảng chi tiêu</h3><span>JPY</span></div>
-    <div class="expense-table-wrap"><table class="expense-table"><thead><tr><th>Nội dung cần chi</th><th>Số tiền</th><th><span class="sr-only">Thao tác</span></th></tr></thead><tbody>${entry.items.map((item, index) => `<tr data-item="${index}"><td><input aria-label="Nội dung khoản chi ${index + 1}" placeholder="Nhập nội dung…" maxlength="500" data-field="title" value="${escape(item.title)}" /></td><td><input aria-label="Số tiền khoản chi ${index + 1}" type="number" min="0" max="${MAX_AMOUNT}" step="1" inputmode="numeric" placeholder="0" data-field="amount" value="${item.amount || ''}" /></td><td><button class="delete-button" data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>
+    <div class="expense-table-wrap"><table class="expense-table"><thead><tr><th>Nội dung cần chi</th><th>Số tiền</th><th><span class="sr-only">Thao tác</span></th></tr></thead><tbody>${entry.items.map((item, index) => `<tr data-item="${index}"><td><input aria-label="Nội dung khoản chi ${index + 1}" placeholder="Nhập nội dung…" maxlength="500" data-field="title" value="${escape(item.title)}" /></td><td><input aria-label="Số tiền khoản chi ${index + 1}" type="text" data-money maxlength="32" inputmode="decimal" placeholder="0.000" data-field="amount" value="${item.amount ? formatAmount(item.amount) : ''}" /></td><td><button class="delete-button" data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>
     ${entry.items.length ? '' : `<div class="empty-expenses"><span>${icon('wallet')}</span><strong>Một ngày mới, một kế hoạch mới</strong><p>Thêm món cần mua hoặc khoản cần chi<br>để bắt đầu sắp xếp ngày của bạn.</p></div>`}
     <button class="add-expense" data-action="add">${icon('plus')} Thêm khoản chi</button>
     <div class="day-total"><span>Tổng chi trong ngày</span><strong id="day-total">${money(dayTotal(entry))}</strong></div><div class="day-hint">${icon('check')} Enter hoặc Lưu thay đổi để đồng bộ.<br>Shift+Enter để xuống dòng.</div>`;
@@ -240,6 +242,11 @@ root.addEventListener('click', async event => {
 root.addEventListener('input', event => {
   if (!canEdit()) return;
   const target = event.target;
+  if (target.hasAttribute('data-money')) {
+    const value = target.value.trim();
+    target.setCustomValidity(value && !/^\d[\d,]*(?:\.\d{0,3})?$/.test(value) ? 'Nhập số tiền dạng 1,000,000.000, tối đa 3 chữ số thập phân.' : Number(value.replace(/,/g, '')) > MAX_AMOUNT ? 'Số tiền vượt giới hạn cho phép.' : '');
+    if (!target.validity.valid) return;
+  }
   if (target.id === 'monthly-savings') { data.savings[monthKey(year, month)] = amount(target.value); persist(); refreshTotals(); }
   if (target.id === 'annual-savings-goal') { data.goals[year] = amount(target.value); persist(); refreshTotals(); }
   if (target.id === 'day-note') { ensureDay().note = target.value; persist(); document.querySelector('.calendar-panel').outerHTML = calendarPanel(); }
@@ -257,7 +264,7 @@ root.addEventListener('change', async event => {
   if (!canEdit()) return;
   const target = event.target;
   if (target.id === 'year-select') { year = +target.value; day = Math.min(day, daysInMonth(year, month)); render(); }
-  if (target.type === 'number') target.value = amount(target.value) || '';
+  if (target.hasAttribute('data-money')) formatMoneyInput(target);
   if (target.id === 'import-file' && target.files[0]) {
     try {
       const file = target.files[0];
@@ -274,6 +281,7 @@ root.addEventListener('change', async event => {
     finally { target.value = ''; }
   }
 });
+root.addEventListener('focusout', event => { if (event.target.matches('[data-money]')) formatMoneyInput(event.target); });
 root.addEventListener('keydown', event => {
   if (event.key !== 'Enter' || event.shiftKey || event.isComposing || !event.target.matches('.page input, .page textarea') || !canEdit()) return;
   event.preventDefault(); saveChanges();

@@ -22,3 +22,5 @@ The repository owner requested that completed code changes made by ChatGPT be co
 ## Administration
 
 Supabase server-only admin and username login setup is documented in `supabase/ADMIN.md`. Never trust user_metadata role flags, ship service-role keys to the browser or hardcode a default admin password. Regenerate Dashboard function bundles with `node scripts/build-edge-functions.mjs` after modifying Edge Function source. Preserve RLS and banned-account guards when editing migrations.
+
+Money displays use en-US comma grouping and exactly three decimal digits (1,000,000.000). Preserve numeric JSON storage and up to three-decimal precision; monetary text inputs must parse formatted numbers without changing their value. Maintain the enlarged typography and responsive reflow.
