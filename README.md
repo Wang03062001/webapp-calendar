@@ -1,6 +1,6 @@
 # Lịch của tôi
 
-Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập từ 2026 tới 2033. Có thể dùng trên máy không cần tài khoản, hoặc đăng nhập Supabase để đồng bộ giữa các thiết bị.
+Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập từ 2026 tới 2033. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.
 
 ## Chạy ứng dụng
 
@@ -45,7 +45,7 @@ Sau khi bật Pages, mỗi lần push lên `main`, GitHub sẽ tự triển khai
 - Nhập **Tiết kiệm tháng** và **Mục tiêu tiết kiệm năm** trong panel tiết kiệm phía trên lịch. Mỗi năm có mục tiêu riêng; thanh tiến độ cộng số tiền tiết kiệm từ 12 tháng và cho biết số tiền còn thiếu. Mục tiêu chưa đặt không có phần trăm; vượt mục tiêu vẫn hiển thị đúng tổng tiền.
 - Mục **Tổng kết năm** có cột tiết kiệm theo từng tháng và tổng năm. Tiết kiệm là số tiền dành riêng, được trừ khỏi số dư có thể chi, không cộng vào tổng chi tiêu. Dữ liệu và bản sao lưu phiên bản cũ vẫn được đọc bình thường.
 - Mở **Tổng kết năm** để xem lương, thưởng, chi tiêu, số dư dự kiến và nội dung mọi khoản chi; nhấn tháng hoặc ngày để mở lại lịch.
-- Khi chưa đăng nhập, dữ liệu tự lưu trong localStorage của trình duyệt. Khi đăng nhập, bản nháp được lưu riêng theo tài khoản và tự gửi lên Supabase. **Xuất dữ liệu** tải bản sao lưu JSON; nút nhập bên cạnh khôi phục bản sao lưu sau xác nhận thay thế dữ liệu hiện tại.
+- Khi chưa đăng nhập, các ô nhập và nhập/xuất bản sao lưu bị khóa; dữ liệu tài chính cũ không hiển thị. Khi đã đăng nhập, thay đổi được giữ trong bản nháp riêng của tài khoản. Nhấn **Enter** trong ô nhập hoặc nút **Lưu thay đổi** để gửi lên Supabase. Trong ghi chú, **Shift+Enter** để xuống dòng. **Xuất dữ liệu** tải bản sao lưu JSON; nút nhập bên cạnh khôi phục bản sao lưu sau xác nhận thay thế dữ liệu hiện tại.
 
 Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán). Số dư dự kiến = lương + thưởng − chi tiêu − tiết kiệm. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Xóa dữ liệu trình duyệt sẽ xóa dữ liệu chưa đồng bộ và bản nháp trên máy; dữ liệu đã đồng bộ có thể tải lại sau khi đăng nhập. Nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
 
@@ -59,9 +59,9 @@ Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán
 ### Đăng nhập và chuyển dữ liệu cũ
 
 - Bấm **Đăng nhập → Tạo tài khoản**, xác nhận email nếu được yêu cầu, rồi đăng nhập. Ở máy khác, đăng nhập cùng email để thấy cùng dữ liệu.
-- Dữ liệu cũ trên máy không bị tự động đưa lên tài khoản. Nếu tài khoản đang trống, nút **Chuyển dữ liệu cũ trên máy lên tài khoản** cho phép chuyển sau khi bạn xác nhận. Bản dữ liệu cũ trên máy vẫn được giữ nguyên. Nếu tài khoản đã có dữ liệu, hãy xuất bản sao lưu trước khi nhập file khác thay thế.
-- Chỉ trạng thái **Đã đồng bộ** mới xác nhận lưu đám mây thành công. **Bản nháp trên máy / Chưa đồng bộ** nghĩa là thay đổi vẫn chỉ ở thiết bị này. Khi có mạng trở lại, bấm **Thử đồng bộ lại**. Khi đăng xuất, bản nháp chưa gửi vẫn được giữ riêng theo tài khoản để tiếp tục sau khi đăng nhập lại.
-- Dữ liệu được kiểm tra lại mỗi 30 giây khi trang đang mở, khi quay về tab hoặc bấm **Đồng bộ ngay**. Nếu hai thiết bị cùng sửa trên một phiên bản cũ, ứng dụng giữ bản nháp và báo xung đột. Hãy **Xuất bản nháp** trước khi **Tải bản đám mây**; không tự gộp hoặc ghi đè âm thầm.
+- Dữ liệu cũ trên máy không bị tự động đưa lên tài khoản. Nếu tài khoản đang trống, nút **Chuyển dữ liệu cũ trên máy lên tài khoản** cho phép chuyển sau khi bạn xác nhận, rồi nhấn **Lưu thay đổi** để đồng bộ. Bản dữ liệu cũ trên máy vẫn được giữ nguyên. Nếu tài khoản đã có dữ liệu, hãy xuất bản sao lưu trước khi nhập file khác thay thế.
+- Chỉ trạng thái **Đã đồng bộ** mới xác nhận lưu đám mây thành công. **Chưa lưu thay đổi** là bản nháp chưa được gửi: cần nhấn Enter hoặc **Lưu thay đổi**. **Chưa đồng bộ** là lần gửi bị lỗi; bản đã yêu cầu lưu vẫn được giữ trên máy để thử lại. Khi có mạng trở lại, bấm **Thử đồng bộ lại**. Khi đăng xuất, bản nháp chưa gửi vẫn được giữ riêng theo tài khoản để tiếp tục sau khi đăng nhập lại.
+- Dữ liệu được kiểm tra lại mỗi 30 giây khi trang đang mở, khi quay về tab hoặc bấm **Đồng bộ ngay**. Các thao tác này không tự gửi nội dung chưa nhấn Enter/Lưu thay đổi. Bản đã yêu cầu lưu nhưng lỗi mạng có thể được gửi lại; nội dung gõ thêm sau đó vẫn là bản nháp. Nếu hai thiết bị cùng sửa trên một phiên bản cũ, ứng dụng giữ bản nháp và báo xung đột. Hãy **Xuất bản nháp** trước khi **Tải bản đám mây**; không tự gộp hoặc ghi đè âm thầm.
 - Các tab dùng cùng tài khoản cũng có thể gặp xung đột; nên sửa trong một tab tại một thời điểm. Trên máy dùng chung, đăng xuất và tránh lưu dữ liệu riêng ở chế độ chưa đăng nhập.
 
 Database lưu trên project Supabase của bạn, trong bảng `public.calendar_documents`; mỗi tài khoản có một dòng JSON chứa lịch, thu nhập, tiết kiệm và mục tiêu. Frontend không có quyền đọc dữ liệu tài khoản khác hoặc ghi trực tiếp vào bảng; chỉ ghi qua hàm có kiểm tra người dùng và phiên bản dữ liệu. Thiết lập này chưa tự tạo chính sách sao lưu phía Supabase.
@@ -69,3 +69,5 @@ Database lưu trên project Supabase của bạn, trong bảng `public.calendar_
 ## Tên đăng nhập, khôi phục mật khẩu và admin
 
 Xem [hướng dẫn thiết lập quản trị](supabase/ADMIN.md). Cần chạy thêm `admin-setup.sql`, tạo admin trong Auth và triển khai hai Edge Functions trước khi dùng đăng nhập bằng tên tài khoản và quản trị. Đăng nhập bằng email và đồng bộ cũ vẫn hoạt động khi chưa triển khai phần mở rộng. Tài khoản admin mặc định có tên `admin` nhưng mật khẩu do chủ project tự đặt trong Dashboard; không có mật khẩu mặc định trong mã nguồn.
+
+Thay đổi chưa lưu được giữ khi chuyển ngày/tháng và khi mở lại đúng tài khoản trên thiết bị đó. Đóng hoặc tải lại tab khi còn thay đổi sẽ có cảnh báo của trình duyệt. Đăng xuất luôn xóa dữ liệu khỏi màn hình; đăng nhập lại mới tải bản nháp riêng. Dữ liệu của chế độ khách cũ chỉ được giữ để chuyển sau khi đăng nhập, không bị xóa tự động.

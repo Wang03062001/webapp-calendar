@@ -4,7 +4,7 @@ This is a Vietnamese personal finance calendar for 2026–2033. Use the existing
 
 ## Development
 
-- Node.js >=22; no dependency installation is required. Local-only mode works offline. Optional cross-device sync uses Supabase Auth and the public configuration in `src/config.js`; database setup is in `supabase/setup.sql`. Never put service_role/secret keys in browser code.
+- Node.js >=22; no dependency installation is required. Editing requires a verified signed-in Supabase user. Enter or Save Changes explicitly submits a snapshot; typing only caches an account-scoped draft. Cross-device sync uses Supabase Auth and the public configuration in `src/config.js`; database setup is in `supabase/setup.sql`. Never put service_role/secret keys in browser code.
 - Run `npm run dev` to start the development server on port 5173.
 - Run `node test/model.test.js`, `node test/sync.test.js`, `node test/admin.test.js` and `npm run build`. Validate relevant browser interactions when changing UI behavior. Supabase row-level security and optimistic revision checks must remain enforced; never silently overwrite an account's cloud data with a local draft.
 - Preserve browser-local financial data. Never commit financial backups, secrets, `.env` files, generated `dist/` files or temporary browser artifacts.

@@ -4,7 +4,7 @@ import { SupabaseClient } from './supabase.js';
 import { SyncController, hasData } from './sync.js';
 import { showAdmin, showPasswordReset, showRecovery } from './admin.js';
 
-// Keep the original key so existing browser data is migrated by normalizeData.
+// Preserve legacy guest data for an explicit import after authentication only.
 const STORAGE_KEY = 'lich-cua-toi.v1';
 const money = number => new Intl.NumberFormat('vi-VN').format(number) + ' ₫';
 const escape = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -23,11 +23,7 @@ const icons = {
 const icon = (name, cls = '') => `<svg class="icon ${cls}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.calendar}</svg>`;
 const now = new Date();
 let year = Math.min(2033, Math.max(2026, now.getFullYear())), month = now.getMonth(), day = now.getDate(), view = 'calendar';
-let data = emptyData(), storageError = '', savedTimer;
-try {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) data = normalizeData(JSON.parse(stored));
-} catch { storageError = 'Không đọc được dữ liệu đã lưu. Hãy xuất bản sao lưu trước khi nhập thêm; dữ liệu cũ chưa bị ghi đè.'; }
+let data = emptyData(), savedTimer;
 const root = document.querySelector('#app');
 const selectedKey = () => dayKey(year, month, day);
 const currentDay = () => data.days[selectedKey()] || { note: '', items: [] };
@@ -38,9 +34,18 @@ function notify(message) {
   clearTimeout(savedTimer); savedTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 function persist() {
-  if (storageError && !cloud.user) { notify('Chưa lưu: cần khôi phục dữ liệu từ bản sao lưu hoặc tải lại trang.'); return false; }
+  if (!canEdit()) { notify('Hãy đăng nhập trước khi nhập dữ liệu.'); return false; }
   try { cloud.save(data); return true; }
   catch { notify('Không thể lưu trên trình duyệt. Hãy xuất dữ liệu để tránh mất thay đổi.'); return false; }
+}
+function canEdit() { return Boolean(cloud.user) && cloud.status !== 'loading'; }
+async function saveChanges() {
+  if (!canEdit()) return;
+  try {
+    await cloud.commit();
+    if (cloud.status === 'ready') notify('Đã lưu thay đổi.');
+    else if (['error', 'conflict'].includes(cloud.status)) notify(cloud.message);
+  } catch (error) { notify(error.message); }
 }
 function render() {
   const totals = yearSummary(data, year);
@@ -59,8 +64,8 @@ function render() {
     <main>
       <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><span class="saved-label" id="cloud-status"></span><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
       <div id="cloud-notice" aria-live="polite"></div>
+      <div class="save-bar" id="save-bar" hidden><span id="save-state">Enter để lưu · Shift+Enter để xuống dòng</span><button class="button save-button" data-action="save">${icon('check')} Lưu thay đổi</button></div>
       <div class="page">
-        ${storageError && !cloud.user ? `<div class="warning" role="alert">${escape(storageError)}</div>` : ''}
         <div class="page-heading"><div><div class="eyebrow">KẾ HOẠCH NHỎ · CUỘC SỐNG LỚN</div><h1>${view === 'calendar' ? 'Chủ động từng khoản chi' : `Nhìn lại năm ${year}`}<span class="heading-dot">.</span></h1><p>${view === 'calendar' ? 'Ghi lại điều cần mua, sắp xếp chi tiêu và dành chỗ cho những điều quan trọng.' : 'Lương, thưởng và mọi khoản chi — tất cả trong một bức tranh rõ ràng.'}</p></div><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${YEARS.map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div></div>
         <div class="stats">
           ${stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập cố định trong năm', 'green')}
@@ -130,7 +135,7 @@ function dayPanel() {
     <div class="expense-table-wrap"><table class="expense-table"><thead><tr><th>Nội dung cần chi</th><th>Số tiền</th><th><span class="sr-only">Thao tác</span></th></tr></thead><tbody>${entry.items.map((item, index) => `<tr data-item="${index}"><td><input aria-label="Nội dung khoản chi ${index + 1}" placeholder="Nhập nội dung…" maxlength="500" data-field="title" value="${escape(item.title)}" /></td><td><input aria-label="Số tiền khoản chi ${index + 1}" type="number" min="0" max="${MAX_AMOUNT}" step="1" inputmode="numeric" placeholder="0" data-field="amount" value="${item.amount || ''}" /></td><td><button class="delete-button" data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>
     ${entry.items.length ? '' : `<div class="empty-expenses"><span>${icon('wallet')}</span><strong>Một ngày mới, một kế hoạch mới</strong><p>Thêm món cần mua hoặc khoản cần chi<br>để bắt đầu sắp xếp ngày của bạn.</p></div>`}
     <button class="add-expense" data-action="add">${icon('plus')} Thêm khoản chi</button>
-    <div class="day-total"><span>Tổng chi trong ngày</span><strong id="day-total">${money(dayTotal(entry))}</strong></div><div class="day-hint">${icon('check')} Thay đổi tự lưu; xem trạng thái đồng bộ ở trên.<br>Xuất dữ liệu định kỳ để giữ bản sao lưu.</div>`;
+    <div class="day-total"><span>Tổng chi trong ngày</span><strong id="day-total">${money(dayTotal(entry))}</strong></div><div class="day-hint">${icon('check')} Enter hoặc Lưu thay đổi để đồng bộ.<br>Shift+Enter để xuống dòng.</div>`;
 }
 function yearView() {
   const total = yearSummary(data, year);
@@ -155,6 +160,7 @@ function refreshTotals() {
 root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
+  if ((button.dataset.delete !== undefined || ['add', 'import', 'export', 'save', 'cloud-migrate', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
   if (button.dataset.year) { year = +button.dataset.year; day = Math.min(day, daysInMonth(year, month)); render(); }
   if (button.dataset.month !== undefined) { month = +button.dataset.month; day = Math.min(day, daysInMonth(year, month)); render(); }
   if (button.dataset.day) { day = +button.dataset.day; render(); }
@@ -163,6 +169,7 @@ root.addEventListener('click', async event => {
   if (button.dataset.openDay) { [year, month, day] = button.dataset.openDay.split('-').map(Number); month--; view = 'calendar'; render(); }
   if (button.dataset.delete !== undefined) { ensureDay().items.splice(+button.dataset.delete, 1); persist(); render(); }
   switch (button.dataset.action) {
+    case 'save': await saveChanges(); break;
     case 'account': showAccount(); break;
     case 'cloud-retry': await cloud.refresh(); break;
     case 'cloud-remote': {
@@ -175,7 +182,7 @@ root.addEventListener('click', async event => {
       if (!confirm('Chuyển dữ liệu cũ đang lưu trong trình duyệt này lên tài khoản đang đăng nhập?')) break;
       try {
         const local = normalizeData(JSON.parse(localStorage.getItem(STORAGE_KEY)));
-        data = local; persist(); render(); await cloud.flush();
+        data = local; persist(); render(); notify('Đã nhập bản nháp. Nhấn Lưu thay đổi để đồng bộ.');
       } catch { notify('Không đọc được dữ liệu cũ. Hãy nhập từ file sao lưu.'); }
       break;
     }
@@ -190,7 +197,6 @@ root.addEventListener('click', async event => {
       year = now.getFullYear(); month = now.getMonth(); day = now.getDate(); render(); break;
     }
     case 'export': {
-      if (storageError && !cloud.user) { notify('Dữ liệu lưu bị lỗi. Bản xuất hiện tại chỉ chứa dữ liệu đang hiển thị.'); }
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
       const link = document.createElement('a'); link.href = url; link.download = `lich-cua-toi-${dayKey(year, month, day)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); break;
     }
@@ -198,6 +204,7 @@ root.addEventListener('click', async event => {
   }
 });
 root.addEventListener('input', event => {
+  if (!canEdit()) return;
   const target = event.target;
   if (target.id === 'monthly-savings') { data.savings[monthKey(year, month)] = amount(target.value); persist(); refreshTotals(); }
   if (target.id === 'annual-savings-goal') { data.goals[year] = amount(target.value); persist(); refreshTotals(); }
@@ -213,6 +220,7 @@ root.addEventListener('input', event => {
   }
 });
 root.addEventListener('change', async event => {
+  if (!canEdit()) return;
   const target = event.target;
   if (target.id === 'year-select') { year = +target.value; day = Math.min(day, daysInMonth(year, month)); render(); }
   if (target.type === 'number') target.value = amount(target.value) || '';
@@ -220,21 +228,26 @@ root.addEventListener('change', async event => {
     try {
       const file = target.files[0];
       if (file.size > 10_000_000) throw new Error('Bản sao lưu phải nhỏ hơn 10 MB.');
+      const userId = cloud.user.id;
       const imported = normalizeData(JSON.parse(await file.text()));
+      if (!canEdit() || cloud.user.id !== userId) return;
       if (!confirm('Nhập bản sao lưu sẽ thay thế toàn bộ dữ liệu hiện tại trên trình duyệt này. Bạn đã xuất dữ liệu cần giữ chưa?')) return;
-      const previous = data, previousError = storageError;
-      data = imported; storageError = '';
-      if (!persist()) { data = previous; storageError = previousError; return; }
-      render(); notify('Đã khôi phục dữ liệu từ bản sao lưu.');
+      const previous = data;
+      data = imported;
+      if (!persist()) { data = previous; return; }
+      render(); notify('Đã nhập bản nháp. Nhấn Lưu thay đổi để đồng bộ.');
     } catch (error) { notify(`Không thể nhập dữ liệu. ${error.message}`); }
     finally { target.value = ''; }
   }
+});
+root.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing || !event.target.matches('.page input, .page textarea') || !canEdit()) return;
+  event.preventDefault(); saveChanges();
 });
 const authClient = new SupabaseClient(supabaseConfig, localStorage);
 const cloud = new SyncController(authClient, localStorage, {
   onData: next => {
     data = next;
-    if (cloud.localReadError && !cloud.user) storageError = 'Không đọc được dữ liệu cũ trên máy. Dữ liệu gốc chưa bị ghi đè; hãy khôi phục từ bản sao lưu.';
     render();
   }, onStatus: () => renderCloud(),
 });
@@ -242,26 +255,31 @@ const cloud = new SyncController(authClient, localStorage, {
 function renderCloud() {
   const status = document.querySelector('#cloud-status');
   if (!status) return;
-  const labels = { local: 'Lưu trên máy', loading: 'Đang kết nối…', pending: 'Bản nháp trên máy', saving: 'Đang đồng bộ…', ready: 'Đã đồng bộ', error: 'Chưa đồng bộ', conflict: 'Cần xử lý thay đổi' };
+  const labels = { guest: 'Chưa đăng nhập', loading: 'Đang kết nối…', draft: 'Chưa lưu thay đổi', pending: 'Chờ đồng bộ', saving: 'Đang lưu…', ready: 'Đã đồng bộ', error: 'Chưa đồng bộ', conflict: 'Cần xử lý thay đổi' };
   status.textContent = labels[cloud.status];
   document.querySelector('#account-label').textContent = cloud.user ? 'Tài khoản' : 'Đăng nhập';
   document.querySelector('[data-action="account"]').disabled = cloud.status === 'loading';
-  document.querySelector('[data-action="import"]').disabled = cloud.status === 'loading';
-  document.querySelector('.page').inert = cloud.status === 'loading';
-  document.querySelector('#storage-description').textContent = cloud.user ? `Đơn vị: VNĐ · ${labels[cloud.status]} · ${cloud.user.email}` : 'Đơn vị: VNĐ · Dữ liệu chỉ lưu trong trình duyệt này';
-  document.querySelector('.local-badge').innerHTML = `${icon('check')} ${cloud.user ? labels[cloud.status] : 'Dữ liệu lưu trên thiết bị'}`;
+  document.querySelector('[data-action="import"]').disabled = !canEdit();
+  document.querySelector('[data-action="export"]').disabled = !canEdit();
+  document.querySelector('.page').inert = !canEdit();
+  document.querySelectorAll('.page input, .page textarea, .page select, .page [data-action="add"], .page [data-delete]').forEach(input => input.disabled = !canEdit());
+  document.querySelector('#save-bar').hidden = !cloud.user;
+  document.querySelector('[data-action="save"]').disabled = !canEdit() || !cloud.dirty;
+  document.querySelector('#save-state').textContent = `${labels[cloud.status]} · Enter để lưu · Shift+Enter xuống dòng`;
+  document.querySelector('#storage-description').textContent = cloud.user ? `Đơn vị: VNĐ · ${labels[cloud.status]} · ${cloud.user.email}` : 'Đăng nhập để nhập và lưu dữ liệu';
+  document.querySelector('.local-badge').innerHTML = `${icon('check')} ${labels[cloud.status]}`;
   let message = '', actions = '';
   if (['error', 'conflict'].includes(cloud.status)) {
     message = escape(cloud.message);
     actions = cloud.status === 'conflict' ? '<button data-action="export">Xuất bản nháp</button><button data-action="cloud-remote">Tải bản đám mây</button>' : `<button data-action="${cloud.user ? 'cloud-retry' : 'account'}">${cloud.user ? 'Thử đồng bộ lại' : 'Đăng nhập'}</button>`;
   } else if (cloud.status === 'loading') message = 'Đang tải dữ liệu tài khoản. Vui lòng chờ trước khi chỉnh sửa.';
   else if (!cloud.user) {
-    message = 'Đăng nhập để lưu dữ liệu trên Supabase và sử dụng trên các thiết bị khác.';
+    message = 'Đăng nhập để nhập và lưu dữ liệu.';
     actions = '<button data-action="account">Đăng nhập / Tạo tài khoản</button>';
   } else {
     message = `Tài khoản: ${escape(cloud.user.email)} · ${labels[cloud.status]}.`;
     if (!hasData(data) && cloud.status === 'ready' && localStorage.getItem(STORAGE_KEY)) actions = '<button data-action="cloud-migrate">Chuyển dữ liệu cũ trên máy lên tài khoản</button>';
-    else actions = '<button data-action="cloud-retry">Đồng bộ ngay</button>';
+    else actions = cloud.status === 'draft' ? '' : '<button data-action="cloud-retry">Đồng bộ ngay</button>';
   }
   document.querySelector('#cloud-notice').innerHTML = `<div class="cloud-notice ${['error', 'conflict'].includes(cloud.status) ? 'cloud-warning' : ''}"><span>${message}</span><div>${actions}</div></div>`;
 }
@@ -318,7 +336,6 @@ function showAccount() {
   dialog.querySelector('#sign-out')?.addEventListener('click', async event => {
     event.target.disabled = true;
     try {
-      await cloud.flush();
       if (cloud.dirty && !confirm('Có bản nháp chưa đồng bộ. Đăng xuất và giữ bản nháp trên máy để đồng bộ khi đăng nhập lại?')) return;
       await cloud.logout(); dialog.close();
     } catch (error) { dialog.querySelector('#auth-message').textContent = error.message; }
@@ -337,3 +354,4 @@ if (authClient.session) cloud.open().then(() => { if (authHash.get('type') === '
 window.addEventListener('online', () => cloud.refresh());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) cloud.refresh(); });
 setInterval(() => { if (!document.hidden && cloud.user && !cloud.dirty && cloud.status !== 'loading') cloud.refresh(); }, 30000);
+window.addEventListener('beforeunload', event => { if (cloud.user && cloud.dirty) { event.preventDefault(); event.returnValue = ''; } });
