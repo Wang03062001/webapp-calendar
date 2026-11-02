@@ -1,4 +1,7 @@
 import { YEARS, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData } from './model.js';
+import { supabaseConfig } from './config.js';
+import { SupabaseClient } from './supabase.js';
+import { SyncController, hasData } from './sync.js';
 
 // Keep the original key so existing browser data is migrated by normalizeData.
 const STORAGE_KEY = 'lich-cua-toi.v1';
@@ -34,8 +37,8 @@ function notify(message) {
   clearTimeout(savedTimer); savedTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 function persist() {
-  if (storageError) { notify('Chưa lưu: cần khôi phục dữ liệu từ bản sao lưu hoặc tải lại trang.'); return false; }
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); return true; }
+  if (storageError && !cloud.user) { notify('Chưa lưu: cần khôi phục dữ liệu từ bản sao lưu hoặc tải lại trang.'); return false; }
+  try { cloud.save(data); return true; }
   catch { notify('Không thể lưu trên trình duyệt. Hãy xuất dữ liệu để tránh mất thay đổi.'); return false; }
 }
 function render() {
@@ -53,9 +56,10 @@ function render() {
       <div class="sidebar-bottom"><div class="local-badge">${icon('check')} Dữ liệu lưu trên thiết bị</div><p>Một chút kế hoạch hôm nay.<br>Thảnh thơi hơn ngày mai.</p><div class="profile"><span class="avatar">T</span><div>Tài chính của tôi<small>Không gian riêng của bạn</small></div></div></div>
     </aside>
     <main>
-      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><span class="saved-label">${icon('check')} Lưu tự động</span><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
+      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><span class="saved-label" id="cloud-status"></span><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
+      <div id="cloud-notice" aria-live="polite"></div>
       <div class="page">
-        ${storageError ? `<div class="warning" role="alert">${escape(storageError)}</div>` : ''}
+        ${storageError && !cloud.user ? `<div class="warning" role="alert">${escape(storageError)}</div>` : ''}
         <div class="page-heading"><div><div class="eyebrow">KẾ HOẠCH NHỎ · CUỘC SỐNG LỚN</div><h1>${view === 'calendar' ? 'Chủ động từng khoản chi' : `Nhìn lại năm ${year}`}<span class="heading-dot">.</span></h1><p>${view === 'calendar' ? 'Ghi lại điều cần mua, sắp xếp chi tiêu và dành chỗ cho những điều quan trọng.' : 'Lương, thưởng và mọi khoản chi — tất cả trong một bức tranh rõ ràng.'}</p></div><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${YEARS.map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div></div>
         <div class="stats">
           ${stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập cố định trong năm', 'green')}
@@ -65,9 +69,10 @@ function render() {
         </div>
         ${savingsPanel()}
         ${view === 'calendar' ? calendarView() : yearView()}
-        <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span>Đơn vị: VNĐ · Dữ liệu chỉ lưu trong trình duyệt này</span></footer>
+        <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Đơn vị: VNĐ · Dữ liệu chỉ lưu trong trình duyệt này</span></footer>
       </div>
     </main>`;
+  renderCloud();
 }
 function stat(symbol, label, value, detail, color) {
   return `<section class="stat"><div class="stat-top"><span>${label}</span><span class="stat-icon ${color}">${icon(symbol)}</span></div><strong class="${value < 0 ? 'negative' : ''}">${money(value)}</strong><small>${detail}</small></section>`;
@@ -124,7 +129,7 @@ function dayPanel() {
     <div class="expense-table-wrap"><table class="expense-table"><thead><tr><th>Nội dung cần chi</th><th>Số tiền</th><th><span class="sr-only">Thao tác</span></th></tr></thead><tbody>${entry.items.map((item, index) => `<tr data-item="${index}"><td><input aria-label="Nội dung khoản chi ${index + 1}" placeholder="Nhập nội dung…" maxlength="500" data-field="title" value="${escape(item.title)}" /></td><td><input aria-label="Số tiền khoản chi ${index + 1}" type="number" min="0" max="${MAX_AMOUNT}" step="1" inputmode="numeric" placeholder="0" data-field="amount" value="${item.amount || ''}" /></td><td><button class="delete-button" data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>
     ${entry.items.length ? '' : `<div class="empty-expenses"><span>${icon('wallet')}</span><strong>Một ngày mới, một kế hoạch mới</strong><p>Thêm món cần mua hoặc khoản cần chi<br>để bắt đầu sắp xếp ngày của bạn.</p></div>`}
     <button class="add-expense" data-action="add">${icon('plus')} Thêm khoản chi</button>
-    <div class="day-total"><span>Tổng chi trong ngày</span><strong id="day-total">${money(dayTotal(entry))}</strong></div><div class="day-hint">${icon('check')} Thay đổi được lưu tự động trên trình duyệt.<br>Xuất dữ liệu định kỳ để giữ bản sao lưu.</div>`;
+    <div class="day-total"><span>Tổng chi trong ngày</span><strong id="day-total">${money(dayTotal(entry))}</strong></div><div class="day-hint">${icon('check')} Thay đổi tự lưu; xem trạng thái đồng bộ ở trên.<br>Xuất dữ liệu định kỳ để giữ bản sao lưu.</div>`;
 }
 function yearView() {
   const total = yearSummary(data, year);
@@ -146,7 +151,7 @@ function refreshTotals() {
   document.querySelector('#income-total').textContent = money(summary.salary + summary.bonus);
   document.querySelector('.calendar-panel').outerHTML = calendarPanel();
 }
-root.addEventListener('click', event => {
+root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
   if (button.dataset.year) { year = +button.dataset.year; day = Math.min(day, daysInMonth(year, month)); render(); }
@@ -157,6 +162,22 @@ root.addEventListener('click', event => {
   if (button.dataset.openDay) { [year, month, day] = button.dataset.openDay.split('-').map(Number); month--; view = 'calendar'; render(); }
   if (button.dataset.delete !== undefined) { ensureDay().items.splice(+button.dataset.delete, 1); persist(); render(); }
   switch (button.dataset.action) {
+    case 'account': showAccount(); break;
+    case 'cloud-retry': await cloud.refresh(); break;
+    case 'cloud-remote': {
+      if (!confirm('Thay bản nháp trên máy bằng dữ liệu đám mây? Hãy xuất dữ liệu trước nếu cần giữ bản nháp.')) break;
+      try { await cloud.useRemote(); } catch (error) { notify(error.message); }
+      break;
+    }
+    case 'cloud-migrate': {
+      if (!cloud.user || hasData(data) || cloud.status !== 'ready') break;
+      if (!confirm('Chuyển dữ liệu cũ đang lưu trong trình duyệt này lên tài khoản đang đăng nhập?')) break;
+      try {
+        const local = normalizeData(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+        data = local; persist(); render(); await cloud.flush();
+      } catch { notify('Không đọc được dữ liệu cũ. Hãy nhập từ file sao lưu.'); }
+      break;
+    }
     case 'add': ensureDay().items.push({ id: crypto.randomUUID(), title: '', amount: 0 }); persist(); render(); document.querySelector('.expense-table tr:last-child input')?.focus(); break;
     case 'prev': case 'next': {
       const date = new Date(year, month + (button.dataset.action === 'next' ? 1 : -1), 1);
@@ -168,7 +189,7 @@ root.addEventListener('click', event => {
       year = now.getFullYear(); month = now.getMonth(); day = now.getDate(); render(); break;
     }
     case 'export': {
-      if (storageError) { notify('Dữ liệu lưu bị lỗi. Bản xuất hiện tại chỉ chứa dữ liệu đang hiển thị.'); }
+      if (storageError && !cloud.user) { notify('Dữ liệu lưu bị lỗi. Bản xuất hiện tại chỉ chứa dữ liệu đang hiển thị.'); }
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
       const link = document.createElement('a'); link.href = url; link.download = `lich-cua-toi-${dayKey(year, month, day)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); break;
     }
@@ -208,4 +229,90 @@ root.addEventListener('change', async event => {
     finally { target.value = ''; }
   }
 });
+const authClient = new SupabaseClient(supabaseConfig, localStorage);
+const cloud = new SyncController(authClient, localStorage, {
+  onData: next => {
+    data = next;
+    if (cloud.localReadError && !cloud.user) storageError = 'Không đọc được dữ liệu cũ trên máy. Dữ liệu gốc chưa bị ghi đè; hãy khôi phục từ bản sao lưu.';
+    render();
+  }, onStatus: () => renderCloud(),
+});
+
+function renderCloud() {
+  const status = document.querySelector('#cloud-status');
+  if (!status) return;
+  const labels = { local: 'Lưu trên máy', loading: 'Đang kết nối…', pending: 'Bản nháp trên máy', saving: 'Đang đồng bộ…', ready: 'Đã đồng bộ', error: 'Chưa đồng bộ', conflict: 'Cần xử lý thay đổi' };
+  status.textContent = labels[cloud.status];
+  document.querySelector('#account-label').textContent = cloud.user ? 'Tài khoản' : 'Đăng nhập';
+  document.querySelector('[data-action="account"]').disabled = cloud.status === 'loading';
+  document.querySelector('[data-action="import"]').disabled = cloud.status === 'loading';
+  document.querySelector('.page').inert = cloud.status === 'loading';
+  document.querySelector('#storage-description').textContent = cloud.user ? `Đơn vị: VNĐ · ${labels[cloud.status]} · ${cloud.user.email}` : 'Đơn vị: VNĐ · Dữ liệu chỉ lưu trong trình duyệt này';
+  document.querySelector('.local-badge').innerHTML = `${icon('check')} ${cloud.user ? labels[cloud.status] : 'Dữ liệu lưu trên thiết bị'}`;
+  let message = '', actions = '';
+  if (['error', 'conflict'].includes(cloud.status)) {
+    message = escape(cloud.message);
+    actions = cloud.status === 'conflict' ? '<button data-action="export">Xuất bản nháp</button><button data-action="cloud-remote">Tải bản đám mây</button>' : `<button data-action="${cloud.user ? 'cloud-retry' : 'account'}">${cloud.user ? 'Thử đồng bộ lại' : 'Đăng nhập'}</button>`;
+  } else if (cloud.status === 'loading') message = 'Đang tải dữ liệu tài khoản. Vui lòng chờ trước khi chỉnh sửa.';
+  else if (!cloud.user) {
+    message = 'Đăng nhập để lưu dữ liệu trên Supabase và sử dụng trên các thiết bị khác.';
+    actions = '<button data-action="account">Đăng nhập / Tạo tài khoản</button>';
+  } else {
+    message = `Tài khoản: ${escape(cloud.user.email)} · ${labels[cloud.status]}.`;
+    if (!hasData(data) && cloud.status === 'ready' && localStorage.getItem(STORAGE_KEY)) actions = '<button data-action="cloud-migrate">Chuyển dữ liệu cũ trên máy lên tài khoản</button>';
+    else actions = '<button data-action="cloud-retry">Đồng bộ ngay</button>';
+  }
+  document.querySelector('#cloud-notice').innerHTML = `<div class="cloud-notice ${['error', 'conflict'].includes(cloud.status) ? 'cloud-warning' : ''}"><span>${message}</span><div>${actions}</div></div>`;
+}
+
+function showAccount() {
+  document.querySelector('#account-dialog')?.remove();
+  const dialog = document.createElement('dialog'); dialog.id = 'account-dialog'; dialog.className = 'account-dialog';
+  dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><div class="eyebrow">DỮ LIỆU CỦA BẠN · TRÊN MỌI THIẾT BỊ</div><h2>${cloud.user ? 'Tài khoản của bạn' : 'Chào mừng bạn trở lại'}</h2>
+    ${cloud.user ? `<p>Đang đăng nhập: <strong>${escape(cloud.user.email)}</strong></p><p>Bản nháp chưa đồng bộ sẽ được giữ riêng cho tài khoản này trên trình duyệt.</p><button class="account-submit" id="sign-out">Đăng xuất</button>` : `<p>Đăng nhập cùng tài khoản để dùng chung lịch, chi tiêu và tiết kiệm trên các máy.</p><div class="auth-tabs"><button class="active" data-mode="signin">Đăng nhập</button><button data-mode="signup">Tạo tài khoản</button></div><form id="auth-form"><label>Email<input name="email" type="email" required autocomplete="username" placeholder="Email của bạn" /></label><label>Mật khẩu<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Mật khẩu" /></label><button class="account-submit" type="submit">Đăng nhập</button></form>`}
+    <p id="auth-message" role="status" aria-live="polite"></p>`;
+  document.body.append(dialog); dialog.showModal();
+  dialog.querySelector('.dialog-close').onclick = () => dialog.close();
+  let mode = 'signin';
+  dialog.querySelectorAll('[data-mode]').forEach(button => button.onclick = () => {
+    mode = button.dataset.mode;
+    dialog.querySelectorAll('[data-mode]').forEach(tab => tab.classList.toggle('active', tab === button));
+    dialog.querySelector('.account-submit').textContent = mode === 'signin' ? 'Đăng nhập' : 'Tạo tài khoản';
+    dialog.querySelector('[name="password"]').autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
+    dialog.querySelector('[name="password"]').minLength = mode === 'signin' ? 6 : 8;
+    dialog.querySelector('#auth-message').textContent = mode === 'signup' ? 'Dùng mật khẩu ít nhất 8 ký tự. Sau khi đăng ký, hãy kiểm tra email xác nhận.' : '';
+  });
+  dialog.querySelector('#auth-form')?.addEventListener('submit', async event => {
+    event.preventDefault(); const form = event.target, email = form.elements.email.value.trim(), password = form.elements.password.value;
+    const controls = [...dialog.querySelectorAll('button,input')]; controls.forEach(control => control.disabled = true);
+    const message = dialog.querySelector('#auth-message'); message.textContent = 'Đang kết nối…';
+    try {
+      const result = mode === 'signin' ? await authClient.signIn(email, password) : await authClient.signUp(email, password, new URL('.', location.href).href);
+      form.elements.password.value = '';
+      if (result?.access_token) { await cloud.open(); dialog.close(); }
+      else message.textContent = 'Hãy kiểm tra email (cả thư rác) để xác nhận tài khoản, sau đó quay lại đăng nhập.';
+    } catch (error) { message.textContent = error.message; }
+    finally { controls.forEach(control => control.disabled = false); }
+  });
+  dialog.querySelector('#sign-out')?.addEventListener('click', async event => {
+    event.target.disabled = true;
+    try {
+      await cloud.flush();
+      if (cloud.dirty && !confirm('Có bản nháp chưa đồng bộ. Đăng xuất và giữ bản nháp trên máy để đồng bộ khi đăng nhập lại?')) return;
+      await cloud.logout(); dialog.close();
+    } catch (error) { dialog.querySelector('#auth-message').textContent = error.message; }
+    finally { event.target.disabled = false; }
+  });
+}
+
+// Supabase email confirmation redirects back with a session in the URL fragment.
+const authHash = new URLSearchParams(location.hash.slice(1));
+if (authHash.has('access_token') && authHash.has('refresh_token')) {
+  authClient.acceptSession({ access_token: authHash.get('access_token'), refresh_token: authHash.get('refresh_token'), expires_in: Number(authHash.get('expires_in')) || 3600 });
+  history.replaceState(null, '', location.pathname + location.search);
+}
 render();
+if (authClient.session) cloud.open();
+window.addEventListener('online', () => cloud.refresh());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) cloud.refresh(); });
+setInterval(() => { if (!document.hidden && cloud.user && !cloud.dirty && cloud.status !== 'loading') cloud.refresh(); }, 30000);
