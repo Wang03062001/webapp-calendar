@@ -60,9 +60,8 @@ function render() {
       <div class="sidebar-bottom"><div class="local-badge">${icon('check')} Dữ liệu lưu trên thiết bị</div><p>Một chút kế hoạch hôm nay.<br>Thảnh thơi hơn ngày mai.</p><div class="profile"><span class="avatar">T</span><div>Tài chính của tôi<small>Không gian riêng của bạn</small></div></div></div>
     </aside>
     <main>
-      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><span class="saved-label" id="cloud-status"></span><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
+      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button small save-button" data-action="save" hidden>${icon('check')} Lưu thay đổi</button><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
       <div id="cloud-notice" aria-live="polite"></div>
-      <div class="save-bar" id="save-bar" hidden><span id="save-state">Enter để lưu · Shift+Enter để xuống dòng</span><button class="button save-button" data-action="save">${icon('check')} Lưu thay đổi</button></div>
       <div class="page">
         <div class="page-heading"><div><div class="eyebrow">KẾ HOẠCH NHỎ · CUỘC SỐNG LỚN</div><h1>${view === 'calendar' ? 'Chủ động từng khoản chi' : `Nhìn lại năm ${year}`}<span class="heading-dot">.</span></h1><p>${view === 'calendar' ? 'Ghi lại điều cần mua, sắp xếp chi tiêu và dành chỗ cho những điều quan trọng.' : 'Lương, thưởng và mọi khoản chi — tất cả trong một bức tranh rõ ràng.'}</p></div><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${YEARS.map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div></div>
         <div class="stats">
@@ -243,10 +242,8 @@ const cloud = new SyncController(authClient, localStorage, {
 });
 
 function renderCloud() {
-  const status = document.querySelector('#cloud-status');
-  if (!status) return;
+  if (!document.querySelector('#account-label')) return;
   const labels = { guest: 'Chưa đăng nhập', loading: 'Đang kết nối…', draft: 'Chưa lưu thay đổi', pending: 'Chờ đồng bộ', saving: 'Đang lưu…', ready: 'Đã đồng bộ', error: 'Chưa đồng bộ', conflict: 'Cần xử lý thay đổi' };
-  status.textContent = labels[cloud.status];
   document.querySelector('#account-label').textContent = cloud.user ? 'Tài khoản' : 'Đăng nhập';
   document.querySelector('[data-action="account"]').disabled = cloud.status === 'loading';
   document.querySelector('[data-action="register"]').hidden = Boolean(cloud.user) || cloud.status === 'loading';
@@ -254,9 +251,8 @@ function renderCloud() {
   document.querySelector('[data-action="export"]').disabled = !canEdit();
   document.querySelector('.page').inert = !canEdit();
   document.querySelectorAll('.page input, .page textarea, .page select, .page [data-action="add"], .page [data-delete]').forEach(input => input.disabled = !canEdit());
-  document.querySelector('#save-bar').hidden = !cloud.user;
+  document.querySelector('[data-action="save"]').hidden = !cloud.user;
   document.querySelector('[data-action="save"]').disabled = !canEdit() || !cloud.dirty;
-  document.querySelector('#save-state').textContent = `${labels[cloud.status]} · Enter để lưu · Shift+Enter xuống dòng`;
   document.querySelector('#storage-description').textContent = cloud.user ? `Đơn vị: VNĐ · ${labels[cloud.status]} · ${cloud.user.email}` : 'Đăng nhập để nhập và lưu dữ liệu';
   document.querySelector('.local-badge').innerHTML = `${icon('check')} ${labels[cloud.status]}`;
   let message = '', actions = '';
