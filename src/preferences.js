@@ -28,7 +28,13 @@ export function groupMoneyInput(input) {
   const locate = count => { let seen = 0; for (let i = 0; i < after.length; i++) { if (seen === count) return i; if (after[i] !== ',') seen++; } return after.length; };
   input.value = after; input.setSelectionRange(locate(logical(start)), locate(logical(end)));
 }
+export function finishMoneyInput(input) {
+  if (!input.validity.valid || !input.value.trim()) return;
+  const value = Number(input.value.replace(/,/g, ''));
+  if (Number.isFinite(value) && value >= 0 && value <= 1e12) input.value = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(value);
+}
 export function installMoneyFormatting() {
+  document.addEventListener('focusout', event => { if (event.target.matches('input[data-money]')) finishMoneyInput(event.target); }, true);
   document.addEventListener('input', event => { if (!event.isComposing && event.target.matches('input[data-money]')) groupMoneyInput(event.target); }, true);
   document.addEventListener('compositionend', event => { if (event.target.matches('input[data-money]')) groupMoneyInput(event.target); }, true);
   // Deleting a grouping comma should delete the adjacent digit, not trap the caret.

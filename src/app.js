@@ -381,6 +381,14 @@ function maybeChooseCurrencies() {
   currencyPromptUser = cloud.user.id;
   showSettings(financeContext(), display, next => { display = next; saveDisplay(display); setLanguage(display.language); render(); }, true);
 }
+async function refreshAccountIdentity() {
+  const userId = cloud.user?.id;
+  if (!userId) return;
+  const [user, profile] = await Promise.all([authClient.user(), authClient.profile()]);
+  if (cloud.user?.id !== userId || user.id !== userId) return;
+  cloud.user = user; accountProfile = profile; profileUserId = userId;
+  render();
+}
 function syncAccountProfile() {
   const id = cloud.user?.id || null;
   if (profileUserId === id) return;
@@ -447,10 +455,10 @@ function showAccount(initialMode = 'signin') {
     passwordButton.onclick = () => { dialog.close(); showPasswordReset(authClient); };
     const profileButton = document.createElement('button'); profileButton.className = 'account-submit'; profileButton.textContent = 'Thông tin tài khoản';
     dialog.querySelector('#sign-out').before(profileButton);
-    profileButton.onclick = () => { dialog.close(); showProfile(authClient, { ...cloud.user, ...accountProfile }, async () => { accountProfile = await authClient.profile(); cloud.user = await authClient.user(); render(); }); };
+    profileButton.onclick = () => { dialog.close(); showProfile(authClient, { ...cloud.user, ...accountProfile }, refreshAccountIdentity); };
     const adminButton = document.createElement('button'); adminButton.className = 'account-submit'; adminButton.textContent = 'Quản lý tài khoản'; adminButton.hidden = true;
     dialog.querySelector('#sign-out').before(adminButton);
-    adminButton.onclick = () => { dialog.close(); showAdmin(authClient, userId, () => { profileUserId = null; syncAccountProfile(); }); };
+    adminButton.onclick = () => { dialog.close(); showAdmin(authClient, userId, refreshAccountIdentity); };
     authClient.isAdmin().then(isAdmin => { if (isAdmin === true && cloud.user?.id === userId && dialog.isConnected) adminButton.hidden = false; }).catch(() => {});
   }
   dialog.querySelector('.dialog-close').onclick = () => dialog.close();

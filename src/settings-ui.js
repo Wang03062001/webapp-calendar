@@ -10,25 +10,30 @@ export function showSettings(context, display, onDisplay, onboarding = false) {
   dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><h2>${onboarding ? 'Chọn tiền tệ để bắt đầu' : 'Cài đặt'}</h2><form><label>Ngôn ngữ<select name="language">${LANGUAGES.map(([code,label]) => `<option translate="no" value="${code}" ${code === display.language ? 'selected' : ''}>${label}</option>`).join('')}</select></label><label>Giao diện<select name="theme"><option value="light" ${display.theme === 'light' ? 'selected' : ''}>Sáng</option><option value="dark" ${display.theme === 'dark' ? 'selected' : ''}>Tối</option></select></label>${user ? `<fieldset><legend>Tiền tệ theo nhóm</legend><label>Thu chi, khoản vay và sao kê<select name="cash">${choices(original.cash)}</select></label><p>Lương, thưởng, chi tiêu, khoản vay và sao kê dùng chung một loại tiền tệ.</p><label>Tiết kiệm và mục tiêu tiết kiệm<select name="savings">${choices(original.savings)}</select></label><p>Tiết kiệm tháng và mục tiêu năm dùng chung một loại tiền tệ.</p><div class="currency-existing" hidden><p>Nhóm đã có dữ liệu. Đổi đơn vị sẽ áp dụng cho toàn bộ các năm và giữ nguyên số tiền, không quy đổi tỷ giá.</p><label class="checkbox-label"><input type="checkbox" name="acknowledge" />Tôi muốn giữ số tiền và đổi đơn vị của cả nhóm.</label></div></fieldset>` : ''}<button class="account-submit">${onboarding ? 'Bắt đầu' : 'Lưu cài đặt'}</button></form><p role="status" aria-live="polite"></p>`;
   document.body.append(dialog); dialog.showModal();
   const form = dialog.querySelector('form');
-  dialog.querySelector('.dialog-close').onclick = () => dialog.close();
+  let busy = false;
+  dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
+  dialog.querySelector('.dialog-close').onclick = () => { if (!busy) dialog.close(); };
   dialog.addEventListener('close', () => dialog.remove());
   const changesExisting = () => user && ['cash','savings'].some(group => form.elements[group].value !== original[group] && hasMoney(context.getData(), group));
   form.onchange = event => {
     if (['cash','savings'].includes(event.target.name)) { form.elements.acknowledge.checked = false; dialog.querySelector('.currency-existing').hidden = !changesExisting(); }
   };
   form.onsubmit = async event => {
-    event.preventDefault(); const status = dialog.querySelector('[role=status]'), button = form.querySelector('button');
+    event.preventDefault(); if (busy) return; const status = dialog.querySelector('[role=status]');
     try {
       if (user && (!context.canEdit() || context.getUserId() !== user)) throw new Error('Phiên đăng nhập đã thay đổi.');
       if (user && JSON.stringify(normalizeCurrencies(context.getData().currencies)) !== JSON.stringify(original)) throw new Error('Cài đặt đã thay đổi. Đóng và mở lại để kiểm tra.');
       if (changesExisting() && !form.elements.acknowledge.checked) throw new Error('Xác nhận cách đổi đơn vị cho dữ liệu hiện có.');
-      button.disabled = true;
+      const selectedDisplay = { theme: form.elements.theme.value, language: form.elements.language.value };
+      busy = true; dialog.querySelectorAll('input,select,button').forEach(control => control.disabled = true);
       if (user) {
         const currencies = normalizeCurrencies({cash: form.elements.cash.value, savings: form.elements.savings.value});
         if (JSON.stringify(context.getData().currencies) !== JSON.stringify(currencies)) { const next = structuredClone(context.getData()); next.currencies = currencies; context.onChange(next); await context.commit(); }
       }
-      onDisplay({ theme: form.elements.theme.value, language: form.elements.language.value });
+      if (user && context.getUserId() !== user) { dialog.close(); return; }
+      onDisplay(selectedDisplay);
       dialog.close();
-    } catch (error) { status.textContent = error.message; button.disabled = false; }
+    } catch (error) { status.textContent = error.message; }
+    finally { busy = false; dialog.querySelectorAll('input,select,button').forEach(control => control.disabled = false); }
   };
 }

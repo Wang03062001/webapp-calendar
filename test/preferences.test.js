@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyData,normalizeData,monthSummary,formatAmount} from '../src/model.js';
-import {normalizeCurrencies,setCurrencies,currencyLabel,groupMoneyInput} from '../src/preferences.js';
+import {normalizeCurrencies,setCurrencies,currencyLabel,groupMoneyInput,finishMoneyInput} from '../src/preferences.js';
 import {translations} from '../src/translations.js';
 import {t,setLanguage} from '../src/i18n.js';
 test('currency groups survive normalization without converting monetary records',()=>{
@@ -19,4 +19,10 @@ test('all catalog strings have complete English Japanese Korean and Traditional 
  for(const [key,values] of Object.entries(translations)){assert.equal(values.length,4,key);assert.ok(values.every(Boolean),key);}
  for(const language of ['en','ja','ko','zh-TW']){setLanguage(language);assert.notEqual(t('Thu chi & kỳ lương'),'Thu chi & kỳ lương');assert.notEqual(t('Đổi email'),'Đổi email');}
  setLanguage('vi');setCurrencies({cash:'USD',savings:'TWD'});assert.equal(t('Thu nhập __CASH__ / Tiết kiệm __SAVINGS__'),'Thu nhập USD / Tiết kiệm TWD');setCurrencies();
+});
+
+test('all money dialogs strip trailing zero decimals without changing fractional values',()=>{
+ const input={value:'1,234.000',validity:{valid:true}};finishMoneyInput(input);assert.equal(input.value,'1,234');
+ input.value='1,234.050';finishMoneyInput(input);assert.equal(input.value,'1,234.05');
+ input.value='wrong';input.validity.valid=false;finishMoneyInput(input);assert.equal(input.value,'wrong');
 });
