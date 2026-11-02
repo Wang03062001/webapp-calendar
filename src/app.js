@@ -276,8 +276,7 @@ function renderCloud() {
     actions = cloud.status === 'conflict' ? '<button data-action="export">Xuất bản nháp</button><button data-action="cloud-remote">Tải bản đám mây</button>' : `<button data-action="${cloud.user ? 'cloud-retry' : 'account'}">${cloud.user ? 'Thử đồng bộ lại' : 'Đăng nhập'}</button>`;
   } else if (cloud.status === 'loading') message = 'Đang tải dữ liệu tài khoản. Vui lòng chờ trước khi chỉnh sửa.';
   else if (!cloud.user) {
-    message = 'Đăng nhập để nhập và lưu dữ liệu.';
-    actions = '<button data-action="account">Đăng nhập / Tạo tài khoản</button>';
+    message = '';
   } else {
     message = `Tài khoản: ${escape(cloud.user.email)} · ${labels[cloud.status]}.`;
     if (!hasData(data) && cloud.status === 'ready' && localStorage.getItem(STORAGE_KEY)) actions = '<button data-action="cloud-migrate">Chuyển dữ liệu cũ trên máy lên tài khoản</button>';
