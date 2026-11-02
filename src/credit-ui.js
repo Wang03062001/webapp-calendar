@@ -19,7 +19,7 @@ export function creditPanel(data, month) {
     <details class="card credit-history"><summary>Lịch sử sao kê năm ${month.slice(0,4)}</summary><div>${cards.statements.filter(item=>item.month.startsWith(month.slice(0,4))).sort((a,b)=>b.month.localeCompare(a.month)).map(item=>`<button data-credit-month="${item.month}"><span>${item.month}</span><span>${labels[item.status]}</span><strong>${money(statementNumbers(item).total)}</strong></button>`).join('')||'<p>Chưa có sao kê được lưu.</p>'}</div></details>`;
 }
 export function showCreditDialog(context, action, month) {
-  if(!context.canEdit())return;
+  if(!context.canEdit() || !context.canUseCredit?.())return;
   const original=context.getData(), user=context.getUserId(), cards=original.cards||defaultCards(), saved=cards.statements.find(item=>item.month===month), bill=saved||projectedStatement(original,month), snapshot=JSON.stringify(original.cards);
   const titles={statement:'Nhập / sửa sao kê',settings:'Lịch thanh toán thẻ',pay:'Xác nhận thanh toán sao kê',undo:'Hủy xác nhận thanh toán'};
   if((action==='pay'&&saved?.status!=='confirmed')||(action==='undo'&&saved?.status!=='paid')||(action==='statement'&&saved?.status==='paid'))return;
@@ -31,7 +31,8 @@ export function showCreditDialog(context, action, month) {
   document.body.append(dialog);dialog.showModal();let busy=false;const close=()=>{if(!busy)dialog.close();};dialog.querySelector('.dialog-close').onclick=close;dialog.querySelector('.cancel-credit').onclick=close;dialog.addEventListener('close',()=>dialog.remove());dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   const status = dialog.querySelector('[name=status]'); if (status) { const updateRequired = () => dialog.querySelector('[name=confirmedOn]').required = status.value !== 'draft'; status.onchange = updateRequired; updateRequired(); }
   dialog.addEventListener('input',event=>{const input=event.target;if(input.hasAttribute('data-money'))input.setCustomValidity(/^\d[\d,]*(?:\.\d{0,3})?$/.test(input.value.trim())?'':'Nhập số tiền không âm, tối đa 3 chữ số thập phân.');});
-  dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();if(busy||!context.canEdit()||context.getUserId()!==user)return;const message=dialog.querySelector('[role=status]');try{
+  dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();if(busy||!context.canEdit()||!context.canUseCredit?.()||context.getUserId()!==user)return;const message=dialog.querySelector('[role=status]');busy=true;try{
+    if(!await context.verifyCreditAccess?.() || context.getUserId()!==user)throw new Error('Chức năng này chỉ dành cho admin.');
     if(JSON.stringify(context.getData().cards)!==snapshot)throw new Error('Sao kê đã thay đổi. Đóng và mở lại để kiểm tra.');
     const next=structuredClone(context.getData()), form=event.target.elements;
     if(action==='statement'){const source={month,confirmedOn:form.confirmedOn.value,dueDate:form.dueDate.value,status:form.status.value,note:form.note.value};for(const key of ['oneOff','priorBalance','newRibo','principal','fees'])source[key]=form[key].value;saveStatement(next,source);}
@@ -42,5 +43,5 @@ export function showCreditDialog(context, action, month) {
     if(context.getUserId()!==user){busy=false;dialog.close();return;}
     dialog.querySelector('form').remove();dialog.querySelector('#credit-dialog-title').textContent=action==='pay'?'Đã thanh toán kỳ này':action==='undo'?'Đã hủy xác nhận':'Đã lưu sao kê / cài đặt';message.textContent=action==='pay'?`Nợ gốc リボ còn ${money(statementNumbers(bill).carry)}.`:'Thông tin đã được ghi nhận.';if(context.getStatus()!=='ready')message.textContent+=' Bản nháp được giữ trên máy; kiểm tra trạng thái đồng bộ.';
     busy=false;dialog.querySelector('.dialog-close').disabled=false;dialog.insertAdjacentHTML('beforeend','<button class="account-submit credit-finish">Đóng</button>');dialog.querySelector('.credit-finish').onclick=close;
-  }catch(error){message.textContent=error.message;}};
+  }catch(error){busy=false;message.textContent=error.message;}};
 }

@@ -27,6 +27,7 @@ const now = new Date();
 let year = Math.min(2033, Math.max(2026, now.getFullYear())), month = now.getMonth(), day = now.getDate(), view = 'calendar';
 let data = emptyData(), savedTimer, debtFilter = 'all', expenseQuery = '', expenseCategory = '', expenseFilterStatus = '', calendarExpanded = matchMedia('(min-width: 1001px)').matches, searchExpanded = false, analysisExpanded = false;
 const newExpense = () => ({ id: crypto.randomUUID(), title: '', amount: 0, status: 'planned', category: 'Khác' });
+let creditRole = { userId: null, allowed: false, checked: false, request: 0, pending: null };
 const root = document.querySelector('#app');
 const years = () => getYears(data);
 const selectedKey = () => dayKey(year, month, day);
@@ -43,6 +44,33 @@ function persist() {
   catch { notify('Không thể lưu trên trình duyệt. Hãy xuất dữ liệu để tránh mất thay đổi.'); return false; }
 }
 function canEdit() { return Boolean(cloud.user) && cloud.status !== 'loading'; }
+function canUseCredit() { return canEdit() && creditRole.userId === cloud.user.id && creditRole.allowed; }
+function resetCreditRole(userId = null) { creditRole = { userId, allowed: false, checked: false, request: creditRole.request + 1, pending: null }; }
+function syncCreditRole() {
+  const userId = cloud.user?.id || null;
+  if (userId !== creditRole.userId) resetCreditRole(userId);
+  if (userId && cloud.status !== 'loading' && !creditRole.checked) void refreshCreditRole();
+}
+async function refreshCreditRole(force = false) {
+  const userId = cloud.user?.id;
+  if (!userId) { resetCreditRole(); return false; }
+  if (creditRole.userId !== userId) resetCreditRole(userId);
+  if (creditRole.pending) return creditRole.pending;
+  if (creditRole.checked && !force) return creditRole.allowed;
+  const request = ++creditRole.request;
+  const pending = (async () => {
+    let allowed = false;
+    try { allowed = await authClient.isAdmin() === true; } catch { /* Missing or failed verification denies access. */ }
+    if (cloud.user?.id !== userId || creditRole.request !== request) return false;
+    const changed = creditRole.allowed !== allowed;
+    creditRole.allowed = allowed; creditRole.checked = true;
+    if (!allowed) document.querySelector('#credit-dialog')?.close();
+    if (changed) render();
+    return allowed;
+  })();
+  creditRole.pending = pending;
+  try { return await pending; } finally { if (creditRole.request === request) creditRole.pending = null; }
+}
 function formatMoneyInput(input) { if (input.validity.valid && input.value.trim()) input.value = formatAmount(amount(input.value)); }
 async function saveChanges() {
   if (!canEdit()) return;
@@ -54,6 +82,7 @@ async function saveChanges() {
   } catch (error) { notify(error.message); }
 }
 function render() {
+  if (view === 'credit' && !canUseCredit()) view = 'calendar';
   if (!years().includes(year)) { year = years()[0]; day = Math.min(day, daysInMonth(year, month)); }
   const totals = view === 'calendar' ? monthSummary(data, year, month) : yearSummary(data, year);
   const pageTitle = ({ calendar: 'Thu chi & kỳ lương', year: 'Tổng kết năm', debts: 'Khoản vay khác', credit: 'Thẻ & sao kê' })[view];
@@ -65,7 +94,7 @@ function render() {
         <button class="nav-item ${view === 'calendar' ? 'active' : ''}" data-view="calendar">${icon('calendar')} Thu chi & kỳ lương</button>
         <button class="nav-item ${view === 'year' ? 'active' : ''}" data-view="year">${icon('chart')} Tổng kết năm</button>
         <button class="nav-item ${view === 'debts' ? 'active' : ''}" data-view="debts">${icon('wallet')} Khoản vay khác</button>
-        <button class="nav-item ${view === 'credit' ? 'active' : ''}" data-view="credit">${icon('wallet')} Thẻ & sao kê</button>
+        ${canUseCredit() ? `<button class="nav-item ${view === 'credit' ? 'active' : ''}" data-view="credit">${icon('wallet')} Thẻ & sao kê</button>` : ''}
       </nav>
       <div class="year-heading"><span>KẾ HOẠCH THEO NĂM</span><span>${String(years().length).padStart(2, '0')}</span></div>
       <div class="years">${years().map(y => `<button class="year-button ${year === y ? 'selected' : ''}" data-year="${y}" aria-pressed="${year === y}"><span><i></i>${y}</span>${year === y ? icon('arrow') : ''}</button>`).join('')}</div>
@@ -77,9 +106,9 @@ function render() {
       <div class="page">
         <div class="page-heading"><h2 id="summary-period">${view === 'calendar' ? `Tổng kết tháng ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'year' ? `Tổng kết năm ${year}` : view === 'credit' ? `Thẻ & sao kê · ${String(month + 1).padStart(2, '0')} / ${year}` : 'Khoản vay khác · JPY'}</h2>${view === 'debts' ? '' : `<div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div>`}</div>
         ${view === 'debts' ? debtsPanel(data, debtFilter) : view === 'credit' ? `${monthTabs()}${creditPanel(data, monthKey(year, month))}` : `
-          ${view === 'calendar' ? `${monthTabs()}<div id="cashflow-overview">${salaryTimeline(data, monthKey(year, month))}</div>` : ''}
+          ${view === 'calendar' ? `${monthTabs()}${canUseCredit() ? `<div id="cashflow-overview">${salaryTimeline(data, monthKey(year, month))}</div>` : ''}` : ''}
           <div class="stats">${statsContent(totals)}</div>
-          ${view === 'calendar' ? `<div class="editor-actions"><button class="button secondary" data-view="credit">Thẻ & sao kê</button><button class="button save-button" data-action="quick-expense">${icon('plus')} Thêm khoản chi</button><button class="button secondary" data-action="quick-income">Thu nhập</button><button class="button secondary" data-action="quick-savings">Tiết kiệm</button><button class="button secondary" data-view="debts">Nợ phải trả</button></div>${calendarView()}${expenseBrowser()}<div class="finance-panels">${incomePanel()}${savingsPanel()}</div>` : `${yearView()}${savingsPanel()}`}
+          ${view === 'calendar' ? `<div class="editor-actions">${canUseCredit() ? '<button class="button secondary" data-view="credit">Thẻ & sao kê</button>' : ''}<button class="button save-button" data-action="quick-expense">${icon('plus')} Thêm khoản chi</button><button class="button secondary" data-action="quick-income">Thu nhập</button><button class="button secondary" data-action="quick-savings">Tiết kiệm</button><button class="button secondary" data-view="debts">Nợ phải trả</button></div>${calendarView()}${expenseBrowser()}<div class="finance-panels">${incomePanel()}${savingsPanel()}</div>` : `${yearView()}${savingsPanel()}`}
           <details class="analysis-panel card" ${analysisExpanded ? 'open' : ''}><summary>Biểu đồ phân tích · ${view === 'year' ? year : `tháng ${month + 1} / ${year}`}</summary><div class="dashboard-charts" id="dashboard-charts">${dashboardCharts()}</div></details>`}
         <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Thu chi JPY · Tiết kiệm VNĐ</span></footer>
       </div>
@@ -208,6 +237,7 @@ root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
   if ((button.dataset.delete !== undefined || ['add-debt', 'add', 'quick-expense', 'quick-income', 'quick-savings', 'add-year', 'remove-year', 'import', 'export', 'save', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
+  if ((button.dataset.view === 'credit' || button.dataset.creditAction || button.dataset.creditMonth) && (!canEdit() || !await refreshCreditRole(true))) { notify('Chức năng Thẻ & sao kê chỉ dành cho admin.'); return; }
   if (button.dataset.creditAction) { showCreditDialog(financeContext(), button.dataset.creditAction, monthKey(year,month)); return; }
   if (button.dataset.creditMonth) { [year, month] = button.dataset.creditMonth.split('-').map(Number); month--; day = Math.min(day, daysInMonth(year,month)); view = 'credit'; render(); return; }
   if (button.dataset.debtFilter) { debtFilter = button.dataset.debtFilter; render(); return; }
@@ -326,8 +356,8 @@ const authClient = new SupabaseClient(supabaseConfig, localStorage);
 const cloud = new SyncController(authClient, localStorage, {
   onData: next => {
     data = next;
-    render();
-  }, onStatus: () => renderCloud(),
+    syncCreditRole(); render();
+  }, onStatus: () => { syncCreditRole(); renderCloud(); },
 });
 
 function renderCloud() {
@@ -355,7 +385,7 @@ function renderCloud() {
 }
 
 function financeContext() {
-  return { getData: () => data, getUserId: () => cloud.user?.id, canEdit,
+  return { getData: () => data, getUserId: () => cloud.user?.id, canEdit, canUseCredit, verifyCreditAccess: () => refreshCreditRole(true),
     onChange: next => { const previous = data; data = next; if (!persist()) { data = previous; throw new Error('Chưa lưu được thay đổi. Vui lòng thử lại.'); } render(); },
     commit: () => cloud.commit(), getStatus: () => cloud.status,
   };
@@ -432,7 +462,8 @@ if (authHash.has('access_token') && authHash.has('refresh_token')) {
 }
 render();
 if (authClient.session) cloud.open().then(() => { if (authHash.get('type') === 'recovery' && cloud.user) showPasswordReset(authClient); });
-window.addEventListener('online', () => cloud.refresh());
-document.addEventListener('visibilitychange', () => { if (!document.hidden) cloud.refresh(); });
-setInterval(() => { if (!document.hidden && cloud.user && !cloud.dirty && cloud.status !== 'loading') cloud.refresh(); }, 30000);
+window.addEventListener('online', () => { cloud.refresh(); void refreshCreditRole(true); });
+window.addEventListener('focus', () => { if (cloud.user) void refreshCreditRole(true); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { cloud.refresh(); if (cloud.user) void refreshCreditRole(true); } });
+setInterval(() => { if (!document.hidden && cloud.user && cloud.status !== 'loading') { if (!cloud.dirty) cloud.refresh(); void refreshCreditRole(true); } }, 30000);
 window.addEventListener('beforeunload', event => { if (cloud.user && cloud.dirty) { event.preventDefault(); event.returnValue = ''; } });
