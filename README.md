@@ -87,3 +87,20 @@ Nhấn ô tick để xác nhận trả hết hoặc trả một phần, chọn n
 Trong lịch sử, **Hủy lần trả** mở xác nhận trước khi thực hiện. Thao tác này gỡ đúng khoản chi liên kết, tăng lại dư nợ và đánh dấu lần trả Đã hủy để đối chiếu. Khoản đã hủy không tính vào số đã trả, không thể hủy lần hai. Các khoản chi khác và ghi chú cùng ngày được giữ nguyên. Khoản nợ trả hết sẽ mở lại nếu hủy một lần trả; lịch sử đã hủy vẫn tồn tại khi tải lại, đồng bộ và xuất/nhập bản sao lưu. Sửa tên khoản nợ cũng cập nhật tên các khoản chi liên kết còn hiệu lực.
 
 Các trường mới là phần mở rộng của JSON phiên bản 2, dùng Supabase/RLS và kiểm tra revision sẵn có, không cần chạy thêm SQL hoặc triển khai lại Edge Functions. Bản sao lưu cũ vẫn nhập được; bản mới giữ trạng thái, danh mục, ngày đến hạn, lịch sử đã hủy và liên kết chi tiêu. Sổ nợ không đặt lại khi chuyển năm.
+
+
+## Kỳ lương, thẻ tín dụng và sao kê
+
+Trang **Thu chi & kỳ lương** tách chi tiêu phát sinh khỏi dòng tiền qua ngân hàng. Nhập lương ở tháng thực nhận, ghi thêm tháng làm việc và ngày nhận (mặc định ngày 15, lương của tháng trước). Khung dòng tiền hiển thị tiền cần dự phòng cho sao kê và thu nhập sau chi tiền mặt/thanh toán thẻ/dự phòng; chưa phải số dư ví vì không có số dư đầu kỳ và chưa trừ các khoản dự kiến khác. Tiết kiệm VNĐ tiếp tục theo dõi riêng.
+
+Trong ô chi tiêu, chọn **Thẻ tín dụng** rồi chọn **Một lần tháng sau · 1回** hoặc **Bổ sung vào リボ**. Kỳ trả mặc định là tháng kế tiếp của ngày mua, có thể sửa theo sao kê/độ trễ ghi nhận của ngân hàng. Các giao dịch tiền mặt cũ giữ nguyên cách tính; dữ liệu cũ không tự được chuyển thành giao dịch thẻ.
+
+Trang **Thẻ & sao kê** dành cho một thẻ, có tên thẻ và lịch thanh toán tùy chỉnh. Ngày 27 và lùi về thứ Sáu khi trùng cuối tuần là cấu hình dự kiến theo yêu cầu người dùng, không phải khẳng định quy định chung của tổ chức phát hành. Có thể chọn lùi trước, chuyển ngày làm việc sau, hoặc giữ nguyên; ngày thực tế trên từng sao kê luôn được ưu tiên và sửa thủ công được khi có ngày nghỉ. Không tự suy đoán ngày chốt giao dịch là ngày 12; ngày xác nhận số tiền được nhập rõ từ sao kê.
+
+Nhập riêng **trả một lần, dư nợ リボ đầu kỳ, bổ sung リボ, gốc trả kỳ này, phí/lãi**, ngày xác nhận và ngày thanh toán. Tổng phải trả = trả một lần + gốc + phí; dư nợ chuyển kỳ sau = đầu kỳ + bổ sung − gốc. Bản dự kiến từ giao dịch chỉ gợi ý số đã ghi; gốc và phí phải xác nhận theo sao kê, không cố định 25,000 JPY và không tự tính APR. Màn hình có tổng giao dịch chi tiết và chênh lệch với sao kê để hỗ trợ đối chiếu.
+
+Trạng thái gồm **Dự kiến → Đã chốt → Đã thanh toán kỳ này**. Chỉ phí/lãi của sao kê đã chốt tạo một khoản chi phí liên kết vào ngày xác nhận; sửa phí cập nhật đúng khoản liên kết, không tạo trùng. Tiền mua hàng vẫn ghi vào ngày mua, gốc cũ không được tạo lại thành chi tiêu. Nếu chỉ nhập tổng sao kê mà chưa có giao dịch mua hàng, ứng dụng không tự tạo chi tiêu tổng để tránh ghi trùng; cần ghi/đối chiếu các giao dịch tương ứng trong lịch.
+
+**Xác nhận đã thanh toán** chỉ ghi trạng thái và ngày thực trích tiền; không tạo lại chi tiêu. Nợ リボ chỉ được giảm phần gốc khi xác nhận đã trả. Có thể hủy xác nhận để sửa nhầm; sao kê đã trả bị khóa sửa cho đến khi hủy xác nhận. Trả đủ sao kê không đồng nghĩa hết nợ リボ. Lịch sử năm chỉ hiển thị các sao kê đã nhập; các số dự kiến chưa chốt được ghi rõ là ước tính.
+
+Dữ liệu thẻ được lưu chung JSON phiên bản 2 trong tài khoản Supabase, dùng kiểm tra revision sẵn có. Không cần SQL/Edge Function mới. Không có dữ liệu sao kê cá nhân được đặt sẵn trong mã nguồn hoặc tự ghi vào tài khoản. Chạy thêm `node test/card.test.js` để kiểm tra kỳ trả, gốc/phí, dòng tiền, đối chiếu và bản sao lưu.
