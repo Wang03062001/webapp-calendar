@@ -62,7 +62,7 @@ function render() {
       <div class="sidebar-bottom"><div class="local-badge">${icon('check')} Dữ liệu lưu trên thiết bị</div><p>Một chút kế hoạch hôm nay.<br>Thảnh thơi hơn ngày mai.</p><div class="profile"><span class="avatar">T</span><div>Tài chính của tôi<small>Không gian riêng của bạn</small></div></div></div>
     </aside>
     <main>
-      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><span class="saved-label" id="cloud-status"></span><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
+      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><span class="saved-label" id="cloud-status"></span><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
       <div id="cloud-notice" aria-live="polite"></div>
       <div class="save-bar" id="save-bar" hidden><span id="save-state">Enter để lưu · Shift+Enter để xuống dòng</span><button class="button save-button" data-action="save">${icon('check')} Lưu thay đổi</button></div>
       <div class="page">
@@ -171,6 +171,7 @@ root.addEventListener('click', async event => {
   switch (button.dataset.action) {
     case 'save': await saveChanges(); break;
     case 'account': showAccount(); break;
+    case 'register': if (!cloud.user) showAccount('signup'); break;
     case 'cloud-retry': await cloud.refresh(); break;
     case 'cloud-remote': {
       if (!confirm('Thay bản nháp trên máy bằng dữ liệu đám mây? Hãy xuất dữ liệu trước nếu cần giữ bản nháp.')) break;
@@ -259,6 +260,7 @@ function renderCloud() {
   status.textContent = labels[cloud.status];
   document.querySelector('#account-label').textContent = cloud.user ? 'Tài khoản' : 'Đăng nhập';
   document.querySelector('[data-action="account"]').disabled = cloud.status === 'loading';
+  document.querySelector('[data-action="register"]').hidden = Boolean(cloud.user) || cloud.status === 'loading';
   document.querySelector('[data-action="import"]').disabled = !canEdit();
   document.querySelector('[data-action="export"]').disabled = !canEdit();
   document.querySelector('.page').inert = !canEdit();
@@ -281,10 +283,10 @@ function renderCloud() {
     if (!hasData(data) && cloud.status === 'ready' && localStorage.getItem(STORAGE_KEY)) actions = '<button data-action="cloud-migrate">Chuyển dữ liệu cũ trên máy lên tài khoản</button>';
     else actions = cloud.status === 'draft' ? '' : '<button data-action="cloud-retry">Đồng bộ ngay</button>';
   }
-  document.querySelector('#cloud-notice').innerHTML = `<div class="cloud-notice ${['error', 'conflict'].includes(cloud.status) ? 'cloud-warning' : ''}"><span>${message}</span><div>${actions}</div></div>`;
+  document.querySelector('#cloud-notice').innerHTML = message ? `<div class="cloud-notice ${['error', 'conflict'].includes(cloud.status) ? 'cloud-warning' : ''}"><span>${message}</span><div>${actions}</div></div>` : '';
 }
 
-function showAccount() {
+function showAccount(initialMode = 'signin') {
   document.querySelector('#account-dialog')?.remove();
   const dialog = document.createElement('dialog'); dialog.id = 'account-dialog'; dialog.className = 'account-dialog'; dialog.setAttribute('aria-labelledby', 'account-title');
   dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><h2 id="account-title">${cloud.user ? 'Tài khoản' : 'Đăng nhập'}</h2>
@@ -321,6 +323,7 @@ function showAccount() {
     dialog.querySelector('[name="password"]').placeholder = mode === 'signup' ? 'Ít nhất 8 ký tự' : 'Mật khẩu';
     dialog.querySelector('#auth-message').textContent = '';
   });
+  if (!cloud.user && initialMode === 'signup') dialog.querySelector('[data-mode="signup"]').click();
   dialog.querySelector('#auth-form')?.addEventListener('submit', async event => {
     event.preventDefault(); const form = event.target, email = form.elements.email.value.trim(), password = form.elements.password.value;
     const controls = [...dialog.querySelectorAll('button,input')]; controls.forEach(control => control.disabled = true);
