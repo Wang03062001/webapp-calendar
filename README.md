@@ -65,3 +65,7 @@ Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán
 - Các tab dùng cùng tài khoản cũng có thể gặp xung đột; nên sửa trong một tab tại một thời điểm. Trên máy dùng chung, đăng xuất và tránh lưu dữ liệu riêng ở chế độ chưa đăng nhập.
 
 Database lưu trên project Supabase của bạn, trong bảng `public.calendar_documents`; mỗi tài khoản có một dòng JSON chứa lịch, thu nhập, tiết kiệm và mục tiêu. Frontend không có quyền đọc dữ liệu tài khoản khác hoặc ghi trực tiếp vào bảng; chỉ ghi qua hàm có kiểm tra người dùng và phiên bản dữ liệu. Thiết lập này chưa tự tạo chính sách sao lưu phía Supabase.
+
+## Tên đăng nhập, khôi phục mật khẩu và admin
+
+Xem [hướng dẫn thiết lập quản trị](supabase/ADMIN.md). Cần chạy thêm `admin-setup.sql`, tạo admin trong Auth và triển khai hai Edge Functions trước khi dùng đăng nhập bằng tên tài khoản và quản trị. Đăng nhập bằng email và đồng bộ cũ vẫn hoạt động khi chưa triển khai phần mở rộng. Tài khoản admin mặc định có tên `admin` nhưng mật khẩu do chủ project tự đặt trong Dashboard; không có mật khẩu mặc định trong mã nguồn.

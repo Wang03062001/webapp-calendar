@@ -1,0 +1,8 @@
+[functions.admin-accounts]
+# The function validates the access token against Auth /user itself.
+# This also supports projects using the newer asymmetric JWT signing keys.
+verify_jwt = false
+
+[functions.account-login]
+# Public login endpoint: password verification is delegated to Supabase Auth.
+verify_jwt = false

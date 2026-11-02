@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
-const publicFiles = new Set(['/index.html', '/src/app.js', '/src/model.js', '/src/style.css', '/src/config.js', '/src/supabase.js', '/src/sync.js', '/favicon.svg']);
+const publicFiles = new Set(['/index.html', '/src/app.js', '/src/model.js', '/src/style.css', '/src/config.js', '/src/supabase.js', '/src/sync.js', '/src/admin.js', '/favicon.svg']);
 const server = http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   const file = pathname === '/' ? '/index.html' : pathname;

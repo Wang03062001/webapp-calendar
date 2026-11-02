@@ -21,6 +21,7 @@ export class SupabaseClient {
     let result; try { result = text ? JSON.parse(text) : null; } catch { result = null; }
     if (!response.ok) {
       const code = result?.code || result?.error_code || String(response.status);
+      if (path === '/rest/v1/rpc/calendar_username_available') throw new CloudError('Chưa thiết lập tên tài khoản. Chủ project cần chạy admin-setup.sql.', code);
       let message = 'Không thể đồng bộ. Hãy kiểm tra cấu hình Supabase và thử lại.';
       if (code === '40001') message = 'Dữ liệu đã thay đổi trên thiết bị khác. Bản nháp của bạn được giữ lại; hãy xuất bản nháp trước khi tải bản trên đám mây.';
       else if (['PGRST205', 'PGRST202', '42P01', '42883'].includes(code)) message = 'Chưa có bảng đồng bộ. Chủ project cần chạy file supabase/setup.sql trong SQL Editor.';
@@ -28,8 +29,11 @@ export class SupabaseClient {
       else if (code === 'email_not_confirmed') message = 'Hãy xác nhận email trước khi đăng nhập.';
       else if (code === 'over_email_send_rate_limit' || response.status === 429) message = 'Bạn đã thử quá nhiều lần. Hãy chờ một lát rồi thử lại.';
       else if (code === 'weak_password') message = 'Mật khẩu chưa đủ mạnh. Hãy dùng ít nhất 8 ký tự.';
+      else if (code === 'otp_expired') message = 'Mã xác nhận không đúng hoặc đã hết hạn. Hãy yêu cầu mã mới.';
+      else if (path.startsWith('/auth/v1/signup') && response.status >= 400) message = 'Chưa tạo được tài khoản. Tên tài khoản có thể đã được dùng, bị dành riêng, hoặc chưa chạy admin-setup.sql.';
       else if (response.status === 401) message = 'Phiên đăng nhập hoặc cấu hình public key không hợp lệ. Hãy đăng nhập lại.';
       else if (response.status === 403) message = 'Supabase từ chối truy cập. Hãy kiểm tra xác nhận email và quyền truy cập dữ liệu.';
+      if (path.startsWith('/functions/v1/')) message = response.status === 404 ? 'Chưa triển khai Edge Function cần thiết. Hãy xem hướng dẫn trong README.' : typeof result?.message === 'string' ? result.message : 'Không thực hiện được thao tác.';
       throw new CloudError(message, code);
     }
     return result;
@@ -52,12 +56,21 @@ export class SupabaseClient {
     return this.session.access_token;
   }
   async signIn(email, password) {
+    if (!email.includes('@')) return this.acceptSession(await this.request('/functions/v1/account-login', { method: 'POST', body: { username: email.toLowerCase(), password } }));
     return this.acceptSession(await this.request('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password } }));
   }
-  async signUp(email, password, redirectTo) {
-    return this.acceptSession(await this.request(`/auth/v1/signup${redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : ''}`, { method: 'POST', body: { email, password } }));
+  async signUp(email, password, redirectTo, username) {
+    const available = await this.request('/rest/v1/rpc/calendar_username_available', { method: 'POST', body: { p_username: username } });
+    if (available !== true) throw new CloudError('Tên tài khoản đã được dùng, bị dành riêng hoặc không hợp lệ.', 'USERNAME_TAKEN');
+    return this.acceptSession(await this.request(`/auth/v1/signup${redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : ''}`, { method: 'POST', body: { email, password, data: { username } } }));
   }
   async user() { return this.request('/auth/v1/user', { token: await this.token() }); }
+  async isAdmin() { return this.request('/rest/v1/rpc/calendar_is_admin', { method: 'POST', body: {}, token: await this.token() }); }
+  async adminAction(body) { return this.request('/functions/v1/admin-accounts', { method: 'POST', body, token: await this.token() }); }
+  async updatePassword(password) { return this.request('/auth/v1/user', { method: 'PUT', body: { password }, token: await this.token() }); }
+  async requestRecovery(email) { return this.request('/auth/v1/recover', { method: 'POST', body: { email } }); }
+  async verifyRecovery(email, token) { return this.acceptSession(await this.request('/auth/v1/verify', { method: 'POST', body: { email, token, type: 'recovery' } })); }
+  async profile() { const user = await this.user(); return (await this.request(`/rest/v1/calendar_profiles?user_id=eq.${user.id}&select=username,display_name&limit=1`, { token: await this.token() }))[0] || null; }
   async signOut() {
     const session = this.session;
     this.setSession(null);

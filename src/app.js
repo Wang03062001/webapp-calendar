@@ -2,6 +2,7 @@ import { YEARS, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, mon
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
 import { SyncController, hasData } from './sync.js';
+import { showAdmin, showPasswordReset, showRecovery } from './admin.js';
 
 // Keep the original key so existing browser data is migrated by normalizeData.
 const STORAGE_KEY = 'lich-cua-toi.v1';
@@ -269,13 +270,29 @@ function showAccount() {
   document.querySelector('#account-dialog')?.remove();
   const dialog = document.createElement('dialog'); dialog.id = 'account-dialog'; dialog.className = 'account-dialog';
   dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><div class="eyebrow">DỮ LIỆU CỦA BẠN · TRÊN MỌI THIẾT BỊ</div><h2>${cloud.user ? 'Tài khoản của bạn' : 'Chào mừng bạn trở lại'}</h2>
-    ${cloud.user ? `<p>Đang đăng nhập: <strong>${escape(cloud.user.email)}</strong></p><p>Bản nháp chưa đồng bộ sẽ được giữ riêng cho tài khoản này trên trình duyệt.</p><button class="account-submit" id="sign-out">Đăng xuất</button>` : `<p>Đăng nhập cùng tài khoản để dùng chung lịch, chi tiêu và tiết kiệm trên các máy.</p><div class="auth-tabs"><button class="active" data-mode="signin">Đăng nhập</button><button data-mode="signup">Tạo tài khoản</button></div><form id="auth-form"><label>Email<input name="email" type="email" required autocomplete="username" placeholder="Email của bạn" /></label><label>Mật khẩu<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Mật khẩu" /></label><button class="account-submit" type="submit">Đăng nhập</button></form>`}
+    ${cloud.user ? `<p>Đang đăng nhập: <strong>${escape(cloud.user.email)}</strong></p><p>Bản nháp chưa đồng bộ sẽ được giữ riêng cho tài khoản này trên trình duyệt.</p><button class="account-submit" id="sign-out">Đăng xuất</button>` : `<p>Đăng nhập cùng tài khoản để dùng chung lịch, chi tiêu và tiết kiệm trên các máy.</p><div class="auth-tabs"><button class="active" data-mode="signin">Đăng nhập</button><button data-mode="signup">Tạo tài khoản</button></div><form id="auth-form"><label class="signup-username" hidden>Tên tài khoản<input name="username" type="text" minlength="3" maxlength="30" pattern="[a-z][a-z0-9_]{2,29}" autocomplete="username" placeholder="Ví dụ: quang_01" /></label><label><span id="login-label">Tên tài khoản hoặc email</span><input name="email" type="text" required autocomplete="username" placeholder="Tên tài khoản hoặc email" /></label><label>Mật khẩu<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Mật khẩu" /></label><button class="account-submit" type="submit">Đăng nhập</button></form><button class="forgot-password" type="button">Quên mật khẩu?</button>`}
     <p id="auth-message" role="status" aria-live="polite"></p>`;
   document.body.append(dialog); dialog.showModal();
+  if (cloud.user) {
+    const userId = cloud.user.id;
+    const passwordButton = document.createElement('button'); passwordButton.className = 'account-submit'; passwordButton.textContent = 'Đổi mật khẩu';
+    dialog.querySelector('#sign-out').before(passwordButton);
+    passwordButton.onclick = () => { dialog.close(); showPasswordReset(authClient); };
+    authClient.profile().then(profile => { if (profile && dialog.isConnected) { const info = document.createElement('p'); info.textContent = `Tên tài khoản: ${profile.username} · ${profile.display_name || 'Chưa có tên hiển thị'}`; dialog.querySelector('#sign-out').before(info); } }).catch(() => {});
+    const adminButton = document.createElement('button'); adminButton.className = 'account-submit'; adminButton.textContent = 'Quản lý tài khoản'; adminButton.hidden = true;
+    dialog.querySelector('#sign-out').before(adminButton);
+    adminButton.onclick = () => { dialog.close(); showAdmin(authClient, userId); };
+    authClient.isAdmin().then(isAdmin => { if (isAdmin === true && cloud.user?.id === userId && dialog.isConnected) adminButton.hidden = false; }).catch(() => {});
+  }
   dialog.querySelector('.dialog-close').onclick = () => dialog.close();
+  dialog.querySelector('.forgot-password')?.addEventListener('click', () => { dialog.close(); showRecovery(authClient, () => cloud.open()); });
   let mode = 'signin';
   dialog.querySelectorAll('[data-mode]').forEach(button => button.onclick = () => {
     mode = button.dataset.mode;
+    dialog.querySelector('.signup-username').hidden = mode !== 'signup';
+    dialog.querySelector('[name="username"]').required = mode === 'signup';
+    dialog.querySelector('[name="email"]').type = mode === 'signup' ? 'email' : 'text';
+    dialog.querySelector('#login-label').textContent = mode === 'signup' ? 'Email khôi phục' : 'Tên tài khoản hoặc email';
     dialog.querySelectorAll('[data-mode]').forEach(tab => tab.classList.toggle('active', tab === button));
     dialog.querySelector('.account-submit').textContent = mode === 'signin' ? 'Đăng nhập' : 'Tạo tài khoản';
     dialog.querySelector('[name="password"]').autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
@@ -287,7 +304,7 @@ function showAccount() {
     const controls = [...dialog.querySelectorAll('button,input')]; controls.forEach(control => control.disabled = true);
     const message = dialog.querySelector('#auth-message'); message.textContent = 'Đang kết nối…';
     try {
-      const result = mode === 'signin' ? await authClient.signIn(email, password) : await authClient.signUp(email, password, new URL('.', location.href).href);
+      const result = mode === 'signin' ? await authClient.signIn(email, password) : await authClient.signUp(email, password, new URL('.', location.href).href, form.elements.username.value.trim().toLowerCase());
       form.elements.password.value = '';
       if (result?.access_token) { await cloud.open(); dialog.close(); }
       else message.textContent = 'Hãy kiểm tra email (cả thư rác) để xác nhận tài khoản, sau đó quay lại đăng nhập.';
@@ -312,7 +329,7 @@ if (authHash.has('access_token') && authHash.has('refresh_token')) {
   history.replaceState(null, '', location.pathname + location.search);
 }
 render();
-if (authClient.session) cloud.open();
+if (authClient.session) cloud.open().then(() => { if (authHash.get('type') === 'recovery' && cloud.user) showPasswordReset(authClient); });
 window.addEventListener('online', () => cloud.refresh());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) cloud.refresh(); });
 setInterval(() => { if (!document.hidden && cloud.user && !cloud.dirty && cloud.status !== 'loading') cloud.refresh(); }, 30000);

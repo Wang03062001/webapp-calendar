@@ -51,3 +51,17 @@ footer{display:flex;justify-content:space-between;gap:15px;font-size:8px;color:#
 @media(max-width:1250px){.cloud-notice{margin-left:24px;margin-right:24px}}
 @media(max-width:1000px){.cloud-notice{margin-left:20px;margin-right:20px;align-items:flex-start;flex-direction:column;gap:8px}}
 @media(max-width:640px){.cloud-notice{margin:16px 16px 0;font-size:10px}.cloud-notice button{font-size:10px}.topbar .breadcrumb{display:none}.topbar{justify-content:flex-end}.top-actions{width:100%;justify-content:flex-end}.account-dialog{padding:27px 23px}.account-dialog .eyebrow{font-size:8px}.account-dialog h2{font-size:21px}}
+
+.admin-dialog{width:1120px;max-width:calc(100% - 28px)}
+.admin-users{overflow:auto;margin-top:20px;max-height:55vh}
+.admin-table{width:100%;border-collapse:collapse;min-width:850px;font-size:11px}
+.admin-table th{text-align:left;background:#f0f5ed;color:#6e8568;font-size:10px;padding:12px}
+.admin-table td{padding:9px;border-bottom:1px solid #e8eee3;vertical-align:top}
+.admin-table input{min-width:125px;font-size:11px;margin:0;padding:9px}
+.admin-table td:nth-child(2) input{min-width:190px}
+.admin-table small{display:block;color:#8ca27f;font-size:9px;margin-top:6px}
+.admin-row-actions{display:flex;gap:5px;flex-wrap:wrap;min-width:190px}
+.admin-row-actions button,.admin-pagination button{background:#edf5e9;border:1px solid #d9e6d1;border-radius:5px;color:var(--green);font-size:10px;padding:7px 9px}
+.admin-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0;font-size:11px;color:#8da182}
+.forgot-password{display:block;margin:15px auto 0;background:none;color:var(--green);font-size:12px}
+@media(max-width:640px){.admin-dialog{padding:25px 16px}.admin-users{max-height:60vh}}
