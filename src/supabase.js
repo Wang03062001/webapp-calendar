@@ -66,6 +66,7 @@ export class SupabaseClient {
   }
   async user() { return this.request('/auth/v1/user', { token: await this.token() }); }
   async isAdmin() { return this.request('/rest/v1/rpc/calendar_is_admin', { method: 'POST', body: {}, token: await this.token() }); }
+  async accountAction(body) { return this.request('/functions/v1/account-settings', { method: 'POST', body, token: await this.token() }); }
   async adminAction(body) { return this.request('/functions/v1/admin-accounts', { method: 'POST', body, token: await this.token() }); }
   async updatePassword(password) { return this.request('/auth/v1/user', { method: 'PUT', body: { password }, token: await this.token() }); }
   async requestRecovery(email) { return this.request('/auth/v1/recover', { method: 'POST', body: { email } }); }

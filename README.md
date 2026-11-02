@@ -43,11 +43,11 @@ Sau khi bật Pages, mỗi lần push lên `main`, GitHub sẽ tự triển khai
 - Thêm dòng vào bảng chi tiêu của ngày, nhập nội dung và số tiền JPY. Tổng tiền tự cập nhật theo ngày, tháng và năm. Xóa dòng bằng nút thùng rác.
 - Ghi chú theo ngày và ghi lương, thưởng, ghi chú thu nhập cho từng tháng.
 - Nhập **Tiết kiệm tháng** và **Mục tiêu tiết kiệm năm** trong panel tiết kiệm phía trên lịch. Mỗi năm có mục tiêu riêng; thanh tiến độ cộng số tiền tiết kiệm từ 12 tháng và cho biết số tiền còn thiếu. Mục tiêu chưa đặt không có phần trăm; vượt mục tiêu vẫn hiển thị đúng tổng tiền.
-- Mục **Tổng kết năm** có cột tiết kiệm theo từng tháng và tổng năm. Tiết kiệm dùng VNĐ, được theo dõi riêng với lương/thưởng/chi tiêu dùng JPY. Không cộng hoặc trừ trực tiếp hai loại tiền khác nhau. Dữ liệu và bản sao lưu phiên bản cũ vẫn được đọc bình thường.
+- Mục **Tổng kết năm** nằm cuối menu, hiển thị tổng năm và cho bấm vào từng tháng để xem riêng tháng đó. Tiết kiệm dùng VNĐ, được theo dõi riêng với lương/thưởng/chi tiêu dùng JPY. Không cộng hoặc trừ trực tiếp hai loại tiền khác nhau. Dữ liệu và bản sao lưu phiên bản cũ vẫn được đọc bình thường.
 - Mở **Tổng kết năm** để xem lương, thưởng, chi tiêu, số dư dự kiến và nội dung mọi khoản chi; nhấn tháng hoặc ngày để mở lại lịch.
 - Khi chưa đăng nhập, các ô nhập và nhập/xuất bản sao lưu bị khóa; dữ liệu tài chính cũ không hiển thị. Khi đã đăng nhập, thay đổi được giữ trong bản nháp riêng của tài khoản. Nhấn **Enter** trong ô nhập hoặc nút **Lưu thay đổi** để gửi lên Supabase. Trong ghi chú, **Shift+Enter** để xuống dòng. **Xuất dữ liệu** tải bản sao lưu JSON; nút nhập bên cạnh khôi phục bản sao lưu sau xác nhận thay thế dữ liệu hiện tại.
 
-Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán). Số dư dự kiến (JPY) = lương + thưởng − chi tiêu. Tiết kiệm và mục tiêu tính bằng VNĐ. Các số đã nhập được giữ nguyên; ứng dụng không tự quy đổi tỷ giá. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Xóa dữ liệu trình duyệt sẽ xóa dữ liệu chưa đồng bộ và bản nháp trên máy; dữ liệu đã đồng bộ có thể tải lại sau khi đăng nhập. Nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
+Khoản chi mới mặc định Dự kiến; chỉ khoản Đã chi được trừ khỏi chênh lệch thu − chi. Chênh lệch = lương + thưởng − đã chi, không phải số dư ví. Tiền tệ được chọn theo hai nhóm liên kết, mặc định thu chi JPY và tiết kiệm VNĐ. Các số đã nhập được giữ nguyên; ứng dụng không tự quy đổi tỷ giá. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Xóa dữ liệu trình duyệt sẽ xóa dữ liệu chưa đồng bộ và bản nháp trên máy; dữ liệu đã đồng bộ có thể tải lại sau khi đăng nhập. Nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
 
 ## Thiết lập Supabase (chủ project thực hiện một lần)
 
@@ -78,7 +78,7 @@ Mỗi khoản chi có **danh mục** và trạng thái **Dự kiến / Đã chi*
 
 Trang Tổng kết năm chỉ hiển thị số liệu tổng năm; chọn một tháng để xem riêng tổng tháng. Vùng **Tìm kiếm khoản chi trong tháng** hỗ trợ tìm tiếng Việt có/không dấu và kết hợp lọc danh mục, trạng thái. Nhấn kết quả để mở đúng ngày nhập. Biểu đồ thu/chi/dự kiến và phân bổ đã chi theo danh mục chỉ dùng dữ liệu của kỳ đang chọn.
 
-Số tiền hiển thị theo dạng `1,000,000.000`: dấu phẩy ngăn hàng nghìn, dấu chấm thập phân và 3 chữ số sau dấu chấm. Ô nhập chấp nhận số có dấu phẩy hoặc số thường, tự định dạng khi rời ô hoặc lưu. Giá trị JSON/Supabase vẫn là số, hỗ trợ tối đa 3 chữ số thập phân. Enter hoặc nút Lưu gửi bản thay đổi; chọn danh mục/trạng thái cũng có thể nhấn Enter để lưu. Thao tác tìm kiếm và chọn ngày không tự gửi bản nháp tài chính.
+Số tiền hiển thị theo dạng `1,000,000`, tự thêm dấu phẩy ngay khi gõ và không thêm đuôi `.000`. Phần lẻ thực sự được giữ, ví dụ `1,234.5` hoặc `1,234.005`; không làm tròn mất dữ liệu cũ. Giá trị JSON/Supabase vẫn là số, hỗ trợ tối đa 3 chữ số thập phân. Enter hoặc nút Lưu gửi bản thay đổi; chọn danh mục/trạng thái cũng có thể nhấn Enter để lưu. Thao tác tìm kiếm và chọn ngày không tự gửi bản nháp tài chính.
 
 Mục **Nợ phải trả** hỗ trợ nhiều khoản và loại nợ (có thể nhập loại riêng), nợ gốc, số đã trả, còn lại, ngày đến hạn và lịch sử. Bộ lọc gồm Tất cả, Quá hạn, Đến hạn trong 7 ngày và Đã trả hết; đây là nhắc hạn trong ứng dụng, không tự gửi email. Có thể sửa tên, loại, nợ gốc và ngày đến hạn; nợ gốc không được nhỏ hơn tổng các lần trả còn hiệu lực. Chỉ khoản chưa có lịch sử mới được xóa sau xác nhận.
 
@@ -107,3 +107,14 @@ Dữ liệu thẻ được lưu chung JSON phiên bản 2 trong tài khoản Sup
 
 
 Mục **Thẻ & sao kê** và các nút dẫn tới mục này chỉ hiển thị sau khi xác minh tài khoản là admin qua RPC `calendar_is_admin`. Người dùng thường và khách không có menu/khung tổng quan sao kê; nhập thu chi thông thường vẫn hoạt động. Ứng dụng kiểm tra lại quyền khi mở mục, mở biểu mẫu và trước khi lưu biểu mẫu, khi quay lại trang và định kỳ; mất quyền hoặc xác minh lỗi sẽ đóng biểu mẫu và ẩn mục thẻ. Không dùng email/tên đăng nhập hoặc `user_metadata` để suy ra admin. Dữ liệu sao kê có sẵn được giữ nguyên khi tài khoản thường lưu các thay đổi khác. Đây là giới hạn giao diện và thao tác của module; chính sách dữ liệu tài khoản Supabase hiện có được giữ nguyên, không cần chạy SQL mới.
+
+
+## Giao diện, tiền tệ và ngôn ngữ
+
+- Nút ☀ / ☾ đổi sáng tối; **Cài đặt** chọn tiếng Việt, English, 日本語, 한국어 hoặc 繁體中文（台灣）. Ngôn ngữ và giao diện được nhớ trên trình duyệt; không sửa tên, email hay dữ liệu người dùng nhập.
+- Sidebar hiển thị tên tài khoản từ hồ sơ và email hiện tại. Không hiện dòng “Đã đồng bộ”; thông báo bản nháp, lỗi và xung đột vẫn được giữ.
+- Tài khoản chưa có dữ liệu được mời chọn tiền tệ sau đăng nhập lần đầu. Hai nhóm: `currencies.cash` (lương, thưởng, chi tiêu, khoản vay, sao kê) và `currencies.savings` (tiết kiệm tháng, mục tiêu năm). Hỗ trợ JPY, VND, USD, EUR, KRW, TWD, CNY. Không thể chọn khác tiền tệ trong cùng nhóm.
+- Cài đặt tiền tệ được lưu theo tài khoản và trong bản sao lưu. Dữ liệu cũ chưa có `currencies` giữ mặc định JPY/VND. Đổi đơn vị khi nhóm đã có tiền yêu cầu xác nhận rõ: giữ nguyên số tiền, áp dụng toàn bộ năm, không tự quy đổi tỷ giá. Thay đổi ngôn ngữ/giao diện riêng không gửi bản nháp tài chính.
+- **Tài khoản → Thông tin tài khoản** sửa username/tên hiển thị của chính mình. Admin quản lý mọi tài khoản trong **Quản lý tài khoản**. Đổi email luôn theo thứ tự: mã email cũ → email mới → mã email mới; email cũ chỉ thay sau bước cuối. Không còn API admin đổi email trực tiếp.
+
+Chức năng hồ sơ/đổi email mới cần triển khai máy chủ riêng: xem [ACCOUNT-SETTINGS.md](supabase/ACCOUNT-SETTINGS.md). GitHub Pages không tự triển khai SQL/Edge Functions. Có kiểm thử API mô phỏng, giao diện Chromium và PostgreSQL thử nghiệm; gửi/nhận thư thật chỉ kiểm tra được sau khi cấu hình dịch vụ gửi email.

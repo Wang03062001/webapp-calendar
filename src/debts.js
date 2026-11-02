@@ -1,7 +1,8 @@
+import { currencyLabel } from './preferences.js';
 import { MAX_AMOUNT, formatAmount, addDebt, updateDebt, removeDebt, repayDebt, cancelDebtPayment, debtBalance, debtDueStatus } from './model.js';
 
 const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const money = value => `${formatAmount(value)} JPY`;
+const money = value => `${formatAmount(value)} ${currencyLabel()}`;
 const types = ['Vay cá nhân', 'Thẻ tín dụng', 'Trả góp', 'Vay ngân hàng', 'Khác'];
 const localDate = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
 const dateLabel = date => date.split('-').reverse().join('/');
@@ -15,8 +16,8 @@ export function debtsPanel(data, filter = 'all') {
     return sum;
   }, { principal: 0, paid: 0, remaining: 0 });
   const visible = data.debts.filter(debt => filter === 'all' || status(debt) === filter);
-  return `<section class="debt-overview" aria-label="Tổng nợ JPY"><div><span>Tổng nợ gốc</span><strong>${money(totals.principal)}</strong></div><div><span>Đã trả</span><strong>${money(totals.paid)}</strong></div><div><span>Còn phải trả</span><strong id="debt-total">${money(totals.remaining)}</strong></div></section>
-    <section class="card debts-panel"><div class="card-heading"><div><h2>Các khoản nợ</h2><p>Thanh toán được ghi vào chi tiêu JPY đúng ngày trả.</p></div><button class="button save-button" data-action="add-debt">+ Thêm khoản nợ</button></div>
+  return `<section class="debt-overview" aria-label="Tổng nợ __CASH__"><div><span>Tổng nợ gốc</span><strong>${money(totals.principal)}</strong></div><div><span>Đã trả</span><strong>${money(totals.paid)}</strong></div><div><span>Còn phải trả</span><strong id="debt-total">${money(totals.remaining)}</strong></div></section>
+    <section class="card debts-panel"><div class="card-heading"><div><h2>Các khoản nợ</h2><p>Thanh toán được ghi vào chi tiêu __CASH__ đúng ngày trả.</p></div><button class="button save-button" data-action="add-debt">+ Thêm khoản nợ</button></div>
     <div class="debt-filters" aria-label="Lọc khoản nợ">${filters.map(([key, label]) => `<button class="filter-chip ${key === filter ? 'active' : ''}" data-debt-filter="${key}" aria-pressed="${key === filter}">${label} <span>${key === 'all' ? data.debts.length : data.debts.filter(debt => status(debt) === key).length}</span></button>`).join('')}</div>
     <div class="debt-list">${visible.length ? visible.map(debt => {
       const balance = debtBalance(debt), done = balance.remaining === 0, due = status(debt), active = debt.payments.filter(payment => !payment.voided).length;
@@ -30,6 +31,7 @@ export function debtsPanel(data, filter = 'all') {
 
 export function showDebtDialog({ getData, getUserId, canEdit, onChange, commit, getStatus }, debtId, mode = debtId ? 'pay' : 'create', paymentId) {
   if (!canEdit()) return;
+  const currencies = JSON.stringify(getData().currencies);
   const userId = getUserId(), original = getData().debts.find(debt => debt.id === debtId);
   if (debtId && !original) return;
   const snapshot = JSON.stringify(original), remaining = original ? debtBalance(original).remaining : 0;
@@ -40,8 +42,8 @@ export function showDebtDialog({ getData, getUserId, canEdit, onChange, commit, 
   document.querySelector('#debt-dialog')?.remove();
   const dialog = document.createElement('dialog'); dialog.id = 'debt-dialog'; dialog.className = 'account-dialog debt-dialog'; dialog.setAttribute('aria-labelledby', 'debt-dialog-title');
   const fields = editing ? `<label>Tên khoản nợ<input name="title" maxlength="500" required value="${escape(original?.title || '')}" placeholder="Ví dụ: Vay mua xe" /></label><label>Loại nợ<input name="type" list="debt-types" maxlength="100" required value="${escape(original?.type || types[0])}" /></label><datalist id="debt-types">${types.map(type => `<option value="${type}"></option>`).join('')}</datalist><label>Ngày đến hạn (không bắt buộc)<input type="date" name="dueDate" min="1900-01-01" max="9999-12-31" value="${original?.dueDate || ''}" /></label>` : paying ? `<fieldset class="repayment-options"><legend>Cách thanh toán</legend><label><input type="radio" name="mode" value="full" checked />Trả hết</label><label><input type="radio" name="mode" value="partial" />Trả một phần</label></fieldset><label>Ngày trả<input type="date" name="date" min="1900-01-01" max="9999-12-31" value="${localDate()}" required /></label>` : '';
-  dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><h2 id="debt-dialog-title">${titles[mode]}</h2>${original ? `<p><strong>${escape(original.title)}</strong> · Còn nợ ${money(remaining)}</p>` : ''}${mode === 'cancel' ? `<p>Hủy lần trả <strong>${money(payment.amount)}</strong> ngày ${dateLabel(payment.date)}? Dư nợ sẽ tăng lại và khoản chi liên kết được gỡ. Lịch sử vẫn được giữ.</p>` : mode === 'delete' ? '<p>Xóa khoản nợ chưa có lịch sử thanh toán này?</p>' : ''}
-    <form>${fields}${editing || paying ? `<label>${paying ? 'Số tiền trả' : 'Nợ gốc'} · JPY<input name="amount" type="text" inputmode="decimal" data-money required maxlength="32" placeholder="0.000" value="${paying ? formatAmount(remaining) : original ? formatAmount(original.amount) : ''}" ${paying ? 'readonly' : ''} /></label>` : ''}<button type="submit" class="account-submit">${paying ? 'Xác nhận thanh toán' : mode === 'cancel' ? 'Xác nhận hủy lần trả' : mode === 'delete' ? 'Xác nhận xóa' : mode === 'edit' ? 'Lưu khoản nợ' : 'Thêm khoản nợ'}</button><button type="button" class="button secondary debt-cancel">Hủy</button></form><p role="status" aria-live="polite"></p>`;
+  dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><h2 id="debt-dialog-title">${titles[mode]}</h2>${original ? `<p><strong translate="no">${escape(original.title)}</strong> · Còn nợ ${money(remaining)}</p>` : ''}${mode === 'cancel' ? `<p>Hủy lần trả <strong>${money(payment.amount)}</strong> ngày ${dateLabel(payment.date)}? Dư nợ sẽ tăng lại và khoản chi liên kết được gỡ. Lịch sử vẫn được giữ.</p>` : mode === 'delete' ? '<p>Xóa khoản nợ chưa có lịch sử thanh toán này?</p>' : ''}
+    <form>${fields}${editing || paying ? `<label>${paying ? 'Số tiền trả' : 'Nợ gốc'} · __CASH__<input name="amount" type="text" inputmode="decimal" data-money required maxlength="32" placeholder="0" value="${paying ? formatAmount(remaining) : original ? formatAmount(original.amount) : ''}" ${paying ? 'readonly' : ''} /></label>` : ''}<button type="submit" class="account-submit">${paying ? 'Xác nhận thanh toán' : mode === 'cancel' ? 'Xác nhận hủy lần trả' : mode === 'delete' ? 'Xác nhận xóa' : mode === 'edit' ? 'Lưu khoản nợ' : 'Thêm khoản nợ'}</button><button type="button" class="button secondary debt-cancel">Hủy</button></form><p role="status" aria-live="polite"></p>`;
   document.body.append(dialog); dialog.showModal();
   let busy = false;
   const close = () => { if (!busy) dialog.close(); };
@@ -61,6 +63,7 @@ export function showDebtDialog({ getData, getUserId, canEdit, onChange, commit, 
     event.preventDefault(); if (busy || !canEdit() || getUserId() !== userId) { close(); return; }
     const message = dialog.querySelector('[role=status]');
     try {
+      if (JSON.stringify(getData().currencies) !== currencies) throw new Error('Tiền tệ đã thay đổi. Đóng và mở lại để kiểm tra.');
       const next = structuredClone(getData()), form = event.target.elements;
       if (original && JSON.stringify(next.debts.find(debt => debt.id === debtId)) !== snapshot) throw new Error('Khoản nợ đã thay đổi. Đóng và mở lại để kiểm tra.');
       let balance;

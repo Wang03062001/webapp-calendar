@@ -1,3 +1,7 @@
+import { setCurrencies, currencyLabel, readDisplay, saveDisplay, installMoneyFormatting } from './preferences.js';
+import { startTranslations, setLanguage, t } from './i18n.js';
+import { showSettings, needsCurrencySetup } from './settings-ui.js';
+import { showProfile } from './profile-ui.js';
 import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, CATEGORIES, categoryOf, expenseStatus, expenseRows } from './model.js';
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
@@ -7,7 +11,9 @@ import { debtsPanel, showDebtDialog } from './debts.js';
 import { creditPanel, salaryTimeline, showCreditDialog } from './credit-ui.js';
 import { shiftMonth } from './card-model.js';
 
-const money = (number, currency = 'JPY') => formatAmount(number) + (currency === 'VND' ? ' VNĐ' : ' JPY');
+const ask = message => globalThis.confirm(t(message));
+
+const money = (number, currency = 'cash') => `${formatAmount(number)} ${currencyLabel(currency === 'VND' ? 'savings' : 'cash')}`;
 const dong = number => money(number, 'VND');
 const escape = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const icons = {
@@ -29,13 +35,18 @@ let data = emptyData(), savedTimer, debtFilter = 'all', expenseQuery = '', expen
 const newExpense = () => ({ id: crypto.randomUUID(), title: '', amount: 0, status: 'planned', category: 'Khác' });
 let creditRole = { userId: null, allowed: false, checked: false, request: 0, pending: null };
 const root = document.querySelector('#app');
+let accountProfile = null, profileUserId = null, currencyPromptUser = null;
+let display = readDisplay();
+document.documentElement.dataset.theme = display.theme;
+startTranslations(display.language);
+installMoneyFormatting();
 const years = () => getYears(data);
 const selectedKey = () => dayKey(year, month, day);
 const currentDay = () => data.days[selectedKey()] || { note: '', items: [] };
 function ensureDay() { return data.days[selectedKey()] ||= { note: '', items: [] }; }
 function ensureIncome() { return data.incomes[monthKey(year, month)] ||= { salary: 0, bonus: 0, note: '' }; }
 function notify(message) {
-  const toast = document.querySelector('#toast'); toast.textContent = message; toast.classList.add('visible');
+  const toast = document.querySelector('#toast'); toast.textContent = t(message); toast.classList.add('visible');
   clearTimeout(savedTimer); savedTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 function persist() {
@@ -82,6 +93,7 @@ async function saveChanges() {
   } catch (error) { notify(error.message); }
 }
 function render() {
+  setCurrencies(data.currencies);
   if (view === 'credit' && !canUseCredit()) view = 'calendar';
   if (!years().includes(year)) { year = years()[0]; day = Math.min(day, daysInMonth(year, month)); }
   const totals = view === 'calendar' ? monthSummary(data, year, month) : yearSummary(data, year);
@@ -92,25 +104,25 @@ function render() {
       <div class="workspace-label">KHÔNG GIAN CÁ NHÂN</div>
       <nav aria-label="Điều hướng chính">
         <button class="nav-item ${view === 'calendar' ? 'active' : ''}" data-view="calendar">${icon('calendar')} Thu chi & kỳ lương</button>
-        <button class="nav-item ${view === 'year' ? 'active' : ''}" data-view="year">${icon('chart')} Tổng kết năm</button>
         <button class="nav-item ${view === 'debts' ? 'active' : ''}" data-view="debts">${icon('wallet')} Khoản vay khác</button>
         ${canUseCredit() ? `<button class="nav-item ${view === 'credit' ? 'active' : ''}" data-view="credit">${icon('wallet')} Thẻ & sao kê</button>` : ''}
+        <button class="nav-item ${view === 'year' ? 'active' : ''}" data-view="year">${icon('chart')} Tổng kết năm</button>
       </nav>
       <div class="year-heading"><span>KẾ HOẠCH THEO NĂM</span><span>${String(years().length).padStart(2, '0')}</span></div>
       <div class="years">${years().map(y => `<button class="year-button ${year === y ? 'selected' : ''}" data-year="${y}" aria-pressed="${year === y}"><span><i></i>${y}</span>${year === y ? icon('arrow') : ''}</button>`).join('')}</div>
-      <div class="sidebar-bottom"><div class="local-badge">${icon('check')} Dữ liệu lưu trên thiết bị</div><p>Một chút kế hoạch hôm nay.<br>Thảnh thơi hơn ngày mai.</p><div class="profile"><span class="avatar">T</span><div>Tài chính của tôi<small>Không gian riêng của bạn</small></div></div></div>
+      <div class="sidebar-bottom"><div class="local-badge">${icon('check')} Dữ liệu lưu trên thiết bị</div><p>Một chút kế hoạch hôm nay.<br>Thảnh thơi hơn ngày mai.</p><button class="profile" data-action="account"><span class="avatar" translate="no">${escape((accountProfile?.username || cloud.user?.email || '?').slice(0,1).toUpperCase())}</span><span><strong id="profile-name" translate="no">${escape(accountProfile?.username || cloud.user?.email || '')}</strong><small id="profile-email" translate="no">${escape(cloud.user?.email || '')}</small></span></button></div>
     </aside>
     <main>
-      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${pageTitle}</strong></div><div class="top-actions"><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button small save-button" data-action="save" hidden>${icon('check')} Lưu thay đổi</button><button class="button secondary small" data-action="export" aria-label="Xuất dữ liệu">${icon('down')} <span class="button-text">Xuất dữ liệu</span></button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
+      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${pageTitle}</strong></div><div class="top-actions"><button class="button secondary small" data-action="theme" aria-label="Đổi giao diện sáng tối">${display.theme === 'dark' ? '☀' : '☾'}</button><button class="button secondary small" data-action="settings">⚙ <span>Cài đặt</span></button><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button small save-button" data-action="save" hidden>${icon('check')} Lưu thay đổi</button><button class="button secondary small" data-action="export" aria-label="Xuất dữ liệu">${icon('down')} <span class="button-text">Xuất dữ liệu</span></button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
       <div id="cloud-notice" aria-live="polite"></div>
       <div class="page">
-        <div class="page-heading"><h2 id="summary-period">${view === 'calendar' ? `Tổng kết tháng ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'year' ? `Tổng kết năm ${year}` : view === 'credit' ? `Thẻ & sao kê · ${String(month + 1).padStart(2, '0')} / ${year}` : 'Khoản vay khác · JPY'}</h2>${view === 'debts' ? '' : `<div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div>`}</div>
+        <div class="page-heading"><h2 id="summary-period">${view === 'calendar' ? `Tổng kết tháng ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'year' ? `Tổng kết năm ${year}` : view === 'credit' ? `Thẻ & sao kê · ${String(month + 1).padStart(2, '0')} / ${year}` : 'Khoản vay khác · __CASH__'}</h2>${view === 'debts' ? '' : `<div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div>`}</div>
         ${view === 'debts' ? debtsPanel(data, debtFilter) : view === 'credit' ? `${monthTabs()}${creditPanel(data, monthKey(year, month))}` : `
           ${view === 'calendar' ? `${monthTabs()}${canUseCredit() ? `<div id="cashflow-overview">${salaryTimeline(data, monthKey(year, month))}</div>` : ''}` : ''}
           <div class="stats">${statsContent(totals)}</div>
           ${view === 'calendar' ? `<div class="editor-actions">${canUseCredit() ? '<button class="button secondary" data-view="credit">Thẻ & sao kê</button>' : ''}<button class="button save-button" data-action="quick-expense">${icon('plus')} Thêm khoản chi</button><button class="button secondary" data-action="quick-income">Thu nhập</button><button class="button secondary" data-action="quick-savings">Tiết kiệm</button><button class="button secondary" data-view="debts">Nợ phải trả</button></div>${calendarView()}${expenseBrowser()}<div class="finance-panels">${incomePanel()}${savingsPanel()}</div>` : `${yearView()}${savingsPanel()}`}
           <details class="analysis-panel card" ${analysisExpanded ? 'open' : ''}><summary>Biểu đồ phân tích · ${view === 'year' ? year : `tháng ${month + 1} / ${year}`}</summary><div class="dashboard-charts" id="dashboard-charts">${dashboardCharts()}</div></details>`}
-        <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Thu chi JPY · Tiết kiệm VNĐ</span></footer>
+        <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Thu chi __CASH__ · Tiết kiệm __SAVINGS__</span></footer>
       </div>
     </main>`;
   renderCloud();
@@ -118,9 +130,9 @@ function render() {
   if (activeTab) tabs.scrollLeft += activeTab.getBoundingClientRect().left - tabs.getBoundingClientRect().left - (tabs.clientWidth - activeTab.offsetWidth) / 2;
 }
 function statsContent(totals) {
-  return stat('wallet', 'Thu nhập', totals.salary + totals.bonus, 'Lương + thưởng · JPY', 'purple')
+  return stat('wallet', 'Thu nhập', totals.salary + totals.bonus, 'Lương + thưởng · __CASH__', 'purple')
     + stat('down', 'Chi tiêu phát sinh', totals.expense, `${totals.count} khoản · gồm chi bằng thẻ`, 'orange')
-    + stat('note', 'Dự kiến chi', totals.planned, `${totals.plannedCount} khoản chưa chi · JPY`, 'pink')
+    + stat('note', 'Dự kiến chi', totals.planned, `${totals.plannedCount} khoản chưa chi · __CASH__`, 'pink')
     + stat('chart', 'Chênh lệch thu − chi', totals.balance, 'Thu nhập − đã chi; chưa tính tiền đầu kỳ', 'blue');
 }
 function dashboardCharts() {
@@ -129,8 +141,8 @@ function dashboardCharts() {
   const max = Math.max(1, ...bars.map(([, value]) => value));
   const categories = new Map();
   for (const item of expenseRows(data, year, view === 'year' ? null : month, { status: 'paid' })) categories.set(categoryOf(item), (categories.get(categoryOf(item)) || 0) + item.amount);
-  return `<section class="chart-card"><div class="chart-heading"><h2>Thu nhập & chi tiêu</h2><span class="tag">JPY</span></div><div class="bar-chart period-bars">${bars.map(([label, value, color]) => `<div class="bar-column"><strong>${money(value)}</strong><span class="bar-pair"><i class="${color}-bar" style="height:${value / max * 100}%"></i></span><small>${label}</small></div>`).join('')}</div></section>
-    <section class="chart-card"><div class="chart-heading"><h2>Đã chi theo danh mục</h2><span class="tag">JPY</span></div><div class="category-chart">${categories.size ? [...categories].sort((a, b) => b[1] - a[1]).map(([label, value]) => `<div><span>${escape(label)}</span><strong>${money(value)}</strong><i style="--share:${total.expense ? value / total.expense * 100 : 0}%"></i></div>`).join('') : '<p>Chưa có khoản đã chi trong kỳ này.</p>'}</div></section>`;
+  return `<section class="chart-card"><div class="chart-heading"><h2>Thu nhập & chi tiêu</h2><span class="tag">__CASH__</span></div><div class="bar-chart period-bars">${bars.map(([label, value, color]) => `<div class="bar-column"><strong>${money(value)}</strong><span class="bar-pair"><i class="${color}-bar" style="height:${value / max * 100}%"></i></span><small>${label}</small></div>`).join('')}</div></section>
+    <section class="chart-card"><div class="chart-heading"><h2>Đã chi theo danh mục</h2><span class="tag">__CASH__</span></div><div class="category-chart">${categories.size ? [...categories].sort((a, b) => b[1] - a[1]).map(([label, value]) => `<div><span>${escape(label)}</span><strong>${money(value)}</strong><i style="--share:${total.expense ? value / total.expense * 100 : 0}%"></i></div>`).join('') : '<p>Chưa có khoản đã chi trong kỳ này.</p>'}</div></section>`;
 }
 function focusEditor(selector) {
   const element = document.querySelector(selector);
@@ -147,16 +159,16 @@ function showYearDialog() {
     catch (error) { dialog.querySelector('[role="status"]').textContent = error.message; }
   };
 }
-function stat(symbol, label, value, detail, color, currency = 'JPY') {
+function stat(symbol, label, value, detail, color, currency = 'cash') {
   return `<section class="stat" data-stat="${symbol}"><div class="stat-top"><span>${label}</span><span class="stat-icon ${color}">${icon(symbol)}</span></div><strong class="${value < 0 ? 'negative' : ''}">${money(value, currency)}</strong><small>${detail}</small></section>`;
 }
 function savingsPanel() {
   return `<section class="card savings-panel" aria-label="Kế hoạch tiết kiệm"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('spark')}</span><div><h2>Quỹ tiết kiệm của bạn</h2><p>${view === 'year' ? `Mục tiêu tiết kiệm năm ${year}` : `Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} / ${year}`}</p></div></div><span class="tag">TIẾT KIỆM</span></div>
     <div class="savings-layout"><div class="savings-inputs">
-      ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>VNĐ</span><input id="monthly-savings" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0.000" value="${amount(data.savings[monthKey(year, month)]) ? formatAmount(data.savings[monthKey(year, month)]) : ''}" /></label>` : ''}
-      ${view === 'year' ? `<label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>VNĐ</span><input id="annual-savings-goal" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0.000" value="${amount(data.goals[year]) ? formatAmount(data.goals[year]) : ''}" /></label>` : ''}
+      ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>__SAVINGS__</span><input id="monthly-savings" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0" value="${amount(data.savings[monthKey(year, month)]) ? formatAmount(data.savings[monthKey(year, month)]) : ''}" /></label>` : ''}
+      ${view === 'year' ? `<label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>__SAVINGS__</span><input id="annual-savings-goal" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0" value="${amount(data.goals[year]) ? formatAmount(data.goals[year]) : ''}" /></label>` : ''}
     </div>${view === 'year' ? `<div id="savings-progress">${savingsProgressContent()}</div>` : ''}</div>
-    <p class="savings-hint">Quỹ tiết kiệm VNĐ được theo dõi riêng với thu chi JPY.</p></section>`;
+    <p class="savings-hint">Quỹ tiết kiệm __SAVINGS__ được theo dõi riêng với thu chi __CASH__.</p></section>`;
 }
 function savingsProgressContent() {
   if (view === 'calendar') return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong tháng</span><strong>${dong(monthSummary(data, year, month).savings)}</strong></div>`;
@@ -188,7 +200,7 @@ function incomePanel() {
   const income = data.incomes[monthKey(year, month)] || {};
   const summary = monthSummary(data, year, month);
   return `<section class="card income-panel"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('wallet')}</span><div><h2>Thu nhập tháng ${String(month + 1).padStart(2, '0')}</h2><p>Ghi lại lương và những khoản thưởng của bạn</p></div></div><span class="tag">${year}</span></div>
-    <div class="income-fields"><label>Lương thực nhận <span>JPY</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0.000" value="${amount(income.salary) ? formatAmount(income.salary) : ''}" data-income="salary" /></label><label>Thưởng & thu nhập thêm <span>JPY</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0.000" value="${amount(income.bonus) ? formatAmount(income.bonus) : ''}" data-income="bonus" /></label></div>
+    <div class="income-fields"><label>Lương thực nhận <span>__CASH__</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0" value="${amount(income.salary) ? formatAmount(income.salary) : ''}" data-income="salary" /></label><label>Thưởng & thu nhập thêm <span>__CASH__</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0" value="${amount(income.bonus) ? formatAmount(income.bonus) : ''}" data-income="bonus" /></label></div>
     <div class="salary-period"><label>Lương của tháng<input type="month" data-income="earnedMonth" value="${income.earnedMonth || shiftMonth(monthKey(year,month),-1)}" /></label><label>Ngày nhận tiền<input type="date" data-income="receivedOn" min="${monthKey(year,month)}-01" max="${dayKey(year,month,daysInMonth(year,month))}" value="${income.receivedOn || dayKey(year,month,15)}" /></label></div>
     <label class="income-note-label" for="income-note">Ghi chú thu nhập</label><textarea id="income-note" class="income-note" data-income="note" maxlength="20000" rows="2" placeholder="Ví dụ: Lương cơ bản, thưởng dự án, ngày nhận lương…">${escape(income.note || '')}</textarea>
     <div class="income-total"><span>Tổng thu nhập tháng</span><strong id="income-total">${money(summary.salary + summary.bonus)}</strong></div></section>`;
@@ -200,9 +212,9 @@ function categoryOptions(value, any = '') {
 function dayPanel() {
   const entry = currentDay();
   return `<div class="day-panel-header"><div class="eyebrow">CHI TIÊU TRONG NGÀY</div><h2>${String(day).padStart(2, '0')} <span>/ ${String(month + 1).padStart(2, '0')} / ${year}</span></h2><label class="day-picker-label">Chọn ngày<input id="day-select" aria-label="Chọn ngày nhập chi tiêu" type="date" value="${selectedKey()}" min="${year}-01-01" max="${year}-12-31" /></label></div>
-    <div class="expense-heading"><h3>Các khoản chi</h3><span>JPY</span></div>
+    <div class="expense-heading"><h3>Các khoản chi</h3><span>__CASH__</span></div>
     <div class="expense-list">${entry.items.map((item, index) => `<article class="expense-entry" data-item="${index}"><div class="expense-entry-title"><input aria-label="Nội dung khoản chi ${index + 1}" placeholder="Nội dung khoản chi" maxlength="500" data-field="title" ${(item.debtPaymentId || item.cardFeeMonth) ? `readonly title="${item.cardFeeMonth ? 'Phí liên kết sao kê' : 'Khoản chi liên kết trả nợ'}"` : ''} value="${escape(item.title)}" /><button class="delete-button" ${(item.debtPaymentId || item.cardFeeMonth) ? `data-debt-linked disabled title="${item.cardFeeMonth ? 'Sửa phí trong Thẻ & sao kê' : 'Hủy lần trả trong Khoản vay khác'}"` : ''} data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></div>
-      <label>Số tiền · JPY<input aria-label="Số tiền khoản chi ${index + 1}" type="text" data-money maxlength="32" inputmode="decimal" placeholder="0.000" data-field="amount" ${(item.debtPaymentId || item.cardFeeMonth) ? 'readonly' : ''} value="${item.amount ? formatAmount(item.amount) : ''}" /></label>
+      <label>Số tiền · __CASH__<input aria-label="Số tiền khoản chi ${index + 1}" type="text" data-money maxlength="32" inputmode="decimal" placeholder="0" data-field="amount" ${(item.debtPaymentId || item.cardFeeMonth) ? 'readonly' : ''} value="${item.amount ? formatAmount(item.amount) : ''}" /></label>
       <div class="expense-entry-meta"><label>Danh mục<select aria-label="Danh mục khoản chi ${index + 1}" data-field="category" ${(item.debtPaymentId || item.cardFeeMonth) ? 'data-debt-linked disabled' : ''}>${categoryOptions(categoryOf(item))}</select></label><label>Trạng thái<select aria-label="Trạng thái khoản chi ${index + 1}" data-field="status" ${(item.debtPaymentId || item.cardFeeMonth) ? 'data-debt-linked disabled' : ''}><option value="planned" ${expenseStatus(item) === 'planned' ? 'selected' : ''}>Dự kiến</option><option value="paid" ${expenseStatus(item) === 'paid' ? 'selected' : ''}>Đã chi</option></select></label></div>
       <div class="expense-entry-meta"><label>Thanh toán bằng<select aria-label="Phương thức khoản chi ${index+1}" data-field="paymentMethod" ${(item.debtPaymentId || item.cardFeeMonth) ? 'disabled data-debt-linked' : ''}><option value="cash" ${item.paymentMethod !== 'card' ? 'selected' : ''}>Tiền mặt / tài khoản</option><option value="card" ${item.paymentMethod === 'card' ? 'selected' : ''}>Thẻ tín dụng</option></select></label>${item.paymentMethod === 'card' ? `<label>Cách trả<select data-field="settlement" aria-label="Cách trả thẻ khoản chi ${index+1}" ${item.cardFeeMonth ? 'disabled data-debt-linked' : ''}><option value="oneoff" ${item.settlement === 'oneoff' ? 'selected' : ''}>Một lần tháng sau · 1回</option><option value="ribo" ${item.settlement === 'ribo' ? 'selected' : ''}>Bổ sung vào リボ</option>${item.cardFeeMonth ? '<option value="fee" selected>Phí sao kê</option>' : ''}</select></label><label>Kỳ sao kê trả tiền<input aria-label="Kỳ sao kê khoản chi ${index+1}" data-field="billingMonth" type="month" required value="${item.billingMonth || shiftMonth(selectedKey().slice(0,7),1)}" ${item.cardFeeMonth ? 'readonly' : ''} /></label>` : ''}</div>
       ${(item.debtPaymentId || item.cardFeeMonth) ? `<small class="linked-note">${item.cardFeeMonth ? 'Phí liên kết sao kê · sửa trong Thẻ & sao kê.' : 'Liên kết trả nợ · Sửa/hủy trong Khoản vay khác.'}</small>` : ''}</article>`).join('')}</div>
@@ -215,7 +227,7 @@ function expenseBrowser() {
 }
 function expenseResults() {
   const rows = expenseRows(data, year, month, { query: expenseQuery, category: expenseCategory, status: expenseFilterStatus });
-  return `<p class="search-summary">${rows.length} khoản · ${money(rows.reduce((sum, item) => sum + item.amount, 0))}</p><div class="expense-search-list">${rows.map(item => `<button data-open-day="${item.date}"><time>${item.date.split('-').reverse().join('/')}</time><span><strong>${escape(item.title || 'Chưa đặt tên')}</strong><small>${escape(categoryOf(item))} · ${expenseStatus(item) === 'paid' ? 'Đã chi' : 'Dự kiến'}</small></span><strong>${money(item.amount)}</strong></button>`).join('') || '<p>Không có khoản chi khớp bộ lọc.</p>'}</div>`;
+  return `<p class="search-summary">${rows.length} khoản · ${money(rows.reduce((sum, item) => sum + item.amount, 0))}</p><div class="expense-search-list">${rows.map(item => `<button data-open-day="${item.date}"><time>${item.date.split('-').reverse().join('/')}</time><span><strong translate="no">${escape(item.title || 'Chưa đặt tên')}</strong><small>${escape(categoryOf(item))} · ${expenseStatus(item) === 'paid' ? 'Đã chi' : 'Dự kiến'}</small></span><strong>${money(item.amount)}</strong></button>`).join('') || '<p>Không có khoản chi khớp bộ lọc.</p>'}</div>`;
 }
 function yearView() {
   return `<section class="card annual-months"><div class="card-heading"><div><h2>Xem riêng từng tháng</h2><p>Chọn tháng để xem tổng thu, chi và tiết kiệm của tháng đó.</p></div><span class="tag">${year}</span></div><div class="month-grid" aria-label="Tổng kết theo tháng">${Array.from({ length: 12 }, (_, m) => `<button class="month-card" data-open-month="${m}"><span>Tháng ${String(m + 1).padStart(2, '0')}</span>${icon('arrow')}</button>`).join('')}</div></section>`;
@@ -252,11 +264,13 @@ root.addEventListener('click', async event => {
   if (button.dataset.openDay) { [year, month, day] = button.dataset.openDay.split('-').map(Number); month--; view = 'calendar'; render(); }
   if (button.dataset.delete !== undefined) { if (currentDay().items[+button.dataset.delete]?.debtPaymentId || currentDay().items[+button.dataset.delete]?.cardFeeMonth) return; ensureDay().items.splice(+button.dataset.delete, 1); persist(); render(); }
   switch (button.dataset.action) {
+    case 'theme': display.theme = display.theme === 'dark' ? 'light' : 'dark'; saveDisplay(display); render(); break;
+    case 'settings': showSettings(financeContext(), display, next => { display = next; saveDisplay(display); setLanguage(display.language); render(); }); break;
     case 'save': await saveChanges(); break;
     case 'add-debt': openDebtDialog(); break;
     case 'add-year': showYearDialog(); break;
     case 'remove-year': {
-      if (years().length <= 1 || !confirm(`Xóa năm ${year} khỏi danh sách? Dữ liệu được giữ lại và sẽ xuất hiện khi thêm lại năm này.`)) break;
+      if (years().length <= 1 || !ask(`Xóa năm ${year} khỏi danh sách? Dữ liệu được giữ lại và sẽ xuất hiện khi thêm lại năm này.`)) break;
       removeYear(data, year); year = years().find(value => value >= year) || years().at(-1); day = Math.min(day, daysInMonth(year, month)); persist(); render(); break;
     }
     case 'quick-expense': view = 'calendar'; ensureDay().items.push(newExpense()); persist(); render(); focusEditor('.expense-entry:last-child [data-field=title]'); break;
@@ -266,7 +280,7 @@ root.addEventListener('click', async event => {
     case 'register': if (!cloud.user) showAccount('signup'); break;
     case 'cloud-retry': await cloud.refresh(); break;
     case 'cloud-remote': {
-      if (!confirm('Thay bản nháp trên máy bằng dữ liệu đám mây? Hãy xuất dữ liệu trước nếu cần giữ bản nháp.')) break;
+      if (!ask('Thay bản nháp trên máy bằng dữ liệu đám mây? Hãy xuất dữ liệu trước nếu cần giữ bản nháp.')) break;
       try { await cloud.useRemote(); } catch (error) { notify(error.message); }
       break;
     }
@@ -297,7 +311,7 @@ root.addEventListener('input', event => {
   if (['date','month'].includes(target.type) && !target.checkValidity()) return;
   if (target.hasAttribute('data-money')) {
     const value = target.value.trim();
-    target.setCustomValidity(value && !/^\d[\d,]*(?:\.\d{0,3})?$/.test(value) ? 'Nhập số tiền dạng 1,000,000.000, tối đa 3 chữ số thập phân.' : Number(value.replace(/,/g, '')) > MAX_AMOUNT ? 'Số tiền vượt giới hạn cho phép.' : '');
+    target.setCustomValidity(value && !/^\d[\d,]*(?:\.\d{0,3})?$/.test(value) ? 'Nhập số tiền dạng 1,000,000; có thể nhập tối đa 3 chữ số thập phân.' : Number(value.replace(/,/g, '')) > MAX_AMOUNT ? 'Số tiền vượt giới hạn cho phép.' : '');
     if (!target.validity.valid) return;
   }
   if (target.id === 'monthly-savings') { data.savings[monthKey(year, month)] = amount(target.value); persist(); refreshTotals(); }
@@ -333,7 +347,7 @@ root.addEventListener('change', async event => {
       const userId = cloud.user.id;
       const imported = normalizeData(JSON.parse(await file.text()));
       if (!canEdit() || cloud.user.id !== userId) return;
-      if (!confirm('Nhập bản sao lưu sẽ thay thế toàn bộ dữ liệu hiện tại trên trình duyệt này. Bạn đã xuất dữ liệu cần giữ chưa?')) return;
+      if (!ask('Nhập bản sao lưu sẽ thay thế toàn bộ dữ liệu hiện tại trên trình duyệt này. Bạn đã xuất dữ liệu cần giữ chưa?')) return;
       const previous = data;
       data = imported;
       if (!persist()) { data = previous; return; }
@@ -356,15 +370,39 @@ const authClient = new SupabaseClient(supabaseConfig, localStorage);
 const cloud = new SyncController(authClient, localStorage, {
   onData: next => {
     data = next;
-    syncCreditRole(); render();
-  }, onStatus: () => { syncCreditRole(); renderCloud(); },
+    syncAccountProfile(); syncCreditRole(); render();
+
+  }, onStatus: () => { syncAccountProfile(); syncCreditRole(); renderCloud(); queueMicrotask(maybeChooseCurrencies); },
 });
+
+
+function maybeChooseCurrencies() {
+  if (!canEdit() || currencyPromptUser === cloud.user.id || !needsCurrencySetup(data)) return;
+  currencyPromptUser = cloud.user.id;
+  showSettings(financeContext(), display, next => { display = next; saveDisplay(display); setLanguage(display.language); render(); }, true);
+}
+function syncAccountProfile() {
+  const id = cloud.user?.id || null;
+  if (profileUserId === id) return;
+  if (profileUserId && profileUserId !== id) document.querySelectorAll('#profile-dialog,#admin-dialog,#settings-dialog,#credit-dialog,#debt-dialog').forEach(dialog => dialog.close());
+  profileUserId = id; accountProfile = null;
+  if (!id) currencyPromptUser = null;
+  if (!id) return;
+  authClient.profile().then(profile => {
+    if (cloud.user?.id !== id) return;
+    accountProfile = profile;
+    const name = document.querySelector('#profile-name'), email = document.querySelector('#profile-email');
+    if (name) name.textContent = profile?.username || cloud.user.email;
+    if (email) email.textContent = cloud.user.email;
+    const avatar = document.querySelector('.profile .avatar'); if (avatar) avatar.textContent = (profile?.username || cloud.user.email).slice(0,1).toUpperCase();
+  }).catch(() => { if (cloud.user?.id === id) profileUserId = null; });
+}
 
 function renderCloud() {
   if (!document.querySelector('#account-label')) return;
-  const labels = { guest: 'Chưa đăng nhập', loading: 'Đang kết nối…', draft: 'Chưa lưu thay đổi', pending: 'Chờ đồng bộ', saving: 'Đang lưu…', ready: 'Đã đồng bộ', error: 'Chưa đồng bộ', conflict: 'Cần xử lý thay đổi' };
+  const labels = { guest: 'Chưa đăng nhập', loading: 'Đang kết nối…', draft: 'Chưa lưu thay đổi', pending: 'Chờ đồng bộ', saving: 'Đang lưu…', ready: '', error: 'Chưa đồng bộ', conflict: 'Cần xử lý thay đổi' };
   document.querySelector('#account-label').textContent = cloud.user ? 'Tài khoản' : 'Đăng nhập';
-  document.querySelector('[data-action="account"]').disabled = cloud.status === 'loading';
+  document.querySelectorAll('[data-action="account"]').forEach(button => button.disabled = cloud.status === 'loading');
   document.querySelector('[data-action="register"]').hidden = Boolean(cloud.user) || cloud.status === 'loading';
   document.querySelector('[data-action="import"]').disabled = !canEdit();
   document.querySelector('[data-action="export"]').disabled = !canEdit();
@@ -374,7 +412,8 @@ function renderCloud() {
   if (removeYearButton) removeYearButton.disabled = !canEdit() || years().length <= 1;
   document.querySelector('[data-action="save"]').hidden = !cloud.user;
   document.querySelector('[data-action="save"]').disabled = !canEdit() || !cloud.dirty;
-  document.querySelector('#storage-description').textContent = cloud.user ? `JPY / VNĐ · ${labels[cloud.status]} · ${cloud.user.email}` : 'Đăng nhập để nhập và lưu dữ liệu';
+  document.querySelector('#storage-description').textContent = cloud.user ? [`${currencyLabel()} / ${currencyLabel('savings')}`, labels[cloud.status]].filter(Boolean).join(' · ') : 'Đăng nhập để nhập và lưu dữ liệu';
+  document.querySelector('.local-badge').hidden = cloud.status === 'ready';
   document.querySelector('.local-badge').innerHTML = `${icon('check')} ${labels[cloud.status]}`;
   let message = '', actions = '';
   if (['error', 'conflict'].includes(cloud.status)) {
@@ -398,7 +437,7 @@ function showAccount(initialMode = 'signin') {
   document.querySelector('#account-dialog')?.remove();
   const dialog = document.createElement('dialog'); dialog.id = 'account-dialog'; dialog.className = 'account-dialog'; dialog.setAttribute('aria-labelledby', 'account-title');
   dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><h2 id="account-title">${cloud.user ? 'Tài khoản' : 'Đăng nhập'}</h2>
-    ${cloud.user ? `<p>Đang đăng nhập: <strong>${escape(cloud.user.email)}</strong></p><p>Bản nháp chưa đồng bộ sẽ được giữ riêng cho tài khoản này trên trình duyệt.</p><button class="account-submit" id="sign-out">Đăng xuất</button>` : `<div class="auth-tabs"><button class="active" data-mode="signin">Đăng nhập</button><button data-mode="signup">Đăng ký</button></div><form id="auth-form"><label class="signup-username" hidden>Tên tài khoản<input name="username" type="text" disabled minlength="3" maxlength="30" pattern="[a-z][a-z0-9_]{2,29}" autocomplete="username" placeholder="Ví dụ: quang_01" /></label><label><span id="login-label">Tên tài khoản hoặc email</span><input name="email" type="text" required autocomplete="username" placeholder="Tên tài khoản hoặc email" /></label><label>Mật khẩu<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Mật khẩu" /></label><button class="account-submit" type="submit">Đăng nhập</button></form><button class="forgot-password" type="button">Quên mật khẩu?</button>`}
+    ${cloud.user ? `<p>Đang đăng nhập: <strong translate="no">${escape(cloud.user.email)}</strong></p><p>Bản nháp chưa đồng bộ sẽ được giữ riêng cho tài khoản này trên trình duyệt.</p><button class="account-submit" id="sign-out">Đăng xuất</button>` : `<div class="auth-tabs"><button class="active" data-mode="signin">Đăng nhập</button><button data-mode="signup">Đăng ký</button></div><form id="auth-form"><label class="signup-username" hidden>Tên tài khoản<input name="username" type="text" disabled minlength="3" maxlength="30" pattern="[a-z][a-z0-9_]{2,29}" autocomplete="username" placeholder="Ví dụ: quang_01" /></label><label><span id="login-label">Tên tài khoản hoặc email</span><input name="email" type="text" required autocomplete="username" placeholder="Tên tài khoản hoặc email" /></label><label>Mật khẩu<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Mật khẩu" /></label><button class="account-submit" type="submit">Đăng nhập</button></form><button class="forgot-password" type="button">Quên mật khẩu?</button>`}
     <p id="auth-message" role="status" aria-live="polite"></p>`;
   document.body.append(dialog); dialog.showModal();
   if (cloud.user) {
@@ -406,10 +445,12 @@ function showAccount(initialMode = 'signin') {
     const passwordButton = document.createElement('button'); passwordButton.className = 'account-submit'; passwordButton.textContent = 'Đổi mật khẩu';
     dialog.querySelector('#sign-out').before(passwordButton);
     passwordButton.onclick = () => { dialog.close(); showPasswordReset(authClient); };
-    authClient.profile().then(profile => { if (profile && dialog.isConnected) { const info = document.createElement('p'); info.textContent = `Tên tài khoản: ${profile.username} · ${profile.display_name || 'Chưa có tên hiển thị'}`; dialog.querySelector('#sign-out').before(info); } }).catch(() => {});
+    const profileButton = document.createElement('button'); profileButton.className = 'account-submit'; profileButton.textContent = 'Thông tin tài khoản';
+    dialog.querySelector('#sign-out').before(profileButton);
+    profileButton.onclick = () => { dialog.close(); showProfile(authClient, { ...cloud.user, ...accountProfile }, async () => { accountProfile = await authClient.profile(); cloud.user = await authClient.user(); render(); }); };
     const adminButton = document.createElement('button'); adminButton.className = 'account-submit'; adminButton.textContent = 'Quản lý tài khoản'; adminButton.hidden = true;
     dialog.querySelector('#sign-out').before(adminButton);
-    adminButton.onclick = () => { dialog.close(); showAdmin(authClient, userId); };
+    adminButton.onclick = () => { dialog.close(); showAdmin(authClient, userId, () => { profileUserId = null; syncAccountProfile(); }); };
     authClient.isAdmin().then(isAdmin => { if (isAdmin === true && cloud.user?.id === userId && dialog.isConnected) adminButton.hidden = false; }).catch(() => {});
   }
   dialog.querySelector('.dialog-close').onclick = () => dialog.close();
@@ -447,7 +488,7 @@ function showAccount(initialMode = 'signin') {
   dialog.querySelector('#sign-out')?.addEventListener('click', async event => {
     event.target.disabled = true;
     try {
-      if (cloud.dirty && !confirm('Có bản nháp chưa đồng bộ. Đăng xuất và giữ bản nháp trên máy để đồng bộ khi đăng nhập lại?')) return;
+      if (cloud.dirty && !ask('Có bản nháp chưa đồng bộ. Đăng xuất và giữ bản nháp trên máy để đồng bộ khi đăng nhập lại?')) return;
       await cloud.logout(); dialog.close();
     } catch (error) { dialog.querySelector('#auth-message').textContent = error.message; }
     finally { event.target.disabled = false; }

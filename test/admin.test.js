@@ -37,8 +37,8 @@ test('admin rejects foreign origins and never leaks private user metadata or ser
 test('admin updates only supported fields and refuses role/password metadata injection',async()=>{
  const {request,calls}=fixture();
  for(const extra of [{password:'hack'},{app_metadata:{role:'admin'}},{user_metadata:{role:'admin'}}])assert.equal((await request({action:'update',user_id:B,email:'new@example.com',...extra})).status,400);
- assert.equal((await request({action:'update',user_id:B,email:'NEW@example.com'})).status,200);
- const update=calls.find(c=>c.options.method==='PUT');assert.deepEqual(JSON.parse(update.options.body),{email:'new@example.com'});
+ assert.equal((await request({action:'update',user_id:B,email:'NEW@example.com'})).status,400);
+ assert.equal(calls.some(c=>c.options.method==='PUT'),false);
 });
 test('admin cannot ban or revoke its own active administrator',async()=>{
  const {request}=fixture();

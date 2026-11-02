@@ -1,3 +1,4 @@
+import { normalizeCurrencies } from './preferences.js';
 import { normalizeCards, validateCardLinks, validMonth, cardDate } from './card-model.js';
 export const YEARS = Array.from({ length: 8 }, (_, i) => 2026 + i);
 export const MIN_YEAR = 1900, MAX_YEAR = 9999;
@@ -14,7 +15,7 @@ export function removeYear(data, year) {
 }
 export const MAX_AMOUNT = 1_000_000_000_000;
 const roundMoney = value => Math.round(value * 1000) / 1000;
-const moneyFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const moneyFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 export const formatAmount = value => moneyFormatter.format(Number.isFinite(Number(value)) ? Number(value) : 0);
 export const amount = value => {
   const number = Number(typeof value === 'string' ? value.replace(/,/g, '').trim() : value);
@@ -140,6 +141,7 @@ export const emptyData = () => ({ version: 2, years: [...YEARS], days: {}, incom
 export function normalizeData(input) {
   if (!input || ![1, 2].includes(input.version) || typeof input.days !== 'object' || !input.days || typeof input.incomes !== 'object' || !input.incomes) throw new Error('Dữ liệu không đúng định dạng.');
   const result = emptyData();
+  if (input.currencies !== undefined) result.currencies = normalizeCurrencies(input.currencies);
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
     if (!match || !validYear(+match[1]) || +match[3] > daysInMonth(+match[1], +match[2] - 1) || !day || !Array.isArray(day.items)) continue;

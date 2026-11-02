@@ -25,7 +25,7 @@ select id from auth.users where lower(email) = lower('email-cua-ban@example.com'
 on conflict do nothing;
 ```
 
-Sau khi đăng nhập tài khoản admin mới, có thể đổi email kỹ thuật của admin cũ sang email thực để dùng chức năng khôi phục. Không xóa tài khoản để khôi phục mật khẩu vì dữ liệu thuộc tài khoản đó có thể bị xóa theo.
+Email kỹ thuật không nhận được mã xác nhận email cũ, nên không thể dùng luồng đổi email hai bước thông thường. Chủ project cần xử lý khôi phục danh tính trực tiếp trong Supabase; xem ACCOUNT-SETTINGS.md. Không xóa tài khoản để khôi phục mật khẩu vì dữ liệu thuộc tài khoản đó có thể bị xóa theo.
 
 ## 3. Triển khai hai Edge Functions
 
@@ -63,3 +63,6 @@ Trong **Authentication → Email Templates → Reset Password**, thay nội dung
 - Quyền quản trị tài khoản không mở quyền xem bảng dữ liệu chi tiêu cá nhân của tài khoản khác. Khóa tài khoản chặn đăng nhập và chặn đọc/ghi dữ liệu lịch dù access token cũ chưa hết hạn.
 
 Kiểm thử trong repository dùng mô phỏng API; kiểm thử SQL thực hiện trên PostgreSQL thử nghiệm. Triển khai thật và các cài đặt email cần được kiểm tra trong project của chủ ứng dụng.
+
+
+Hồ sơ tự phục vụ và đổi email hai bước cần triển khai thêm theo [ACCOUNT-SETTINGS.md](ACCOUNT-SETTINGS.md). API `admin-accounts` không còn hỗ trợ đổi email trực tiếp; cần cập nhật bundle admin-accounts cùng bản giao diện mới.

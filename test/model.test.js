@@ -105,9 +105,9 @@ test('year lists and new-year data survive backup normalization and legacy impor
  const single={...emptyData(),years:[2026]};assert.throws(()=>removeYear(single,2026),/ít nhất một năm/);
 });
 
-test('money uses comma thousands and three fixed decimal digits without changing its unit', () => {
- assert.equal(formatAmount(1000000),'1,000,000.000');assert.equal(formatAmount(0),'0.000');
- assert.equal(formatAmount(1234.5),'1,234.500');assert.equal(formatAmount(-1234.567),'-1,234.567');
+test('money uses comma thousands and only necessary decimal digits without changing its unit', () => {
+ assert.equal(formatAmount(1000000),'1,000,000');assert.equal(formatAmount(0),'0');
+ assert.equal(formatAmount(1234.5),'1,234.5');assert.equal(formatAmount(-1234.567),'-1,234.567');
  assert.equal(amount('1,000,000.123'),1000000.123);assert.equal(amount('1,234.5678'),1234.568);
  assert.equal(amount('invalid'),0);assert.equal(amount('-1,000'),0);
 });
