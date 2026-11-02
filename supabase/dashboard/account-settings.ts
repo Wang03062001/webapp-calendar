@@ -2,7 +2,7 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const failure = { forbidden:'Không có quyền sửa tài khoản này.', rate:'Hãy chờ 60 giây trước khi gửi mã mới.', expired:'Mã hết hạn hoặc đã nhập sai 5 lần. Hãy bắt đầu lại.', stale:'Email tài khoản đã thay đổi. Hãy bắt đầu lại.', email:'Email mới không hợp lệ hoặc đã được dùng.', invalid:'Mã xác nhận không đúng.', order:'Hãy thực hiện các bước xác nhận theo thứ tự.', applying:'Yêu cầu trước đang xử lý. Hãy thử xác nhận mã mới lại hoặc liên hệ quản trị.' };
-export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mailFrom, fetcher = globalThis.fetch.bind(globalThis), allowedOrigins = ['https://wang03062001.github.io'] }) {
+export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mailFrom, sendEmail, fetcher = globalThis.fetch.bind(globalThis), allowedOrigins = ['https://wang03062001.github.io'] }) {
   return async request => {
     const origin = request.headers.get('origin'), authorization = request.headers.get('authorization');
     const headers = { 'Content-Type':'application/json', 'Cache-Control':'no-store', Vary:'Origin', ...(allowedOrigins.includes(origin) ? { 'Access-Control-Allow-Origin':origin, 'Access-Control-Allow-Headers':'authorization, apikey, content-type', 'Access-Control-Allow-Methods':'POST, OPTIONS' } : {}) };
@@ -42,7 +42,7 @@ export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mail
         const updated = await call(`/rest/v1/calendar_profiles?user_id=eq.${targetId}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({username:input.username,display_name:input.display_name.trim()})});
         return updated.response.ok && updated.body?.length ? reply(200,{ok:true}) : reply(409,{message:'Tên tài khoản đã được dùng hoặc hồ sơ chưa được thiết lập.'});
       }
-      if (!mailKey || !mailFrom) return reply(503,{message:'Chưa cấu hình gửi mã đổi email. Admin cần triển khai account-settings và cấu hình RESEND_API_KEY, EMAIL_FROM.'});
+      if (!sendEmail && (!mailKey || !mailFrom)) return reply(503,{message:'Chưa cấu hình gửi mã đổi email. Admin cần triển khai account-settings và cấu hình SMTP_USER, SMTP_PASS (Gmail) hoặc RESEND_API_KEY, EMAIL_FROM.'});
       const id = input.action === 'start' ? crypto.randomUUID() : input.id;
       if (!UUID.test(id || '')) return reply(400,{message:'Yêu cầu xác nhận không hợp lệ.'});
       const hash = async code => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`${id}:${code}`))),b=>b.toString(16).padStart(2,'0')).join('');
@@ -58,8 +58,16 @@ export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mail
         const code = String(value % 1000000).padStart(6,'0');
         const result = await step(input.action,email,await hash(code));
         if (!result?.ok) return reply(result?.error==='rate'?429:400,{message:failure[result?.error] || 'Không thể bắt đầu xác nhận.'});
-        const mail = await fetcher('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${mailKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:mailFrom,to:[email],subject:'Mã xác nhận đổi email / Email change verification',text:`Mã xác nhận / Verification code: ${code}\nMã có hiệu lực 10 phút. Không chia sẻ mã này. / Expires in 10 minutes. Do not share this code.\n${input.action === 'start' ? 'Xác nhận email hiện tại trước khi chọn email mới.' : 'Xác nhận email mới để hoàn tất thay đổi.'}`}),signal:AbortSignal.timeout(12000)});
-        if (!mail.ok) return reply(502,{message:'Chưa gửi được mã. Kiểm tra cấu hình gửi email và thử lại sau 60 giây.'});
+        const message = {to:email,subject:'Mã xác nhận đổi email / Email change verification',text:`Mã xác nhận / Verification code: ${code}\nMã có hiệu lực 10 phút. Không chia sẻ mã này. / Expires in 10 minutes. Do not share this code.\n${input.action === 'start' ? 'Xác nhận email hiện tại trước khi chọn email mới.' : 'Xác nhận email mới để hoàn tất thay đổi.'}`};
+        let delivered = false;
+        try {
+          if (sendEmail) delivered = await sendEmail(message) === true;
+          else {
+            const mail = await fetcher('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${mailKey}`,'Content-Type':'application/json'},body:JSON.stringify({...message,from:mailFrom,to:[email]}),signal:AbortSignal.timeout(12000)});
+            delivered = mail.ok;
+          }
+        } catch { /* Provider errors may contain credentials; never return or log them. */ }
+        if (!delivered) return reply(502,{message:'Chưa gửi được mã. Kiểm tra cấu hình gửi email và thử lại sau 60 giây.'});
         return reply(200,{id,stage:result.stage});
       }
       if (!/^\d{6}$/.test(input.code || '')) return reply(400,{message:'Nhập mã gồm 6 chữ số.'});
@@ -80,4 +88,35 @@ export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mail
   };
 }
 
-Deno.serve(createAccountHandler({ url: Deno.env.get('SUPABASE_URL'), serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), publicKey: Deno.env.get('SUPABASE_ANON_KEY'), mailKey: Deno.env.get('RESEND_API_KEY'), mailFrom: Deno.env.get('EMAIL_FROM'), allowedOrigins: (Deno.env.get('ALLOWED_ORIGINS') || 'https://wang03062001.github.io').split(',').map(value => value.trim()) }));
+// SMTP credentials and the transport stay inside the Edge Function.
+export function createSmtpSender(config, createTransport) {
+  const { user, password, host = 'smtp.gmail.com', port = 465, from = user } = config;
+  if (!user || !password || !from || ![465, 587].includes(Number(port)) || /[\r\n]/.test(`${host}${from}`)) return null;
+  const transport = createTransport({
+    host, port: Number(port), secure: Number(port) === 465, requireTLS: true,
+    auth: { user, pass: host === 'smtp.gmail.com' ? password.replace(/\s/g, '') : password },
+    tls: { rejectUnauthorized: true },
+    connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
+    logger: false, debug: false,
+  });
+  return async message => {
+    const result = await transport.sendMail({ ...message, from, disableFileAccess: true, disableUrlAccess: true });
+    return result.accepted?.some(address => String(address).toLowerCase() === message.to.toLowerCase()) === true;
+  };
+}
+
+import nodemailer from 'npm:nodemailer@10.3.1';
+
+const smtpUser = Deno.env.get('SMTP_USER');
+const smtpSender = createSmtpSender({
+  user: smtpUser, password: Deno.env.get('SMTP_PASS'),
+  host: Deno.env.get('SMTP_HOST') || 'smtp.gmail.com',
+  port: Number(Deno.env.get('SMTP_PORT') || '465'),
+  from: Deno.env.get('EMAIL_FROM') || smtpUser,
+}, options => nodemailer.createTransport(options));
+Deno.serve(createAccountHandler({
+  url: Deno.env.get('SUPABASE_URL'), serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+  publicKey: Deno.env.get('SUPABASE_ANON_KEY'), sendEmail: smtpSender,
+  mailKey: Deno.env.get('RESEND_API_KEY'), mailFrom: Deno.env.get('EMAIL_FROM'),
+  allowedOrigins: (Deno.env.get('ALLOWED_ORIGINS') || 'https://wang03062001.github.io').split(',').map(value => value.trim()),
+}));

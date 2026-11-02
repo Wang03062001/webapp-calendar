@@ -8,14 +8,29 @@ Trong **SQL Editor**, chạy toàn bộ [account-settings.sql](account-settings.
 
 Script tạo bảng trạng thái mã xác nhận chỉ service role được truy cập, RPC kiểm tra quyền/chuỗi bước và trigger trên `auth.users.email`. Trigger chặn đổi email trực tiếp bằng Auth API hoặc đường admin cũ khi chưa đủ hai mã. Bảng OTP không cấp quyền đọc/ghi cho `anon` hay `authenticated`.
 
-## 2. Gửi mã email
+## 2. Gửi mã email — Gmail, không cần tên miền riêng
 
-Tạo dịch vụ gửi email tại **Resend**, xác minh tên miền gửi thư. Trong **Edge Functions → Secrets** thêm:
+Bạn có thể dùng Gmail cá nhân làm hộp thư gửi mã. Website vẫn ở GitHub Pages; không cần mua tên miền. Thư đến địa chỉ email cũ/mới của người dùng, không bắt buộc người nhận dùng Gmail.
 
-- `RESEND_API_KEY`: API key của dịch vụ, chỉ lưu phía server.
-- `EMAIL_FROM`: địa chỉ gửi đã được Resend xác minh, ví dụ `Calendar <account@your-verified-domain.example>`.
+1. Đăng nhập Gmail muốn dùng để gửi thư. Mở https://myaccount.google.com/security và bật **Xác minh 2 bước / 2-Step Verification**.
+2. Mở https://myaccount.google.com/apppasswords, tạo mật khẩu ứng dụng, đặt tên `Calendar Supabase`. Google hiển thị một mật khẩu ứng dụng 16 ký tự.
+3. Trong Supabase chọn **Edge Functions → Secrets → Add secret**, thêm:
 
-Không đặt các giá trị bí mật trong frontend, GitHub hay chat. Đây là cấu hình riêng cho mã đổi email; thư đăng ký và khôi phục mật khẩu Supabase vẫn dùng cấu hình Auth hiện có. Máy chủ chỉ gửi mã tới email hiện tại lấy từ Auth, hoặc email mới do người dùng nhập sau khi xác minh email hiện tại.
+   | Tên | Giá trị |
+   |---|---|
+   | `SMTP_USER` | Địa chỉ Gmail gửi thư, ví dụ `yourname@gmail.com` |
+   | `SMTP_PASS` | Mật khẩu ứng dụng 16 ký tự vừa tạo, không phải mật khẩu đăng nhập Gmail |
+
+4. Lưu secrets rồi deploy lại **account-settings** bằng bản code mới ở bước 3. Mặc định gửi qua `smtp.gmail.com:465` có TLS. Người gửi mặc định chính là `SMTP_USER`; không cần thêm `EMAIL_FROM`. Nếu trước đó đã thêm `EMAIL_FROM` cho Resend, hãy đổi nó thành cùng địa chỉ Gmail hoặc xóa secret này.
+5. Không cần `RESEND_API_KEY` khi đã cấu hình SMTP. Nếu có cả hai, function ưu tiên SMTP. Mã không thử gửi qua nhà cung cấp khác khi SMTP lỗi.
+
+Nếu Google không hiển thị mục mật khẩu ứng dụng, kiểm tra Xác minh 2 bước đã bật và tài khoản có bị giới hạn bởi Google Workspace/Advanced Protection hay chính sách quản trị không. Chức năng này cần tài khoản cho phép tạo mật khẩu ứng dụng; không nhập mật khẩu Gmail thông thường để thay thế.
+
+Tùy chọn dùng SMTP khác: thêm `SMTP_HOST`, `SMTP_PORT` (465 dùng TLS trực tiếp hoặc 587 bắt buộc STARTTLS) và `EMAIL_FROM` theo nhà cung cấp. Chứng chỉ TLS luôn được kiểm tra. Tài khoản Gmail có hạn mức gửi; cách này phù hợp ứng dụng cá nhân.
+
+**Nếu đã có Resend và tên miền riêng:** có thể giữ cách cũ bằng `RESEND_API_KEY` và `EMAIL_FROM` đã xác minh, đồng thời không cấu hình cặp `SMTP_USER`/`SMTP_PASS`.
+
+Không đặt mật khẩu/khóa trong frontend, GitHub hay chat. Đây là cấu hình riêng của Edge Function gửi mã đổi email; thư đăng ký/khôi phục mật khẩu Supabase Auth vẫn dùng cấu hình Auth hiện có. Máy chủ chỉ gửi tới email hiện tại lấy từ Auth, hoặc email mới nhập sau khi xác minh email hiện tại.
 
 ## 3. Edge Functions
 

@@ -118,3 +118,6 @@ Mục **Thẻ & sao kê** và các nút dẫn tới mục này chỉ hiển th�
 - **Tài khoản → Thông tin tài khoản** sửa username/tên hiển thị của chính mình. Admin quản lý mọi tài khoản trong **Quản lý tài khoản**. Đổi email luôn theo thứ tự: mã email cũ → email mới → mã email mới; email cũ chỉ thay sau bước cuối. Không còn API admin đổi email trực tiếp.
 
 Chức năng hồ sơ/đổi email mới cần triển khai máy chủ riêng: xem [ACCOUNT-SETTINGS.md](supabase/ACCOUNT-SETTINGS.md). GitHub Pages không tự triển khai SQL/Edge Functions. Có kiểm thử API mô phỏng, giao diện Chromium và PostgreSQL thử nghiệm; gửi/nhận thư thật chỉ kiểm tra được sau khi cấu hình dịch vụ gửi email.
+
+
+Có thể gửi mã đổi email bằng **Gmail SMTP, không cần tên miền riêng**: bật Xác minh 2 bước của Google, tạo mật khẩu ứng dụng rồi đặt `SMTP_USER` và `SMTP_PASS` trong Edge Functions Secrets. Deploy lại `account-settings` từ bundle mới. Xem các bước cụ thể trong [ACCOUNT-SETTINGS.md](supabase/ACCOUNT-SETTINGS.md). Gmail SMTP và Resend là hai lựa chọn; SMTP được ưu tiên khi cấu hình đủ. Mật khẩu chỉ lưu phía server.

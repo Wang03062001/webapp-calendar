@@ -1,7 +1,7 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const failure = { forbidden:'Không có quyền sửa tài khoản này.', rate:'Hãy chờ 60 giây trước khi gửi mã mới.', expired:'Mã hết hạn hoặc đã nhập sai 5 lần. Hãy bắt đầu lại.', stale:'Email tài khoản đã thay đổi. Hãy bắt đầu lại.', email:'Email mới không hợp lệ hoặc đã được dùng.', invalid:'Mã xác nhận không đúng.', order:'Hãy thực hiện các bước xác nhận theo thứ tự.', applying:'Yêu cầu trước đang xử lý. Hãy thử xác nhận mã mới lại hoặc liên hệ quản trị.' };
-export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mailFrom, fetcher = globalThis.fetch.bind(globalThis), allowedOrigins = ['https://wang03062001.github.io'] }) {
+export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mailFrom, sendEmail, fetcher = globalThis.fetch.bind(globalThis), allowedOrigins = ['https://wang03062001.github.io'] }) {
   return async request => {
     const origin = request.headers.get('origin'), authorization = request.headers.get('authorization');
     const headers = { 'Content-Type':'application/json', 'Cache-Control':'no-store', Vary:'Origin', ...(allowedOrigins.includes(origin) ? { 'Access-Control-Allow-Origin':origin, 'Access-Control-Allow-Headers':'authorization, apikey, content-type', 'Access-Control-Allow-Methods':'POST, OPTIONS' } : {}) };
@@ -41,7 +41,7 @@ export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mail
         const updated = await call(`/rest/v1/calendar_profiles?user_id=eq.${targetId}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({username:input.username,display_name:input.display_name.trim()})});
         return updated.response.ok && updated.body?.length ? reply(200,{ok:true}) : reply(409,{message:'Tên tài khoản đã được dùng hoặc hồ sơ chưa được thiết lập.'});
       }
-      if (!mailKey || !mailFrom) return reply(503,{message:'Chưa cấu hình gửi mã đổi email. Admin cần triển khai account-settings và cấu hình RESEND_API_KEY, EMAIL_FROM.'});
+      if (!sendEmail && (!mailKey || !mailFrom)) return reply(503,{message:'Chưa cấu hình gửi mã đổi email. Admin cần triển khai account-settings và cấu hình SMTP_USER, SMTP_PASS (Gmail) hoặc RESEND_API_KEY, EMAIL_FROM.'});
       const id = input.action === 'start' ? crypto.randomUUID() : input.id;
       if (!UUID.test(id || '')) return reply(400,{message:'Yêu cầu xác nhận không hợp lệ.'});
       const hash = async code => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`${id}:${code}`))),b=>b.toString(16).padStart(2,'0')).join('');
@@ -57,8 +57,16 @@ export function createAccountHandler({ url, serviceKey, publicKey, mailKey, mail
         const code = String(value % 1000000).padStart(6,'0');
         const result = await step(input.action,email,await hash(code));
         if (!result?.ok) return reply(result?.error==='rate'?429:400,{message:failure[result?.error] || 'Không thể bắt đầu xác nhận.'});
-        const mail = await fetcher('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${mailKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:mailFrom,to:[email],subject:'Mã xác nhận đổi email / Email change verification',text:`Mã xác nhận / Verification code: ${code}\nMã có hiệu lực 10 phút. Không chia sẻ mã này. / Expires in 10 minutes. Do not share this code.\n${input.action === 'start' ? 'Xác nhận email hiện tại trước khi chọn email mới.' : 'Xác nhận email mới để hoàn tất thay đổi.'}`}),signal:AbortSignal.timeout(12000)});
-        if (!mail.ok) return reply(502,{message:'Chưa gửi được mã. Kiểm tra cấu hình gửi email và thử lại sau 60 giây.'});
+        const message = {to:email,subject:'Mã xác nhận đổi email / Email change verification',text:`Mã xác nhận / Verification code: ${code}\nMã có hiệu lực 10 phút. Không chia sẻ mã này. / Expires in 10 minutes. Do not share this code.\n${input.action === 'start' ? 'Xác nhận email hiện tại trước khi chọn email mới.' : 'Xác nhận email mới để hoàn tất thay đổi.'}`};
+        let delivered = false;
+        try {
+          if (sendEmail) delivered = await sendEmail(message) === true;
+          else {
+            const mail = await fetcher('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${mailKey}`,'Content-Type':'application/json'},body:JSON.stringify({...message,from:mailFrom,to:[email]}),signal:AbortSignal.timeout(12000)});
+            delivered = mail.ok;
+          }
+        } catch { /* Provider errors may contain credentials; never return or log them. */ }
+        if (!delivered) return reply(502,{message:'Chưa gửi được mã. Kiểm tra cấu hình gửi email và thử lại sau 60 giây.'});
         return reply(200,{id,stage:result.stage});
       }
       if (!/^\d{6}$/.test(input.code || '')) return reply(400,{message:'Nhập mã gồm 6 chữ số.'});

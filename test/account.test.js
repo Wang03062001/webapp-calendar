@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createAccountHandler} from '../supabase/functions/_shared/account-handler.js';
 const A='11111111-1111-1111-1111-111111111111',B='22222222-2222-2222-2222-222222222222';
-function fixture({admin=false,banned=false,rpcError=false,configured=true}={}){
+function fixture({admin=false,banned=false,rpcError=false,configured=true,smtp=false,mailFailure=false}={}){
  let stage='start',hash='',currentEmail='old@example.test',newEmail='',id,wrong=0;const calls=[],codes=[];
  const fetcher=async(url,options={})=>{
   const path=new URL(url).pathname,body=options.body?JSON.parse(options.body):{};calls.push({path,method:options.method,body});let result={};let status=200;
@@ -20,7 +20,7 @@ function fixture({admin=false,banned=false,rpcError=false,configured=true}={}){
   } else throw new Error('Unexpected path '+path);
   return new Response(JSON.stringify(result),{status});
  };
- const handler=createAccountHandler({url:'https://example.supabase.co',publicKey:'public',serviceKey:'server-secret',...(configured?{mailKey:'mail-secret',mailFrom:'app@example.test'}:{}),fetcher});
+ const handler=createAccountHandler({url:'https://example.supabase.co',publicKey:'public',serviceKey:'server-secret',...(smtp ? {sendEmail:async message=>{if(mailFailure)throw new Error('smtp password: never-expose-this');codes.push(message.text.match(/code: (\d+)/)[1]);return true;}}:{}),...(configured?{mailKey:'mail-secret',mailFrom:'app@example.test'}:{}),fetcher});
  const request=body=>handler(new Request('https://example.supabase.co/functions/v1/account-settings',{method:'POST',headers:{Authorization:'Bearer user-token',origin:'https://wang03062001.github.io'},body:JSON.stringify(body)}));
  return {request,calls,codes,getEmail:()=>currentEmail};
 }
@@ -46,4 +46,16 @@ test('email remains unchanged through old proof and all failed new proofs; only 
 });
 test('missing migration or mail configuration fails closed without changing Auth',async()=>{
  for(const options of [{configured:false},{rpcError:true}]){const f=fixture(options);assert.ok((await f.request({action:'start'})).status>=500);assert.equal(f.calls.some(c=>c.method==='PUT'),false);}
+});
+
+test('SMTP sends both sequential codes without a Resend key or domain',async()=>{
+ const f=fixture({smtp:true,configured:false});const start=await f.request({action:'start'});assert.equal(start.status,200);const {id}=await start.json();
+ assert.equal((await f.request({action:'verify_old',id,code:f.codes[0]})).status,200);
+ assert.equal((await f.request({action:'new',id,email:'new@example.test'})).status,200);assert.equal(f.getEmail(),'old@example.test');
+ assert.equal((await f.request({action:'verify_new',id,code:f.codes[1]})).status,200);assert.equal(f.getEmail(),'new@example.test');
+ assert.equal(f.calls.some(call=>call.path==='/emails'),false);
+});
+test('SMTP failure cannot change email or expose provider credentials',async()=>{
+ const f=fixture({smtp:true,configured:false,mailFailure:true});const response=await f.request({action:'start'});assert.equal(response.status,502);
+ assert.equal((await response.text()).includes('never-expose-this'),false);assert.equal(f.getEmail(),'old@example.test');assert.equal(f.calls.some(call=>call.method==='PUT'),false);
 });
