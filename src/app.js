@@ -1,10 +1,11 @@
-import { YEARS, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData } from './model.js';
+import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData } from './model.js';
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
 import { SyncController } from './sync.js';
 import { showAdmin, showPasswordReset, showRecovery } from './admin.js';
 
-const money = number => new Intl.NumberFormat('vi-VN').format(number) + ' ₫';
+const money = (number, currency = 'JPY') => new Intl.NumberFormat('vi-VN').format(number) + (currency === 'VND' ? ' VNĐ' : ' JPY');
+const dong = number => money(number, 'VND');
 const escape = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const icons = {
   calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-14 4h3v3H7z"/>',
@@ -23,6 +24,7 @@ const now = new Date();
 let year = Math.min(2033, Math.max(2026, now.getFullYear())), month = now.getMonth(), day = now.getDate(), view = 'calendar';
 let data = emptyData(), savedTimer;
 const root = document.querySelector('#app');
+const years = () => getYears(data);
 const selectedKey = () => dayKey(year, month, day);
 const currentDay = () => data.days[selectedKey()] || { note: '', items: [] };
 function ensureDay() { return data.days[selectedKey()] ||= { note: '', items: [] }; }
@@ -46,54 +48,85 @@ async function saveChanges() {
   } catch (error) { notify(error.message); }
 }
 function render() {
+  if (!years().includes(year)) { year = years()[0]; day = Math.min(day, daysInMonth(year, month)); }
   const totals = yearSummary(data, year);
   root.innerHTML = `
     <aside class="sidebar">
-      <a class="brand" href="#" aria-label="Lịch của tôi">${icon('calendar')}<span>Lịch của tôi<span class="brand-sub">CHI TIÊU & THU NHẬP</span></span></a>
+      <a class="brand" href="#" aria-label="Lịch của tôi">${icon('calendar')}<span>Lịch của tôi<span class="brand-sub">TÀI CHÍNH CÁ NHÂN</span></span></a>
       <div class="workspace-label">KHÔNG GIAN CÁ NHÂN</div>
       <nav aria-label="Điều hướng chính">
         <button class="nav-item ${view === 'calendar' ? 'active' : ''}" data-view="calendar">${icon('calendar')} Lịch chi tiêu</button>
         <button class="nav-item ${view === 'year' ? 'active' : ''}" data-view="year">${icon('chart')} Tổng kết năm</button>
       </nav>
-      <div class="year-heading"><span>KẾ HOẠCH THEO NĂM</span><span>08</span></div>
-      <div class="years">${YEARS.map(y => `<button class="year-button ${year === y ? 'selected' : ''}" data-year="${y}" aria-pressed="${year === y}"><span><i></i>${y}</span>${year === y ? icon('arrow') : ''}</button>`).join('')}</div>
+      <div class="year-heading"><span>KẾ HOẠCH THEO NĂM</span><span>${String(years().length).padStart(2, '0')}</span></div>
+      <div class="years">${years().map(y => `<button class="year-button ${year === y ? 'selected' : ''}" data-year="${y}" aria-pressed="${year === y}"><span><i></i>${y}</span>${year === y ? icon('arrow') : ''}</button>`).join('')}</div>
       <div class="sidebar-bottom"><div class="local-badge">${icon('check')} Dữ liệu lưu trên thiết bị</div><p>Một chút kế hoạch hôm nay.<br>Thảnh thơi hơn ngày mai.</p><div class="profile"><span class="avatar">T</span><div>Tài chính của tôi<small>Không gian riêng của bạn</small></div></div></div>
     </aside>
     <main>
-      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button small save-button" data-action="save" hidden>${icon('check')} Lưu thay đổi</button><button class="button secondary small" data-action="export">${icon('down')} Xuất dữ liệu</button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
+      <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${view === 'calendar' ? 'Lịch chi tiêu' : 'Tổng kết năm'}</strong></div><div class="top-actions"><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button small save-button" data-action="save" hidden>${icon('check')} Lưu thay đổi</button><button class="button secondary small" data-action="export" aria-label="Xuất dữ liệu">${icon('down')} <span class="button-text">Xuất dữ liệu</span></button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
       <div id="cloud-notice" aria-live="polite"></div>
       <div class="page">
-        <div class="page-heading"><div><div class="eyebrow">KẾ HOẠCH NHỎ · CUỘC SỐNG LỚN</div><h1>${view === 'calendar' ? 'Chủ động từng khoản chi' : `Nhìn lại năm ${year}`}<span class="heading-dot">.</span></h1><p>${view === 'calendar' ? 'Ghi lại điều cần mua, sắp xếp chi tiêu và dành chỗ cho những điều quan trọng.' : 'Lương, thưởng và mọi khoản chi — tất cả trong một bức tranh rõ ràng.'}</p></div><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${YEARS.map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div></div>
-        <div class="stats">
-          ${stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập cố định trong năm', 'green')}
-          ${stat('spark', 'Tổng thưởng', totals.bonus, 'Những khoản thu thêm', 'amber')}
-          ${stat('down', 'Tổng cần chi', totals.expense, `${totals.count} khoản chi đã lên kế hoạch`, 'orange')}
-          ${stat('chart', 'Còn lại dự kiến', totals.balance, `Sau chi tiêu & tiết kiệm · Năm ${year}`, 'blue')}
-        </div>
+        <div class="dashboard-welcome"><section class="welcome-card"><div class="welcome-copy"><div class="eyebrow">KHÔNG GIAN TÀI CHÍNH CỦA BẠN</div><h1>${view === 'calendar' ? 'Chủ động hôm nay,<br>thảnh thơi ngày mai.' : `Tổng kết năm ${year}`}</h1><p>Thu chi rõ ràng. Tiết kiệm có mục tiêu.</p><div class="currency-chips"><span>¥ Thu chi · JPY</span><span>₫ Tiết kiệm · VNĐ</span></div></div><div class="welcome-art" aria-hidden="true"><span>${icon('wallet')}</span><span>${icon('chart')}</span><span>${icon('spark')}</span><i></i></div></section><section class="quick-card card"><h2>Thao tác nhanh</h2><div class="quick-grid"><button data-action="quick-expense"><span class="purple">${icon('plus')}</span>Thêm khoản chi</button><button data-action="quick-income"><span class="green">${icon('wallet')}</span>Nhập thu nhập</button><button data-action="quick-savings"><span class="amber">${icon('spark')}</span>Tiết kiệm</button><button data-view="year"><span class="blue">${icon('chart')}</span>Tổng kết năm</button></div></section></div>
+        <div class="page-heading"><h2>${view === 'calendar' ? 'Tổng quan tài chính' : 'Bức tranh cả năm'}</h2><div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div></div>
+        <div class="stats">${statsContent(totals)}</div>
+        <div class="dashboard-charts" id="dashboard-charts">${dashboardCharts()}</div>
         ${savingsPanel()}
         ${view === 'calendar' ? calendarView() : yearView()}
-        <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Đơn vị: VNĐ · Dữ liệu chỉ lưu trong trình duyệt này</span></footer>
+        <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Thu chi JPY · Tiết kiệm VNĐ</span></footer>
       </div>
     </main>`;
   renderCloud();
 }
-function stat(symbol, label, value, detail, color) {
-  return `<section class="stat"><div class="stat-top"><span>${label}</span><span class="stat-icon ${color}">${icon(symbol)}</span></div><strong class="${value < 0 ? 'negative' : ''}">${money(value)}</strong><small>${detail}</small></section>`;
+function statsContent(totals) {
+  return stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập trong năm · JPY', 'purple')
+    + stat('spark', 'Thưởng & thu thêm', totals.bonus, 'Khoản thu bổ sung · JPY', 'green')
+    + stat('down', 'Tổng chi tiêu', totals.expense, `${totals.count} khoản đã lên kế hoạch · JPY`, 'orange')
+    + stat('chart', 'Còn lại', totals.balance, 'Thu nhập − chi tiêu · JPY', 'blue')
+    + stat('spark', 'Đã tiết kiệm', totals.savings, 'Quỹ tích lũy trong năm · VNĐ', 'pink', 'VND');
+}
+function dashboardCharts() {
+  const months = Array.from({ length: 12 }, (_, index) => monthSummary(data, year, index));
+  const max = Math.max(1, ...months.flatMap(item => [item.salary + item.bonus, item.expense]));
+  const total = yearSummary(data, year), progress = savingsProgress(data, year);
+  const income = total.salary + total.bonus;
+  const spent = income ? Math.round(total.expense / income * 100) : 0;
+  const donut = (percent, text, label, color) => `<div class="donut" style="--progress:${Math.min(100, Math.max(0, percent))}%;--ring:${color}" role="img" aria-label="${escape(text + ' · ' + label)}"><div><strong>${text}</strong><small>${escape(label)}</small></div></div>`;
+  return `<section class="card chart-card cashflow-card"><div class="chart-heading"><h2>${icon('chart')} Thu nhập & chi tiêu</h2><span class="tag">JPY · ${year}</span></div><div class="chart-legend"><span><i class="income-dot"></i>Thu nhập</span><span><i class="expense-dot"></i>Chi tiêu</span></div><div class="bar-chart">${months.map((item, index) => `<button class="bar-column" data-open-month="${index}" title="Tháng ${index + 1}: Thu ${money(item.salary + item.bonus)}, chi ${money(item.expense)}" aria-label="Tháng ${index + 1}: thu ${money(item.salary + item.bonus)}, chi ${money(item.expense)}"><span class="bar-pair"><i class="income-bar" style="height:${(item.salary + item.bonus) / max * 100}%"></i><i class="expense-bar" style="height:${item.expense / max * 100}%"></i></span><small>${String(index + 1).padStart(2, '0')}</small></button>`).join('')}</div></section>
+    <section class="card chart-card"><div class="chart-heading"><h2>${icon('wallet')} Phân bổ thu nhập</h2><span class="tag">JPY</span></div>${donut(spent, income ? `${spent}%` : '—', income ? 'Dành cho chi tiêu' : 'Chưa có thu nhập', '#f69a43')}<div class="chart-foot"><span>Chi tiêu</span><strong>${money(total.expense)}</strong></div></section>
+    <section class="card chart-card"><div class="chart-heading"><h2>${icon('spark')} Mục tiêu tiết kiệm</h2><span class="tag">VNĐ</span></div>${donut(progress.percent, progress.goal ? `${progress.percent}%` : '—', progress.goal ? 'Đã hoàn thành' : 'Chưa đặt mục tiêu', '#7960d9')}<div class="chart-foot"><span>Đã tích lũy</span><strong>${dong(progress.saved)}</strong></div></section>`;
+}
+function focusEditor(selector) {
+  const element = document.querySelector(selector);
+  element?.scrollIntoView({ behavior: 'smooth', block: 'center' }); element?.focus({ preventScroll: true });
+}
+function showYearDialog() {
+  document.querySelector('#year-dialog')?.remove();
+  const dialog = document.createElement('dialog'); dialog.id = 'year-dialog'; dialog.className = 'account-dialog';
+  dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><h2>Thêm năm</h2><form><label>Năm<input name="year" type="number" min="${MIN_YEAR}" max="${MAX_YEAR}" step="1" required value="${Math.min(MAX_YEAR, years().at(-1) + 1)}" /></label><button class="account-submit" type="submit">Thêm năm</button></form><p role="status" aria-live="polite"></p>`;
+  document.body.append(dialog); dialog.showModal(); dialog.querySelector('.dialog-close').onclick = () => dialog.close();
+  dialog.querySelector('form').onsubmit = event => {
+    event.preventDefault(); if (!canEdit()) { dialog.close(); return; }
+    try { const value = Number(event.target.elements.year.value); addYear(data, value); year = value; day = Math.min(day, daysInMonth(year, month)); persist(); render(); dialog.close(); }
+    catch (error) { dialog.querySelector('[role="status"]').textContent = error.message; }
+  };
+}
+function stat(symbol, label, value, detail, color, currency = 'JPY') {
+  return `<section class="stat"><div class="stat-top"><span>${label}</span><span class="stat-icon ${color}">${icon(symbol)}</span></div><strong class="${value < 0 ? 'negative' : ''}">${money(value, currency)}</strong><small>${detail}</small></section>`;
 }
 function savingsPanel() {
-  return `<section class="card savings-panel" aria-label="Kế hoạch tiết kiệm"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('spark')}</span><div><h2>Dành cho những dự định lớn</h2><p>Góp từng tháng, tiến gần hơn đến mục tiêu năm ${year}.</p></div></div><span class="tag">TIẾT KIỆM</span></div>
+  return `<section class="card savings-panel" aria-label="Kế hoạch tiết kiệm"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('spark')}</span><div><h2>Quỹ tiết kiệm của bạn</h2><p>Góp từng tháng, tiến gần hơn đến mục tiêu năm ${year}.</p></div></div><span class="tag">TIẾT KIỆM</span></div>
     <div class="savings-layout"><div class="savings-inputs">
       ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>VNĐ</span><input id="monthly-savings" type="number" inputmode="numeric" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(data.savings[monthKey(year, month)]) || ''}" /></label>` : ''}
       <label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>VNĐ</span><input id="annual-savings-goal" type="number" inputmode="numeric" min="0" max="${MAX_AMOUNT}" step="1" placeholder="Nhập mục tiêu của bạn" value="${amount(data.goals[year]) || ''}" /></label>
     </div><div id="savings-progress">${savingsProgressContent()}</div></div>
-    <p class="savings-hint">Nhập số tiền bạn dành riêng để tiết kiệm mỗi tháng. Còn lại dự kiến = lương + thưởng − chi tiêu − tiết kiệm.</p></section>`;
+    <p class="savings-hint">Quỹ tiết kiệm VNĐ được theo dõi riêng với thu chi JPY.</p></section>`;
 }
 function savingsProgressContent() {
   const progress = savingsProgress(data, year);
   const percent = Math.min(100, progress.percent);
-  return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong năm</span><strong id="year-savings-total">${money(progress.saved)}</strong></div>
-    <div class="savings-progress-track" role="progressbar" aria-label="Tiến độ tiết kiệm năm ${year}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-valuetext="${progress.goal ? `${progress.percent}% mục tiêu, đã tiết kiệm ${money(progress.saved)}` : 'Chưa đặt mục tiêu'}"><span style="width:${percent}%"></span></div>
-    <div class="savings-progress-caption"><strong>${progress.goal ? `${progress.percent}% mục tiêu` : 'Chưa đặt mục tiêu'}</strong><span>${!progress.goal ? 'Đặt mục tiêu để theo dõi tiến độ' : progress.remaining ? `Còn thiếu ${money(progress.remaining)}` : 'Đã đạt mục tiêu năm!'}</span></div>`;
+  return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong năm</span><strong id="year-savings-total">${dong(progress.saved)}</strong></div>
+    <div class="savings-progress-track" role="progressbar" aria-label="Tiến độ tiết kiệm năm ${year}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-valuetext="${progress.goal ? `${progress.percent}% mục tiêu, đã tiết kiệm ${dong(progress.saved)}` : 'Chưa đặt mục tiêu'}"><span style="width:${percent}%"></span></div>
+    <div class="savings-progress-caption"><strong>${progress.goal ? `${progress.percent}% mục tiêu` : 'Chưa đặt mục tiêu'}</strong><span>${!progress.goal ? 'Đặt mục tiêu để theo dõi tiến độ' : progress.remaining ? `Còn thiếu ${dong(progress.remaining)}` : 'Đã đạt mục tiêu năm!'}</span></div>`;
 }
 function calendarView() {
   return `<div class="section-title"><h2>${icon('grid')} Các tháng trong năm <span>${year}</span></h2><span>Chọn tháng để xem kế hoạch chi tiêu</span></div>
@@ -107,7 +140,7 @@ function calendarPanel() {
   const start = (new Date(year, month, 1).getDay() + 6) % 7;
   const length = daysInMonth(year, month);
   const summary = monthSummary(data, year, month);
-  return `<section class="card calendar-panel"><div class="card-heading"><div><h2>Tháng ${String(month + 1).padStart(2, '0')} <span class="muted">/ ${year}</span></h2><p>Mỗi ngày một kế hoạch nhỏ</p></div><div class="calendar-controls"><button class="button secondary small" data-action="today">Hôm nay</button><button class="icon-button rotate" data-action="prev" aria-label="Tháng trước" ${year === 2026 && month === 0 ? 'disabled' : ''}>${icon('arrow')}</button><button class="icon-button" data-action="next" aria-label="Tháng sau" ${year === 2033 && month === 11 ? 'disabled' : ''}>${icon('arrow')}</button></div></div>
+  return `<section class="card calendar-panel"><div class="card-heading"><div><h2>Tháng ${String(month + 1).padStart(2, '0')} <span class="muted">/ ${year}</span></h2><p>Mỗi ngày một kế hoạch nhỏ</p></div><div class="calendar-controls"><button class="button secondary small" data-action="today">Hôm nay</button><button class="icon-button rotate" data-action="prev" aria-label="Tháng trước" ${year === years()[0] && month === 0 ? 'disabled' : ''}>${icon('arrow')}</button><button class="icon-button" data-action="next" aria-label="Tháng sau" ${year === years().at(-1) && month === 11 ? 'disabled' : ''}>${icon('arrow')}</button></div></div>
     <div class="weekdays">${['THỨ 2', 'THỨ 3', 'THỨ 4', 'THỨ 5', 'THỨ 6', 'THỨ 7', 'CN'].map(d => `<span>${d}</span>`).join('')}</div>
     <div class="calendar-days">${Array.from({ length: start }, () => '<span class="empty-day" aria-hidden="true"></span>').join('')}${Array.from({ length }, (_, i) => {
       const n = i + 1, entry = data.days[dayKey(year, month, n)], total = dayTotal(entry);
@@ -119,7 +152,7 @@ function incomePanel() {
   const income = data.incomes[monthKey(year, month)] || {};
   const summary = monthSummary(data, year, month);
   return `<section class="card income-panel"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('wallet')}</span><div><h2>Thu nhập tháng ${String(month + 1).padStart(2, '0')}</h2><p>Ghi lại lương và những khoản thưởng của bạn</p></div></div><span class="tag">${year}</span></div>
-    <div class="income-fields"><label>Lương tháng <span>VNĐ</span><input inputmode="numeric" type="number" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(income.salary) || ''}" data-income="salary" /></label><label>Thưởng & thu nhập thêm <span>VNĐ</span><input inputmode="numeric" type="number" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(income.bonus) || ''}" data-income="bonus" /></label></div>
+    <div class="income-fields"><label>Lương tháng <span>JPY</span><input inputmode="numeric" type="number" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(income.salary) || ''}" data-income="salary" /></label><label>Thưởng & thu nhập thêm <span>JPY</span><input inputmode="numeric" type="number" min="0" max="${MAX_AMOUNT}" step="1" placeholder="0" value="${amount(income.bonus) || ''}" data-income="bonus" /></label></div>
     <label class="income-note-label" for="income-note">Ghi chú thu nhập</label><textarea id="income-note" class="income-note" data-income="note" maxlength="20000" rows="2" placeholder="Ví dụ: Lương cơ bản, thưởng dự án, ngày nhận lương…">${escape(income.note || '')}</textarea>
     <div class="income-total"><span>Tổng thu nhập tháng</span><strong id="income-total">${money(summary.salary + summary.bonus)}</strong></div></section>`;
 }
@@ -128,7 +161,7 @@ function dayPanel() {
   const weekday = new Intl.DateTimeFormat('vi-VN', { weekday: 'long' }).format(new Date(year, month, day));
   return `<div class="day-panel-header"><div class="eyebrow">KẾ HOẠCH TRONG NGÀY</div><h2>${String(day).padStart(2, '0')} <span>/ ${String(month + 1).padStart(2, '0')} / ${year}</span></h2><p>${weekday.charAt(0).toUpperCase() + weekday.slice(1)} <span class="day-pill">${entry.items.length} khoản chi</span></p></div>
     <div class="note-section"><label for="day-note">${icon('note')} Ghi chú của bạn</label><textarea id="day-note" maxlength="20000" placeholder="Hôm nay bạn có kế hoạch gì?\nGhi lại những điều cần nhớ…" rows="4">${escape(entry.note)}</textarea></div>
-    <div class="expense-heading"><h3>Bảng chi tiêu</h3><span>VNĐ</span></div>
+    <div class="expense-heading"><h3>Bảng chi tiêu</h3><span>JPY</span></div>
     <div class="expense-table-wrap"><table class="expense-table"><thead><tr><th>Nội dung cần chi</th><th>Số tiền</th><th><span class="sr-only">Thao tác</span></th></tr></thead><tbody>${entry.items.map((item, index) => `<tr data-item="${index}"><td><input aria-label="Nội dung khoản chi ${index + 1}" placeholder="Nhập nội dung…" maxlength="500" data-field="title" value="${escape(item.title)}" /></td><td><input aria-label="Số tiền khoản chi ${index + 1}" type="number" min="0" max="${MAX_AMOUNT}" step="1" inputmode="numeric" placeholder="0" data-field="amount" value="${item.amount || ''}" /></td><td><button class="delete-button" data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>
     ${entry.items.length ? '' : `<div class="empty-expenses"><span>${icon('wallet')}</span><strong>Một ngày mới, một kế hoạch mới</strong><p>Thêm món cần mua hoặc khoản cần chi<br>để bắt đầu sắp xếp ngày của bạn.</p></div>`}
     <button class="add-expense" data-action="add">${icon('plus')} Thêm khoản chi</button>
@@ -136,17 +169,18 @@ function dayPanel() {
 }
 function yearView() {
   const total = yearSummary(data, year);
-  return `<section class="card annual-panel"><div class="card-heading"><div><h2>Bức tranh tài chính ${year}</h2><p>Nhấn vào tháng để xem và chỉnh sửa kế hoạch.</p></div><span class="tag">12 tháng</span></div><div class="annual-table-wrap"><table class="annual-table"><thead><tr><th>Tháng</th><th>Lương</th><th>Thưởng</th><th>Cần chi</th><th>Tiết kiệm</th><th>Còn lại</th></tr></thead><tbody>${Array.from({ length: 12 }, (_, m) => { const s = monthSummary(data, year, m); return `<tr><td><button data-open-month="${m}">Tháng ${String(m + 1).padStart(2, '0')} ${icon('arrow')}</button></td><td>${money(s.salary)}</td><td>${money(s.bonus)}</td><td>${money(s.expense)}</td><td>${money(s.savings)}</td><td class="${s.balance < 0 ? 'negative' : ''}">${money(s.balance)}</td></tr>`; }).join('')}</tbody><tfoot><tr><th>Tổng năm</th><td>${money(total.salary)}</td><td>${money(total.bonus)}</td><td>${money(total.expense)}</td><td>${money(total.savings)}</td><td class="${total.balance < 0 ? 'negative' : ''}">${money(total.balance)}</td></tr></tfoot></table></div></section>
+  return `<section class="card annual-panel"><div class="card-heading"><div><h2>Bức tranh tài chính ${year}</h2><p>Nhấn vào tháng để xem và chỉnh sửa kế hoạch.</p></div><span class="tag">12 tháng</span></div><div class="annual-table-wrap"><table class="annual-table"><thead><tr><th>Tháng</th><th>Lương · JPY</th><th>Thưởng · JPY</th><th>Cần chi · JPY</th><th>Tiết kiệm · VNĐ</th><th>Còn lại · JPY</th></tr></thead><tbody>${Array.from({ length: 12 }, (_, m) => { const s = monthSummary(data, year, m); return `<tr><td><button data-open-month="${m}">Tháng ${String(m + 1).padStart(2, '0')} ${icon('arrow')}</button></td><td>${money(s.salary)}</td><td>${money(s.bonus)}</td><td>${money(s.expense)}</td><td>${dong(s.savings)}</td><td class="${s.balance < 0 ? 'negative' : ''}">${money(s.balance)}</td></tr>`; }).join('')}</tbody><tfoot><tr><th>Tổng năm</th><td>${money(total.salary)}</td><td>${money(total.bonus)}</td><td>${money(total.expense)}</td><td>${dong(total.savings)}</td><td class="${total.balance < 0 ? 'negative' : ''}">${money(total.balance)}</td></tr></tfoot></table></div></section>
     <section class="card annual-details"><div class="card-heading"><div><h2>Nội dung cần chi trong năm</h2><p>Tất cả các khoản đã lên kế hoạch, sắp xếp theo ngày.</p></div><span class="tag">${total.count} khoản</span></div>${annualExpenses()}</section>`;
 }
 function annualExpenses() {
   const rows = Object.entries(data.days).filter(([key]) => key.startsWith(`${year}-`)).sort(([a], [b]) => a.localeCompare(b)).flatMap(([key, entry]) => entry.items.map(item => ({ key, ...item })));
   if (!rows.length) return '<div class="annual-empty">Chưa có khoản chi nào trong năm này. Thêm kế hoạch từ Lịch chi tiêu để xem tổng hợp tại đây.</div>';
-  return `<div class="annual-table-wrap"><table class="annual-table details-table"><thead><tr><th>Ngày</th><th>Nội dung cần chi</th><th>Số tiền</th></tr></thead><tbody>${rows.map(row => `<tr><td><button data-open-day="${row.key}">${row.key.split('-').reverse().join('/')} ${icon('arrow')}</button></td><td>${escape(row.title || 'Chưa đặt tên')}</td><td>${money(row.amount)}</td></tr>`).join('')}</tbody><tfoot><tr><th colspan="2">Tổng số tiền cần chi</th><td>${money(yearSummary(data, year).expense)}</td></tr></tfoot></table></div>`;
+  return `<div class="annual-table-wrap"><table class="annual-table details-table"><thead><tr><th>Ngày</th><th>Nội dung cần chi</th><th>Số tiền · JPY</th></tr></thead><tbody>${rows.map(row => `<tr><td><button data-open-day="${row.key}">${row.key.split('-').reverse().join('/')} ${icon('arrow')}</button></td><td>${escape(row.title || 'Chưa đặt tên')}</td><td>${money(row.amount)}</td></tr>`).join('')}</tbody><tfoot><tr><th colspan="2">Tổng số tiền cần chi</th><td>${money(yearSummary(data, year).expense)}</td></tr></tfoot></table></div>`;
 }
 function refreshTotals() {
   const totals = yearSummary(data, year), summary = monthSummary(data, year, month);
-  document.querySelector('.stats').innerHTML = stat('wallet', 'Tổng lương', totals.salary, 'Thu nhập cố định trong năm', 'green') + stat('spark', 'Tổng thưởng', totals.bonus, 'Những khoản thu thêm', 'amber') + stat('down', 'Tổng cần chi', totals.expense, `${totals.count} khoản chi đã lên kế hoạch`, 'orange') + stat('chart', 'Còn lại dự kiến', totals.balance, `Sau chi tiêu & tiết kiệm · Năm ${year}`, 'blue');
+  document.querySelector('.stats').innerHTML = statsContent(totals);
+  document.querySelector('#dashboard-charts').innerHTML = dashboardCharts();
   document.querySelector('#savings-progress').innerHTML = savingsProgressContent();
   if (view === 'year') return;
   document.querySelector('.month-card.active strong').textContent = money(summary.expense);
@@ -157,7 +191,7 @@ function refreshTotals() {
 root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
-  if ((button.dataset.delete !== undefined || ['add', 'import', 'export', 'save', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
+  if ((button.dataset.delete !== undefined || ['add', 'quick-expense', 'quick-income', 'quick-savings', 'add-year', 'remove-year', 'import', 'export', 'save', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
   if (button.dataset.year) { year = +button.dataset.year; day = Math.min(day, daysInMonth(year, month)); render(); }
   if (button.dataset.month !== undefined) { month = +button.dataset.month; day = Math.min(day, daysInMonth(year, month)); render(); }
   if (button.dataset.day) { day = +button.dataset.day; render(); }
@@ -167,6 +201,14 @@ root.addEventListener('click', async event => {
   if (button.dataset.delete !== undefined) { ensureDay().items.splice(+button.dataset.delete, 1); persist(); render(); }
   switch (button.dataset.action) {
     case 'save': await saveChanges(); break;
+    case 'add-year': showYearDialog(); break;
+    case 'remove-year': {
+      if (years().length <= 1 || !confirm(`Xóa năm ${year} khỏi danh sách? Dữ liệu được giữ lại và sẽ xuất hiện khi thêm lại năm này.`)) break;
+      removeYear(data, year); year = years().find(value => value >= year) || years().at(-1); day = Math.min(day, daysInMonth(year, month)); persist(); render(); break;
+    }
+    case 'quick-expense': view = 'calendar'; ensureDay().items.push({ id: crypto.randomUUID(), title: '', amount: 0 }); persist(); render(); focusEditor('.expense-table tr:last-child input'); break;
+    case 'quick-income': view = 'calendar'; render(); focusEditor('[data-income="salary"]'); break;
+    case 'quick-savings': view = 'calendar'; render(); focusEditor('#monthly-savings'); break;
     case 'account': showAccount(); break;
     case 'register': if (!cloud.user) showAccount('signup'); break;
     case 'cloud-retry': await cloud.refresh(); break;
@@ -177,12 +219,15 @@ root.addEventListener('click', async event => {
     }
     case 'add': ensureDay().items.push({ id: crypto.randomUUID(), title: '', amount: 0 }); persist(); render(); document.querySelector('.expense-table tr:last-child input')?.focus(); break;
     case 'prev': case 'next': {
-      const date = new Date(year, month + (button.dataset.action === 'next' ? 1 : -1), 1);
-      if (!YEARS.includes(date.getFullYear())) return;
-      year = date.getFullYear(); month = date.getMonth(); day = Math.min(day, daysInMonth(year, month)); render(); break;
+      const direction = button.dataset.action === 'next' ? 1 : -1;
+      let targetMonth = month + direction, index = years().indexOf(year);
+      if (targetMonth < 0) { index--; targetMonth = 11; }
+      if (targetMonth > 11) { index++; targetMonth = 0; }
+      if (index < 0 || index >= years().length) return;
+      year = years()[index]; month = targetMonth; day = Math.min(day, daysInMonth(year, month)); render(); break;
     }
     case 'today': {
-      if (!YEARS.includes(now.getFullYear())) { notify('Hôm nay nằm ngoài giai đoạn 2026–2033.'); break; }
+      if (!years().includes(now.getFullYear())) { notify('Thêm năm hiện tại để xem hôm nay.'); break; }
       year = now.getFullYear(); month = now.getMonth(); day = now.getDate(); render(); break;
     }
     case 'export': {
@@ -250,10 +295,11 @@ function renderCloud() {
   document.querySelector('[data-action="import"]').disabled = !canEdit();
   document.querySelector('[data-action="export"]').disabled = !canEdit();
   document.querySelector('.page').inert = !canEdit();
-  document.querySelectorAll('.page input, .page textarea, .page select, .page [data-action="add"], .page [data-delete]').forEach(input => input.disabled = !canEdit());
+  document.querySelectorAll('.page input, .page textarea, .page select, .page [data-action="add"], .page [data-action="add-year"], .page .quick-grid button, .page [data-delete]').forEach(input => input.disabled = !canEdit());
+  document.querySelector('[data-action="remove-year"]').disabled = !canEdit() || years().length <= 1;
   document.querySelector('[data-action="save"]').hidden = !cloud.user;
   document.querySelector('[data-action="save"]').disabled = !canEdit() || !cloud.dirty;
-  document.querySelector('#storage-description').textContent = cloud.user ? `Đơn vị: VNĐ · ${labels[cloud.status]} · ${cloud.user.email}` : 'Đăng nhập để nhập và lưu dữ liệu';
+  document.querySelector('#storage-description').textContent = cloud.user ? `JPY / VNĐ · ${labels[cloud.status]} · ${cloud.user.email}` : 'Đăng nhập để nhập và lưu dữ liệu';
   document.querySelector('.local-badge').innerHTML = `${icon('check')} ${labels[cloud.status]}`;
   let message = '', actions = '';
   if (['error', 'conflict'].includes(cloud.status)) {

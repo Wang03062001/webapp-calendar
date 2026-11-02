@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { YEARS, amount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT } from '../src/model.js';
+import { YEARS, getYears, addYear, removeYear, amount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT } from '../src/model.js';
 
 test('calendar covers 2026–2033 and handles leap years', () => {
   assert.deepEqual(YEARS, [2026,2027,2028,2029,2030,2031,2032,2033]);
@@ -40,20 +40,20 @@ test('backup round trips notes and rows, rejects invalid dates and versions', ()
   data.goals['2028'] = 24000000;
   assert.deepEqual(normalizeData(JSON.parse(JSON.stringify(data))),data);
   data.days['2026-02-29'] = {note:'invalid',items:[]};
-  data.days['2034-01-01'] = {items:[]};
+  data.days['10000-01-01'] = {items:[]};
   assert.equal(Object.keys(normalizeData(data).days).length,1);
   assert.throws(() => normalizeData({version:3,days:{},incomes:{}}));
   assert.throws(() => normalizeData(null));
 });
-test('monthly savings aggregate by year and reduce balance without counting as expenses', () => {
+test('VND savings aggregate separately and never reduce a JPY balance', () => {
   const data = emptyData();
   data.incomes['2026-01'] = {salary:10000000,bonus:1000000};
   data.days['2026-01-01'] = {items:[{amount:2000000}]};
   data.savings = {'2026-01':3000000,'2026-02':1000000,'2027-01':9000000};
-  assert.deepEqual(monthSummary(data,2026,0), {salary:10000000,bonus:1000000,expense:2000000,savings:3000000,balance:6000000,count:1});
-  assert.equal(monthSummary(data,2026,1).balance,-1000000);
+  assert.deepEqual(monthSummary(data,2026,0), {salary:10000000,bonus:1000000,expense:2000000,savings:3000000,balance:9000000,count:1});
+  assert.equal(monthSummary(data,2026,1).balance,0);
   assert.equal(yearSummary(data,2026).savings,4000000);
-  assert.equal(yearSummary(data,2026).balance,5000000);
+  assert.equal(yearSummary(data,2026).balance,9000000);
   assert.equal(yearSummary(data,2026).expense,2000000);
 });
 test('annual savings progress handles no goal, partial, reached, exceeded and separate years', () => {
@@ -80,7 +80,27 @@ test('version 1 storage and backups migrate without losing financial data', () =
   assert.deepEqual(migrated.savings,{});
   assert.deepEqual(migrated.goals,{});
   assert.equal(yearSummary(migrated,2026).balance,9500000);
-  const sanitized = normalizeData({...migrated,savings:{'2026-01':-1,'2034-01':100,'2026-02':'2000'},goals:{'2026':Infinity,'2034':10}});
+  const sanitized = normalizeData({...migrated,savings:{'2026-01':-1,'10000-01':100,'2026-02':'2000'},goals:{'2026':Infinity,'10000':10}});
   assert.deepEqual(sanitized.savings,{'2026-01':0,'2026-02':2000});
   assert.deepEqual(sanitized.goals,{'2026':0});
+});
+
+test('years can be added and archived without deleting financial records', () => {
+ const data=emptyData();addYear(data,2034);assert.equal(getYears(data).at(-1),2034);
+ data.days['2034-01-01']={note:'Giữ lại',items:[{id:'a',title:'JPY',amount:1000}]};
+ data.incomes['2034-01']={salary:200000,bonus:10000,note:''};data.savings['2034-01']=1000000;data.goals['2034']=12000000;
+ removeYear(data,2034);assert.equal(getYears(data).includes(2034),false);
+ const backup=normalizeData(JSON.parse(JSON.stringify(data)));assert.equal(backup.days['2034-01-01'].note,'Giữ lại');
+ assert.equal(getYears(backup).includes(2034),false);addYear(backup,2034);
+ assert.equal(yearSummary(backup,2034).balance,209000);assert.equal(yearSummary(backup,2034).savings,1000000);
+ assert.equal(savingsProgress(backup,2034).goal,12000000);
+ assert.throws(()=>addYear(backup,2034),/đã có/);assert.throws(()=>addYear(backup,1899));assert.throws(()=>addYear(backup,10000));
+});
+test('year lists and new-year data survive backup normalization and legacy import', () => {
+ const data=emptyData();data.years=[2028,2036];data.days['2036-02-29']={note:'Nhuận',items:[]};
+ assert.deepEqual(normalizeData(JSON.parse(JSON.stringify(data))),data);
+ const legacy={version:2,days:{'2040-02-29':{note:'Imported',items:[]}},incomes:{},savings:{},goals:{}};
+ assert.equal(getYears(normalizeData(legacy)).includes(2040),true);
+ assert.throws(()=>normalizeData({...emptyData(),years:[]}));assert.throws(()=>normalizeData({...emptyData(),years:[2026,'2034']}));
+ const single={...emptyData(),years:[2026]};assert.throws(()=>removeYear(single,2026),/ít nhất một năm/);
 });

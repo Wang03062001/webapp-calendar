@@ -1,6 +1,6 @@
 # Repository workflow
 
-This is a Vietnamese personal finance calendar for 2026–2033. Use the existing checkout; do not create another Git worktree unless the user asks.
+This is a Vietnamese personal finance calendar with default years 2026–2033 and editable active years. Income/bonus/expenses and balance use JPY; savings/goals use VND and must never be subtracted from JPY without an explicit exchange-rate feature. Archiving a year preserves its financial records for restoration. Use the existing checkout; do not create another Git worktree unless the user asks.
 
 ## Development
 

@@ -1,6 +1,6 @@
 # Lịch của tôi
 
-Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập từ 2026 tới 2033. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.
+Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập với các năm mặc định 2026–2033 và khả năng thêm/xóa năm. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.
 
 ## Chạy ứng dụng
 
@@ -39,15 +39,15 @@ Sau khi bật Pages, mỗi lần push lên `main`, GitHub sẽ tự triển khai
 
 ## Sử dụng
 
-- Chọn năm, tháng, ngày. Các tháng hiển thị tổng tiền cần chi.
-- Thêm dòng vào bảng chi tiêu của ngày, nhập nội dung và số tiền VNĐ. Tổng tiền tự cập nhật theo ngày, tháng và năm. Xóa dòng bằng nút thùng rác.
+- Chọn năm, tháng, ngày. Nút **+** cạnh bộ chọn năm để thêm năm (1900–9999); nút thùng rác để xóa năm khỏi danh sách, giữ tối thiểu một năm. Dữ liệu năm đã xóa vẫn được giữ; thêm lại cùng năm để khôi phục. Nhấn **Lưu thay đổi** để đồng bộ danh sách năm. Các tháng hiển thị tổng tiền cần chi bằng JPY.
+- Thêm dòng vào bảng chi tiêu của ngày, nhập nội dung và số tiền JPY. Tổng tiền tự cập nhật theo ngày, tháng và năm. Xóa dòng bằng nút thùng rác.
 - Ghi chú theo ngày và ghi lương, thưởng, ghi chú thu nhập cho từng tháng.
 - Nhập **Tiết kiệm tháng** và **Mục tiêu tiết kiệm năm** trong panel tiết kiệm phía trên lịch. Mỗi năm có mục tiêu riêng; thanh tiến độ cộng số tiền tiết kiệm từ 12 tháng và cho biết số tiền còn thiếu. Mục tiêu chưa đặt không có phần trăm; vượt mục tiêu vẫn hiển thị đúng tổng tiền.
-- Mục **Tổng kết năm** có cột tiết kiệm theo từng tháng và tổng năm. Tiết kiệm là số tiền dành riêng, được trừ khỏi số dư có thể chi, không cộng vào tổng chi tiêu. Dữ liệu và bản sao lưu phiên bản cũ vẫn được đọc bình thường.
+- Mục **Tổng kết năm** có cột tiết kiệm theo từng tháng và tổng năm. Tiết kiệm dùng VNĐ, được theo dõi riêng với lương/thưởng/chi tiêu dùng JPY. Không cộng hoặc trừ trực tiếp hai loại tiền khác nhau. Dữ liệu và bản sao lưu phiên bản cũ vẫn được đọc bình thường.
 - Mở **Tổng kết năm** để xem lương, thưởng, chi tiêu, số dư dự kiến và nội dung mọi khoản chi; nhấn tháng hoặc ngày để mở lại lịch.
 - Khi chưa đăng nhập, các ô nhập và nhập/xuất bản sao lưu bị khóa; dữ liệu tài chính cũ không hiển thị. Khi đã đăng nhập, thay đổi được giữ trong bản nháp riêng của tài khoản. Nhấn **Enter** trong ô nhập hoặc nút **Lưu thay đổi** để gửi lên Supabase. Trong ghi chú, **Shift+Enter** để xuống dòng. **Xuất dữ liệu** tải bản sao lưu JSON; nút nhập bên cạnh khôi phục bản sao lưu sau xác nhận thay thế dữ liệu hiện tại.
 
-Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán). Số dư dự kiến = lương + thưởng − chi tiêu − tiết kiệm. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Xóa dữ liệu trình duyệt sẽ xóa dữ liệu chưa đồng bộ và bản nháp trên máy; dữ liệu đã đồng bộ có thể tải lại sau khi đăng nhập. Nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
+Chi tiêu là số tiền dự kiến (không có trạng thái đã thanh toán). Số dư dự kiến (JPY) = lương + thưởng − chi tiêu. Tiết kiệm và mục tiêu tính bằng VNĐ. Các số đã nhập được giữ nguyên; ứng dụng không tự quy đổi tỷ giá. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Xóa dữ liệu trình duyệt sẽ xóa dữ liệu chưa đồng bộ và bản nháp trên máy; dữ liệu đã đồng bộ có thể tải lại sau khi đăng nhập. Nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
 
 ## Thiết lập Supabase (chủ project thực hiện một lần)
 
@@ -71,3 +71,5 @@ Database lưu trên project Supabase của bạn, trong bảng `public.calendar_
 Xem [hướng dẫn thiết lập quản trị](supabase/ADMIN.md). Cần chạy thêm `admin-setup.sql`, tạo admin trong Auth và triển khai hai Edge Functions trước khi dùng đăng nhập bằng tên tài khoản và quản trị. Đăng nhập bằng email và đồng bộ cũ vẫn hoạt động khi chưa triển khai phần mở rộng. Tài khoản admin mặc định có tên `admin` nhưng mật khẩu do chủ project tự đặt trong Dashboard; không có mật khẩu mặc định trong mã nguồn.
 
 Thay đổi chưa lưu được giữ khi chuyển ngày/tháng và khi mở lại đúng tài khoản trên thiết bị đó. Đóng hoặc tải lại tab khi còn thay đổi sẽ có cảnh báo của trình duyệt. Đăng xuất luôn xóa dữ liệu khỏi màn hình; đăng nhập lại mới tải bản nháp riêng. Dữ liệu của chế độ khách cũ vẫn được giữ nguyên trong trình duyệt.
+
+Dashboard sử dụng các thẻ tổng quan nhiều màu, biểu đồ thu nhập/chi tiêu JPY, tỷ lệ chi trên thu và tiến độ mục tiêu tiết kiệm VNĐ. Biểu đồ lấy số liệu thật trong năm đang chọn; nút thao tác nhanh mở ô nhập chi tiêu, thu nhập, tiết kiệm hoặc tổng kết năm.
