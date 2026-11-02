@@ -22,21 +22,35 @@ export const amount = value => {
 export const dayKey = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 export const monthKey = (year, month) => `${year}-${String(month + 1).padStart(2, '0')}`;
 export const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-export const dayTotal = day => roundMoney((day?.items || []).reduce((sum, item) => sum + amount(item.amount), 0));
+export const CATEGORIES = ['Ăn uống', 'Nhà ở', 'Đi lại', 'Mua sắm', 'Sức khỏe', 'Giải trí', 'Trả nợ', 'Khác'];
+// Records created before status was introduced remain paid, preserving old totals.
+export const categoryOf = item => item.category || (item.debtPaymentId ? 'Trả nợ' : 'Khác');
+export const expenseStatus = item => item.status === 'planned' ? 'planned' : 'paid';
+export const dayTotal = (day, status = 'all') => roundMoney((day?.items || []).filter(item => status === 'all' || expenseStatus(item) === status).reduce((sum, item) => sum + amount(item.amount), 0));
+export function expenseRows(data, year, month = null, { query = '', category = '', status = '' } = {}) {
+  const prefix = month === null ? `${year}-` : `${monthKey(year, month)}-`;
+  const fold = value => String(value).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
+  return Object.entries(data.days).filter(([key]) => key.startsWith(prefix)).sort(([a], [b]) => b.localeCompare(a))
+    .flatMap(([date, day]) => day.items.map(item => ({ ...item, date })))
+    .filter(item => (!query || fold(`${item.title} ${categoryOf(item)}`).includes(fold(query))) && (!category || categoryOf(item) === category) && (!status || expenseStatus(item) === status));
+}
 export function monthSummary(data, year, month) {
   const prefix = monthKey(year, month);
   const entries = Object.entries(data.days).filter(([key]) => key.startsWith(`${prefix}-`));
-  const expense = roundMoney(entries.reduce((sum, [, day]) => sum + dayTotal(day), 0));
+  const expense = roundMoney(entries.reduce((sum, [, day]) => sum + dayTotal(day, 'paid'), 0));
+  const planned = roundMoney(entries.reduce((sum, [, day]) => sum + dayTotal(day, 'planned'), 0));
   const income = data.incomes[prefix] || {};
   const salary = amount(income.salary), bonus = amount(income.bonus);
   const savings = amount(data.savings?.[prefix]);
-  return { salary, bonus, expense, savings, balance: roundMoney(salary + bonus - expense), count: entries.reduce((sum, [, day]) => sum + day.items.length, 0) };
+  const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => expenseStatus(item) === 'paid').length, 0);
+  const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => expenseStatus(item) === 'planned').length, 0);
+  return { salary, bonus, expense, planned, savings, balance: roundMoney(salary + bonus - expense), count, plannedCount };
 }
 export function yearSummary(data, year) {
   return Array.from({ length: 12 }, (_, month) => monthSummary(data, year, month)).reduce((all, item) => {
     for (const key of Object.keys(all)) all[key] = roundMoney(all[key] + item[key]);
     return all;
-  }, { salary: 0, bonus: 0, expense: 0, savings: 0, balance: 0, count: 0 });
+  }, { salary: 0, bonus: 0, expense: 0, planned: 0, savings: 0, balance: 0, count: 0, plannedCount: 0 });
 }
 export function savingsProgress(data, year) {
   const saved = yearSummary(data, year).savings;
@@ -48,7 +62,7 @@ export const validDate = value => {
   return Boolean(match && validYear(+match[1]) && +match[3] <= daysInMonth(+match[1], +match[2] - 1));
 };
 export function debtBalance(debt) {
-  const paid = roundMoney(debt.payments.reduce((sum, payment) => sum + payment.amount, 0));
+  const paid = roundMoney(debt.payments.filter(payment => !payment.voided).reduce((sum, payment) => sum + payment.amount, 0));
   return { paid, remaining: roundMoney(debt.amount - paid) };
 }
 function positiveMoney(value) {
@@ -61,7 +75,45 @@ export function addDebt(data, debt) {
   if (!id.trim() || data.debts.some(item => item.id === id)) throw new Error('Khoản nợ đã tồn tại.');
   const title = String(debt.title || '').trim().slice(0, 500), type = String(debt.type || '').trim().slice(0, 100);
   if (!title || !type) throw new Error('Nhập tên và loại nợ.');
-  data.debts.push({ id, title, type, amount: positiveMoney(debt.amount), payments: [] });
+  if (debt.dueDate && !validDate(debt.dueDate)) throw new Error('Ngày đến hạn không hợp lệ.');
+  data.debts.push({ id, title, type, amount: positiveMoney(debt.amount), payments: [], ...(debt.dueDate ? { dueDate: debt.dueDate } : {}) });
+}
+export function updateDebt(data, debtId, changes) {
+  const debt = data.debts.find(item => item.id === debtId);
+  if (!debt) throw new Error('Không tìm thấy khoản nợ.');
+  const candidate = { debts: [] }; addDebt(candidate, { ...changes, id: debtId });
+  const next = candidate.debts[0];
+  if (next.amount < debtBalance(debt).paid) throw new Error('Nợ gốc không thể nhỏ hơn tổng tiền đã trả.');
+  Object.assign(debt, next, { payments: debt.payments });
+  if (!next.dueDate) delete debt.dueDate;
+  for (const payment of debt.payments.filter(item => !item.voided && item.expenseId)) {
+    const expense = data.days[payment.date]?.items.find(item => item.id === payment.expenseId);
+    if (expense) expense.title = `Trả nợ: ${debt.title}`.slice(0, 500);
+  }
+}
+export function removeDebt(data, debtId) {
+  const debt = data.debts.find(item => item.id === debtId);
+  if (!debt) throw new Error('Không tìm thấy khoản nợ.');
+  if (debt.payments.length) throw new Error('Khoản nợ đã có lịch sử thanh toán nên được giữ lại để đối chiếu.');
+  data.debts = data.debts.filter(item => item.id !== debtId);
+}
+export function cancelDebtPayment(data, debtId, paymentId) {
+  const debt = data.debts.find(item => item.id === debtId), payment = debt?.payments.find(item => item.id === paymentId);
+  if (!payment || payment.voided) throw new Error('Lần trả nợ không tồn tại hoặc đã hủy.');
+  if (payment.expenseId) {
+    const entry = data.days[payment.date], index = entry?.items.findIndex(item => item.id === payment.expenseId);
+    const item = entry?.items[index];
+    if (!item || item.debtId !== debtId || item.debtPaymentId !== paymentId || item.amount !== payment.amount) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
+    entry.items.splice(index, 1);
+  }
+  payment.voided = true;
+  return debtBalance(debt);
+}
+export function debtDueStatus(debt, today) {
+  if (debtBalance(debt).remaining === 0) return 'paid';
+  if (!debt.dueDate || !validDate(today)) return 'outstanding';
+  const days = (Date.parse(`${debt.dueDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000;
+  return days < 0 ? 'overdue' : days <= 7 ? 'soon' : 'outstanding';
 }
 export function repayDebt(data, debtId, payment, { recordExpense = true } = {}) {
   const debt = data.debts.find(item => item.id === debtId);
@@ -70,16 +122,17 @@ export function repayDebt(data, debtId, payment, { recordExpense = true } = {}) 
   const id = String(payment.id || '');
   if (!id.trim() || debt.payments.some(item => item.id === id)) throw new Error('Lần trả nợ này đã được ghi nhận.');
   if (!validDate(payment.date)) throw new Error('Ngày trả nợ không hợp lệ.');
-  if (value > debtBalance(debt).remaining) throw new Error('Số tiền trả vượt số nợ còn lại.');
+  const voided = !recordExpense && payment.voided === true;
+  if (!voided && value > debtBalance(debt).remaining) throw new Error('Số tiền trả vượt số nợ còn lại.');
   const expenseId = recordExpense ? `debt-payment-${id}` : payment.expenseId;
   if (recordExpense) {
     if (Object.values(data.days).some(day => day.items.some(item => item.id === expenseId))) throw new Error('Khoản chi trả nợ này đã tồn tại.');
     const entry = data.days[payment.date] ||= { note: '', items: [] };
-    entry.items.push({ id: expenseId, title: `Trả nợ: ${debt.title}`.slice(0, 500), amount: value, debtId, debtPaymentId: id });
+    entry.items.push({ id: expenseId, title: `Trả nợ: ${debt.title}`.slice(0, 500), amount: value, category: 'Trả nợ', status: 'paid', debtId, debtPaymentId: id });
     const paymentYear = Number(payment.date.slice(0, 4));
     if (!getYears(data).includes(paymentYear)) addYear(data, paymentYear);
   }
-  debt.payments.push({ id, date: payment.date, amount: value, ...(expenseId ? { expenseId: String(expenseId) } : {}) });
+  debt.payments.push({ id, date: payment.date, amount: value, ...(expenseId ? { expenseId: String(expenseId) } : {}), ...(voided ? { voided: true } : {}) });
   return debtBalance(debt);
 }
 export const emptyData = () => ({ version: 2, years: [...YEARS], days: {}, incomes: {}, savings: {}, goals: {}, debts: [] });
@@ -89,7 +142,7 @@ export function normalizeData(input) {
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
     if (!match || !validYear(+match[1]) || +match[3] > daysInMonth(+match[1], +match[2] - 1) || !day || !Array.isArray(day.items)) continue;
-    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: amount(item.amount), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
+    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: amount(item.amount), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
   }
   for (const [key, income] of Object.entries(input.incomes)) {
     if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4)) && income) result.incomes[key] = { salary: amount(income.salary), bonus: amount(income.bonus), note: String(income.note || '').slice(0, 20000) };
@@ -115,14 +168,16 @@ export function normalizeData(input) {
       if (!payment.expenseId) continue;
       if (linked.has(payment.expenseId)) throw new Error('Khoản chi trả nợ bị trùng.');
       const expense = result.days[payment.date]?.items.find(item => item.id === payment.expenseId);
-      if (!expense || expense.debtId !== debt.id || expense.debtPaymentId !== payment.id || expense.amount !== payment.amount) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
+      if (payment.voided) {
+        if (expense) throw new Error('Lần trả nợ đã hủy vẫn có khoản chi liên kết.');
+      } else if (!expense || expense.debtId !== debt.id || expense.debtPaymentId !== payment.id || expense.amount !== payment.amount || expenseStatus(expense) !== 'paid') throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
       linked.set(payment.expenseId, payment);
     }
     const seen = new Set();
     for (const [date, day] of Object.entries(result.days)) for (const expense of day.items) {
       if (!expense.debtPaymentId) continue;
       const payment = linked.get(expense.id);
-      if (!payment || payment.date !== date || seen.has(expense.id)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
+      if (!payment || payment.voided || payment.date !== date || seen.has(expense.id)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
       seen.add(expense.id);
     }
   }

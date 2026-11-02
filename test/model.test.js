@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { YEARS, getYears, addYear, removeYear, amount, formatAmount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT, addDebt, repayDebt, debtBalance } from '../src/model.js';
+import { YEARS, getYears, addYear, removeYear, amount, formatAmount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT, addDebt, repayDebt, debtBalance, updateDebt, removeDebt, cancelDebtPayment, debtDueStatus, expenseRows, expenseStatus } from '../src/model.js';
 
 test('calendar covers 2026–2033 and handles leap years', () => {
   assert.deepEqual(YEARS, [2026,2027,2028,2029,2030,2031,2032,2033]);
@@ -18,11 +18,11 @@ test('monthly and yearly totals isolate years, aggregate salary, bonus and expen
   data.days['2027-01-01'] = {note: '', items: [{title:'Khác',amount:99000000}]};
   data.incomes['2026-01'] = {salary:10000000,bonus:2000000};
   data.incomes['2026-02'] = {salary:12000000,bonus:0};
-  assert.deepEqual(monthSummary(data,2026,0), {salary:10000000,bonus:2000000,expense:850000,savings:0,balance:11150000,count:3});
-  assert.deepEqual(yearSummary(data,2026), {salary:22000000,bonus:2000000,expense:3850000,savings:0,balance:20150000,count:4});
+  assert.deepEqual(monthSummary(data,2026,0), {salary:10000000,bonus:2000000,expense:850000,savings:0,balance:11150000,count:3,planned:0,plannedCount:0});
+  assert.deepEqual(yearSummary(data,2026), {salary:22000000,bonus:2000000,expense:3850000,savings:0,balance:20150000,count:4,planned:0,plannedCount:0});
   data.days['2026-01-01'].items.splice(0,1);
   assert.equal(monthSummary(data,2026,0).expense,650000);
-  assert.deepEqual(yearSummary(data,2033), {salary:0,bonus:0,expense:0,savings:0,balance:0,count:0});
+  assert.deepEqual(yearSummary(data,2033), {salary:0,bonus:0,expense:0,savings:0,balance:0,count:0,planned:0,plannedCount:0});
 });
 test('negative balances are retained; monetary input is finite and nonnegative with three decimals', () => {
   for (const invalid of [-1,NaN,Infinity,'abc']) assert.equal(amount(invalid),0);
@@ -50,7 +50,7 @@ test('VND savings aggregate separately and never reduce a JPY balance', () => {
   data.incomes['2026-01'] = {salary:10000000,bonus:1000000};
   data.days['2026-01-01'] = {items:[{amount:2000000}]};
   data.savings = {'2026-01':3000000,'2026-02':1000000,'2027-01':9000000};
-  assert.deepEqual(monthSummary(data,2026,0), {salary:10000000,bonus:1000000,expense:2000000,savings:3000000,balance:9000000,count:1});
+  assert.deepEqual(monthSummary(data,2026,0), {salary:10000000,bonus:1000000,expense:2000000,savings:3000000,balance:9000000,count:1,planned:0,plannedCount:0});
   assert.equal(monthSummary(data,2026,1).balance,0);
   assert.equal(yearSummary(data,2026).savings,4000000);
   assert.equal(yearSummary(data,2026).balance,9000000);
@@ -160,4 +160,62 @@ test('debt history crosses years, restores archived payment years and validates 
  const orphan=structuredClone(data);orphan.debts=[];assert.throws(()=>normalizeData(orphan),/không khớp/);
  assert.throws(()=>normalizeData({...emptyData(),debts:{}}));
  const legacy=emptyData();delete legacy.debts;assert.deepEqual(normalizeData(legacy).debts,[]);
+});
+
+test('planned expenses stay outside actual spending and balance; legacy records keep their totals', () => {
+ const data=emptyData();data.incomes['2026-01']={salary:1000,bonus:100,note:''};
+ data.days['2026-01-03']={note:'',items:[{id:'old',title:'Cũ',amount:100},{id:'new',title:'Mới',amount:200,status:'planned',category:'Nhà ở'}]};
+ assert.equal(expenseStatus(data.days['2026-01-03'].items[0]),'paid');
+ assert.equal(monthSummary(data,2026,0).expense,100);assert.equal(monthSummary(data,2026,0).planned,200);
+ assert.equal(monthSummary(data,2026,0).balance,1000);assert.equal(monthSummary(data,2026,0).plannedCount,1);
+ assert.equal(yearSummary(data,2026).planned,200);assert.equal(monthSummary(data,2026,1).planned,0);
+ assert.deepEqual(normalizeData(JSON.parse(JSON.stringify(data))),data);
+ data.days['2026-01-03'].items[1].status='paid';
+ assert.equal(monthSummary(data,2026,0).expense,300);assert.equal(monthSummary(data,2026,0).planned,0);assert.equal(monthSummary(data,2026,0).balance,800);
+});
+
+test('expense search is accent insensitive and combines period, category and status filters', () => {
+ const data=emptyData();data.days['2026-01-01']={note:'',items:[{id:'a',title:'Đóng tiền nhà',amount:100,category:'Nhà ở',status:'planned'},{id:'b',title:'Ăn sáng',amount:10,category:'Ăn uống',status:'paid'}]};
+ data.days['2026-02-01']={note:'',items:[{id:'c',title:'Tiền nhà',amount:200,category:'Nhà ở'}]};
+ data.days['2027-01-01']={note:'',items:[{id:'d',title:'Tiền nhà',amount:300,category:'Nhà ở'}]};
+ assert.deepEqual(expenseRows(data,2026,0,{query:'dong tien nha',category:'Nhà ở',status:'planned'}).map(item=>item.id),['a']);
+ assert.equal(expenseRows(data,2026,0,{query:'ăn',category:'Nhà ở'}).length,0);
+ assert.deepEqual(expenseRows(data,2026,null,{category:'Nhà ở'}).map(item=>item.id),['c','a']);
+});
+
+test('editing a debt preserves history, updates linked titles, and rejects invalid changes atomically', () => {
+ const data=emptyData();addDebt(data,{id:'a',title:'Cũ',type:'Khác',amount:100,dueDate:'2026-12-31'});repayDebt(data,'a',{id:'p',date:'2026-01-01',amount:40});
+ const before=structuredClone(data);assert.throws(()=>updateDebt(data,'a',{title:'Mới',type:'Vay',amount:30}));assert.deepEqual(data,before);
+ assert.throws(()=>updateDebt(data,'a',{title:'Mới',type:'Vay',amount:100,dueDate:'2026-02-29'}));assert.deepEqual(data,before);
+ updateDebt(data,'a',{title:'Mới',type:'Vay ngân hàng',amount:150,dueDate:'2027-01-01'});
+ assert.deepEqual(data.debts[0].payments,before.debts[0].payments);assert.equal(debtBalance(data.debts[0]).remaining,110);
+ assert.equal(data.days['2026-01-01'].items[0].title,'Trả nợ: Mới');assert.equal(monthSummary(data,2026,0).expense,40);
+ assert.deepEqual(normalizeData(data),data);updateDebt(data,'a',{title:'Mới',type:'Khác',amount:150,dueDate:''});assert.equal(data.debts[0].dueDate,undefined);
+});
+
+test('cancelling a payment reverses only its linked expense and retains auditable history across reload', () => {
+ const data=emptyData();addDebt(data,{id:'a',title:'Vay',type:'Khác',amount:100});
+ data.days['2026-01-01']={note:'Giữ ghi chú',items:[{id:'manual',title:'Trả nợ: Vay',amount:40}]};
+ repayDebt(data,'a',{id:'p',date:'2026-01-01',amount:40});repayDebt(data,'a',{id:'rest',date:'2026-02-01',amount:60});
+ assert.equal(debtBalance(data.debts[0]).remaining,0);assert.deepEqual(cancelDebtPayment(data,'a','p'),{paid:60,remaining:40});
+ assert.equal(data.days['2026-01-01'].note,'Giữ ghi chú');assert.deepEqual(data.days['2026-01-01'].items.map(item=>item.id),['manual']);
+ assert.equal(monthSummary(data,2026,0).expense,40);assert.equal(monthSummary(data,2026,1).expense,60);
+ assert.equal(data.debts[0].payments[0].voided,true);assert.deepEqual(normalizeData(JSON.parse(JSON.stringify(data))),data);
+ const before=structuredClone(data);assert.throws(()=>cancelDebtPayment(data,'a','p'));assert.deepEqual(data,before);
+ repayDebt(data,'a',{id:'again',date:'2026-03-01',amount:40});assert.equal(debtBalance(data.debts[0]).remaining,0);assert.deepEqual(normalizeData(data),data);
+ assert.throws(()=>removeDebt(data,'a'),/lịch sử/);addDebt(data,{id:'empty',title:'Nhầm',type:'Khác',amount:10});removeDebt(data,'empty');assert.equal(data.debts.length,1);
+});
+
+test('payment cancellation refuses a broken link without partially changing either ledger', () => {
+ const data=emptyData();addDebt(data,{id:'a',title:'Vay',type:'Khác',amount:100});repayDebt(data,'a',{id:'p',date:'2026-01-01',amount:40});data.days['2026-01-01'].items[0].amount=20;
+ const before=structuredClone(data);assert.throws(()=>cancelDebtPayment(data,'a','p'),/không khớp/);assert.deepEqual(data,before);
+ const planned=structuredClone(before);planned.days['2026-01-01'].items[0].amount=40;planned.days['2026-01-01'].items[0].status='planned';assert.throws(()=>normalizeData(planned),/không khớp/);
+});
+
+test('due-date filters handle today, seven days, overdue, year boundaries and completed debts', () => {
+ const data=emptyData();addDebt(data,{id:'a',title:'Vay',type:'Khác',amount:100,dueDate:'2027-01-02'});const debt=data.debts[0];
+ assert.equal(debtDueStatus(debt,'2026-12-25'),'outstanding');assert.equal(debtDueStatus(debt,'2026-12-26'),'soon');
+ assert.equal(debtDueStatus(debt,'2027-01-02'),'soon');assert.equal(debtDueStatus(debt,'2027-01-03'),'overdue');
+ repayDebt(data,'a',{id:'p',date:'2027-01-03',amount:100});assert.equal(debtDueStatus(debt,'2027-01-04'),'paid');
+ cancelDebtPayment(data,'a','p');assert.equal(debtDueStatus(debt,'2027-01-04'),'overdue');assert.deepEqual(normalizeData(data),data);
 });
