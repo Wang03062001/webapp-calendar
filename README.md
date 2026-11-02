@@ -72,6 +72,11 @@ Xem [hướng dẫn thiết lập quản trị](supabase/ADMIN.md). Cần chạy
 
 Thay đổi chưa lưu được giữ khi chuyển ngày/tháng và khi mở lại đúng tài khoản trên thiết bị đó. Đóng hoặc tải lại tab khi còn thay đổi sẽ có cảnh báo của trình duyệt. Đăng xuất luôn xóa dữ liệu khỏi màn hình; đăng nhập lại mới tải bản nháp riêng. Dữ liệu của chế độ khách cũ vẫn được giữ nguyên trong trình duyệt.
 
-Dashboard sử dụng các thẻ tổng quan nhiều màu, biểu đồ thu nhập/chi tiêu JPY, tỷ lệ chi trên thu và tiến độ mục tiêu tiết kiệm VNĐ. Biểu đồ lấy số liệu thật trong năm đang chọn; nút thao tác nhanh mở ô nhập chi tiêu, thu nhập, tiết kiệm hoặc tổng kết năm.
+Dashboard sử dụng các thẻ tổng quan nhiều màu, biểu đồ thu nhập/chi tiêu JPY, tỷ lệ chi trên thu và tiến độ mục tiêu tiết kiệm VNĐ. Trang Tổng kết năm chỉ hiển thị số liệu tổng năm; nhấn một tháng để xem riêng tổng thu, chi, còn lại và tiết kiệm của tháng đó. Biểu đồ và số liệu trên trang tháng chỉ lấy dữ liệu tháng đang chọn; nút thao tác nhanh mở ô nhập chi tiêu, thu nhập, tiết kiệm hoặc tổng kết năm.
 
-Số tiền hiển thị theo dạng `1,000,000.000`: dấu phẩy ngăn hàng nghìn, dấu chấm thập phân và 3 chữ số sau dấu chấm. Ô nhập chấp nhận số có dấu phẩy hoặc số thường, tự định dạng khi rời ô hoặc lưu. Giá trị lưu trong JSON/Supabase vẫn là số, hỗ trợ tối đa 3 chữ số thập phân. Font chữ được tăng 60% và bố cục tự chuyển cột để phù hợp màn hình.
+Số tiền hiển thị theo dạng `1,000,000.000`: dấu phẩy ngăn hàng nghìn, dấu chấm thập phân và 3 chữ số sau dấu chấm. Ô nhập chấp nhận số có dấu phẩy hoặc số thường, tự định dạng khi rời ô hoặc lưu. Giá trị lưu trong JSON/Supabase vẫn là số, hỗ trợ tối đa 3 chữ số thập phân. Cỡ chữ hiện tại bằng 50% bản phóng lớn trước đó; bố cục tự chuyển cột để phù hợp màn hình.
+
+
+Mục **Nợ phải trả** hỗ trợ nhiều khoản nợ và loại nợ (có thể nhập loại riêng), theo dõi nợ gốc, đã trả, còn lại và lịch sử thanh toán. Nhấn ô tick để mở xác nhận trả hết hoặc trả một phần, chọn ngày và số tiền. Khi xác nhận, sổ nợ và một khoản chi JPY liên kết được lưu cùng một bản dữ liệu; khoản chi thuộc ngày trả nên tổng tháng/năm và số tiền còn lại được cập nhật đúng kỳ. Không nhập thêm khoản chi thủ công cho cùng lần trả nợ. Khoản chi liên kết không sửa/xóa trực tiếp trong bảng để giữ khớp lịch sử; trả một phần hiện số nợ còn lại, trả hết hiện chúc mừng và dấu tick hoàn tất. Sổ nợ không bị đặt lại khi chuyển năm.
+
+Dữ liệu nợ là phần mở rộng của JSON phiên bản 2, dùng cơ chế Supabase/RLS và kiểm tra revision sẵn có, không cần chạy thêm SQL hoặc triển khai lại Edge Functions. Bản sao lưu cũ chưa có nợ vẫn nhập được; bản mới giữ nguyên lịch sử và liên kết chi tiêu.

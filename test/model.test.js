@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { YEARS, getYears, addYear, removeYear, amount, formatAmount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT } from '../src/model.js';
+import { YEARS, getYears, addYear, removeYear, amount, formatAmount, dayKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, MAX_AMOUNT, addDebt, repayDebt, debtBalance } from '../src/model.js';
 
 test('calendar covers 2026–2033 and handles leap years', () => {
   assert.deepEqual(YEARS, [2026,2027,2028,2029,2030,2031,2032,2033]);
@@ -116,4 +116,48 @@ test('fractional amounts total to three decimals and survive backups', () => {
  data.incomes['2026-01']={salary:1.1,bonus:0.2,note:''};data.savings['2026-01']=0.123;data.goals['2026']=1.234;
  assert.equal(monthSummary(data,2026,0).expense,0.3);assert.equal(yearSummary(data,2026).balance,1);
  assert.equal(savingsProgress(data,2026).remaining,1.111);assert.deepEqual(normalizeData(JSON.parse(JSON.stringify(data))),data);
+});
+
+test('multiple debt types retain separate balances and payments become dated JPY expenses', () => {
+ const data=emptyData();
+ addDebt(data,{id:'loan',title:'Mua xe',type:'Vay cá nhân',amount:1000.125});
+ addDebt(data,{id:'card',title:'Thẻ A',type:'Thẻ tín dụng',amount:2000});
+ data.incomes['2026-01']={salary:5000,bonus:0,note:''};data.savings['2026-01']=1000000;
+ assert.deepEqual(repayDebt(data,'loan',{id:'p1',date:'2026-01-15',amount:'250.125'}),{paid:250.125,remaining:750});
+ assert.equal(data.debts[0].payments[0].expenseId,data.days['2026-01-15'].items[0].id);
+ assert.equal(monthSummary(data,2026,0).expense,250.125);assert.equal(monthSummary(data,2026,0).balance,4749.875);
+ assert.equal(monthSummary(data,2026,0).savings,1000000);assert.equal(monthSummary(data,2026,1).expense,0);
+ assert.deepEqual(debtBalance(data.debts[1]),{paid:0,remaining:2000});
+ assert.deepEqual(repayDebt(data,'loan',{id:'p2',date:'2026-02-01',amount:750}),{paid:1000.125,remaining:0});
+ assert.equal(monthSummary(data,2026,1).expense,750);assert.equal(yearSummary(data,2026).expense,1000.125);
+ assert.equal(yearSummary(data,2027).expense,0);
+ const restored=normalizeData(JSON.parse(JSON.stringify(data)));assert.deepEqual(restored,data);
+ assert.equal(yearSummary(normalizeData(restored),2026).expense,1000.125);
+});
+
+test('invalid, repeated and excess repayments cannot mutate debts or expenses', () => {
+ const data=emptyData();addDebt(data,{id:'a',title:'Khoản vay',type:'Khác',amount:100});
+ for(const payment of [{id:'p',date:'2026-02-29',amount:10},{id:'p',date:'2026-01-01',amount:101},{id:'p',date:'2026-01-01',amount:-1},{id:'p',date:'2026-01-01',amount:0},{id:'p',date:'2026-01-01',amount:0.1234}]) {
+  const before=structuredClone(data);assert.throws(()=>repayDebt(data,'a',payment));assert.deepEqual(data,before);
+ }
+ repayDebt(data,'a',{id:'p',date:'2026-01-01',amount:40});const before=structuredClone(data);
+ assert.throws(()=>repayDebt(data,'a',{id:'p',date:'2026-01-01',amount:40}),/đã được ghi nhận/);assert.deepEqual(data,before);
+ assert.throws(()=>addDebt(data,{id:'a',title:'Trùng',type:'Khác',amount:100}));
+ repayDebt(data,'a',{id:'rest',date:'2026-01-01',amount:60});const paid=structuredClone(data);
+ assert.throws(()=>repayDebt(data,'a',{id:'extra',date:'2026-01-02',amount:1}));assert.deepEqual(data,paid);
+});
+
+test('debt history crosses years, restores archived payment years and validates linked backups', () => {
+ const data=emptyData();addDebt(data,{id:'a',title:'Dài hạn',type:'Vay ngân hàng',amount:1000});
+ repayDebt(data,'a',{id:'p',date:'2034-02-01',amount:100});assert.equal(getYears(data).includes(2034),true);
+ assert.equal(yearSummary(data,2034).expense,100);assert.equal(yearSummary(data,2026).expense,0);
+ removeYear(data,2034);const restored=normalizeData(data);assert.equal(getYears(restored).includes(2034),false);
+ assert.deepEqual(debtBalance(restored.debts[0]),{paid:100,remaining:900});assert.deepEqual(restored,data);
+ const broken=structuredClone(data);broken.days['2034-02-01'].items[0].amount=1;
+ assert.throws(()=>normalizeData(broken),/không khớp/);
+ const duplicate=structuredClone(data);duplicate.days['2034-02-02']={note:'',items:[{...duplicate.days['2034-02-01'].items[0]}]};
+ assert.throws(()=>normalizeData(duplicate),/không khớp/);
+ const orphan=structuredClone(data);orphan.debts=[];assert.throws(()=>normalizeData(orphan),/không khớp/);
+ assert.throws(()=>normalizeData({...emptyData(),debts:{}}));
+ const legacy=emptyData();delete legacy.debts;assert.deepEqual(normalizeData(legacy).debts,[]);
 });
