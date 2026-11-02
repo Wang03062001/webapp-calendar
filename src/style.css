@@ -65,3 +65,8 @@ footer{display:flex;justify-content:space-between;gap:15px;font-size:8px;color:#
 .admin-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0;font-size:11px;color:#8da182}
 .forgot-password{display:block;margin:15px auto 0;background:none;color:var(--green);font-size:12px}
 @media(max-width:640px){.admin-dialog{padding:25px 16px}.admin-users{max-height:60vh}}
+
+/* Keep inactive auth fields out of both layout and keyboard navigation. */
+.account-dialog [hidden]{display:none!important}
+#account-dialog #auth-message:empty{display:none}
+#account-dialog .auth-tabs{margin:18px 0}

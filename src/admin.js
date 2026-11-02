@@ -59,10 +59,11 @@ export function showPasswordReset(client) {
   };
 }
 
-export function showRecovery(client, onVerified) {
+export function showRecovery(client, onVerified, onBack) {
   const dialog = document.createElement('dialog'); dialog.className = 'account-dialog';
-  dialog.innerHTML = '<button class="dialog-close" aria-label="Đóng">×</button><h2>Lấy lại mật khẩu</h2><p>Nhập email đã đăng ký để nhận mã khôi phục.</p><form><label>Email<input name="email" type="email" required autocomplete="email" /></label><div class="recovery-code" hidden><label>Mã trong email<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" /></label></div><button class="account-submit">Gửi mã</button></form><p role="status" aria-live="polite"></p>';
+  dialog.innerHTML = '<button class="dialog-close" aria-label="Đóng">×</button><h2>Quên mật khẩu</h2><form><label>Email<input name="email" type="email" required autocomplete="email" /></label><div class="recovery-code" hidden><label>Mã trong email<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" /></label></div><button class="account-submit">Gửi mã</button></form><button type="button" class="forgot-password recovery-back">Quay lại đăng nhập</button><p role="status" aria-live="polite"></p>';
   document.body.append(dialog); dialog.showModal(); dialog.querySelector('.dialog-close').onclick = () => dialog.close();
+  dialog.querySelector('.recovery-back').onclick = () => { dialog.close(); onBack?.(); };
   let sent = false;
   dialog.querySelector('form').onsubmit = async event => {
     event.preventDefault(); const form = event.target, email = form.elements.email.value.trim(), status = dialog.querySelector('[role="status"]');
@@ -71,7 +72,7 @@ export function showRecovery(client, onVerified) {
       if (!sent) {
         await client.requestRecovery(email); sent = true; form.elements.email.readOnly = true;
         dialog.querySelector('.recovery-code').hidden = false; form.elements.code.required = true;
-        button.textContent = 'Xác nhận mã'; status.textContent = 'Nếu email có tài khoản, mã sẽ được gửi đến email đó. Kiểm tra cả thư rác.';
+        button.textContent = 'Xác nhận mã'; status.textContent = 'Mã được gửi nếu email đã đăng ký.';
       } else {
         await client.verifyRecovery(email, form.elements.code.value.trim()); dialog.close();
         await onVerified(); showPasswordReset(client);

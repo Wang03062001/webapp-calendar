@@ -268,9 +268,9 @@ function renderCloud() {
 
 function showAccount() {
   document.querySelector('#account-dialog')?.remove();
-  const dialog = document.createElement('dialog'); dialog.id = 'account-dialog'; dialog.className = 'account-dialog';
-  dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><div class="eyebrow">DỮ LIỆU CỦA BẠN · TRÊN MỌI THIẾT BỊ</div><h2>${cloud.user ? 'Tài khoản của bạn' : 'Chào mừng bạn trở lại'}</h2>
-    ${cloud.user ? `<p>Đang đăng nhập: <strong>${escape(cloud.user.email)}</strong></p><p>Bản nháp chưa đồng bộ sẽ được giữ riêng cho tài khoản này trên trình duyệt.</p><button class="account-submit" id="sign-out">Đăng xuất</button>` : `<p>Đăng nhập cùng tài khoản để dùng chung lịch, chi tiêu và tiết kiệm trên các máy.</p><div class="auth-tabs"><button class="active" data-mode="signin">Đăng nhập</button><button data-mode="signup">Tạo tài khoản</button></div><form id="auth-form"><label class="signup-username" hidden>Tên tài khoản<input name="username" type="text" minlength="3" maxlength="30" pattern="[a-z][a-z0-9_]{2,29}" autocomplete="username" placeholder="Ví dụ: quang_01" /></label><label><span id="login-label">Tên tài khoản hoặc email</span><input name="email" type="text" required autocomplete="username" placeholder="Tên tài khoản hoặc email" /></label><label>Mật khẩu<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Mật khẩu" /></label><button class="account-submit" type="submit">Đăng nhập</button></form><button class="forgot-password" type="button">Quên mật khẩu?</button>`}
+  const dialog = document.createElement('dialog'); dialog.id = 'account-dialog'; dialog.className = 'account-dialog'; dialog.setAttribute('aria-labelledby', 'account-title');
+  dialog.innerHTML = `<button class="dialog-close" aria-label="Đóng">×</button><h2 id="account-title">${cloud.user ? 'Tài khoản' : 'Đăng nhập'}</h2>
+    ${cloud.user ? `<p>Đang đăng nhập: <strong>${escape(cloud.user.email)}</strong></p><p>Bản nháp chưa đồng bộ sẽ được giữ riêng cho tài khoản này trên trình duyệt.</p><button class="account-submit" id="sign-out">Đăng xuất</button>` : `<div class="auth-tabs"><button class="active" data-mode="signin">Đăng nhập</button><button data-mode="signup">Đăng ký</button></div><form id="auth-form"><label class="signup-username" hidden>Tên tài khoản<input name="username" type="text" disabled minlength="3" maxlength="30" pattern="[a-z][a-z0-9_]{2,29}" autocomplete="username" placeholder="Ví dụ: quang_01" /></label><label><span id="login-label">Tên tài khoản hoặc email</span><input name="email" type="text" required autocomplete="username" placeholder="Tên tài khoản hoặc email" /></label><label>Mật khẩu<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Mật khẩu" /></label><button class="account-submit" type="submit">Đăng nhập</button></form><button class="forgot-password" type="button">Quên mật khẩu?</button>`}
     <p id="auth-message" role="status" aria-live="polite"></p>`;
   document.body.append(dialog); dialog.showModal();
   if (cloud.user) {
@@ -285,19 +285,23 @@ function showAccount() {
     authClient.isAdmin().then(isAdmin => { if (isAdmin === true && cloud.user?.id === userId && dialog.isConnected) adminButton.hidden = false; }).catch(() => {});
   }
   dialog.querySelector('.dialog-close').onclick = () => dialog.close();
-  dialog.querySelector('.forgot-password')?.addEventListener('click', () => { dialog.close(); showRecovery(authClient, () => cloud.open()); });
+  dialog.querySelector('.forgot-password')?.addEventListener('click', () => { dialog.close(); showRecovery(authClient, () => cloud.open(), showAccount); });
   let mode = 'signin';
   dialog.querySelectorAll('[data-mode]').forEach(button => button.onclick = () => {
     mode = button.dataset.mode;
     dialog.querySelector('.signup-username').hidden = mode !== 'signup';
     dialog.querySelector('[name="username"]').required = mode === 'signup';
+    dialog.querySelector('[name="username"]').disabled = mode !== 'signup';
+    dialog.querySelector('#account-title').textContent = mode === 'signup' ? 'Đăng ký' : 'Đăng nhập';
     dialog.querySelector('[name="email"]').type = mode === 'signup' ? 'email' : 'text';
-    dialog.querySelector('#login-label').textContent = mode === 'signup' ? 'Email khôi phục' : 'Tên tài khoản hoặc email';
+    dialog.querySelector('#login-label').textContent = mode === 'signup' ? 'Email' : 'Tên tài khoản hoặc email';
     dialog.querySelectorAll('[data-mode]').forEach(tab => tab.classList.toggle('active', tab === button));
-    dialog.querySelector('.account-submit').textContent = mode === 'signin' ? 'Đăng nhập' : 'Tạo tài khoản';
+    dialog.querySelector('.account-submit').textContent = mode === 'signin' ? 'Đăng nhập' : 'Đăng ký';
     dialog.querySelector('[name="password"]').autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
     dialog.querySelector('[name="password"]').minLength = mode === 'signin' ? 6 : 8;
-    dialog.querySelector('#auth-message').textContent = mode === 'signup' ? 'Dùng mật khẩu ít nhất 8 ký tự. Sau khi đăng ký, hãy kiểm tra email xác nhận.' : '';
+    dialog.querySelector('[name="email"]').placeholder = mode === 'signup' ? 'Email' : 'Tên tài khoản hoặc email';
+    dialog.querySelector('[name="password"]').placeholder = mode === 'signup' ? 'Ít nhất 8 ký tự' : 'Mật khẩu';
+    dialog.querySelector('#auth-message').textContent = '';
   });
   dialog.querySelector('#auth-form')?.addEventListener('submit', async event => {
     event.preventDefault(); const form = event.target, email = form.elements.email.value.trim(), password = form.elements.password.value;
@@ -307,9 +311,9 @@ function showAccount() {
       const result = mode === 'signin' ? await authClient.signIn(email, password) : await authClient.signUp(email, password, new URL('.', location.href).href, form.elements.username.value.trim().toLowerCase());
       form.elements.password.value = '';
       if (result?.access_token) { await cloud.open(); dialog.close(); }
-      else message.textContent = 'Hãy kiểm tra email (cả thư rác) để xác nhận tài khoản, sau đó quay lại đăng nhập.';
+      else message.textContent = 'Kiểm tra email để xác nhận tài khoản.';
     } catch (error) { message.textContent = error.message; }
-    finally { controls.forEach(control => control.disabled = false); }
+    finally { controls.forEach(control => control.disabled = false); form.elements.username.disabled = mode !== 'signup'; }
   });
   dialog.querySelector('#sign-out')?.addEventListener('click', async event => {
     event.target.disabled = true;
