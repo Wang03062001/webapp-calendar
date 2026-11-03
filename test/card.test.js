@@ -8,9 +8,9 @@ test('statement separates one-off, revolving principal and fees; principal alone
  const data=emptyData();data.incomes['2026-02']={salary:2000,bonus:0,note:''};
  data.days['2026-01-10']={note:'Giữ lại',items:[{id:'buy',title:'Mua hàng',amount:200,status:'paid',paymentMethod:'card',settlement:'oneoff',billingMonth:'2026-02'}]};
  saveStatement(data,source());assert.deepEqual(statementNumbers(data.cards.statements[0]),{total:315,carry:950});
- assert.equal(monthSummary(data,2026,0).expense,200);assert.equal(monthSummary(data,2026,1).expense,15);
+ assert.equal(monthSummary(data,2026,0).expense,200);assert.equal(monthSummary(data,2026,1).expense,0);
  assert.equal(cardCashflow(data,'2026-02').reserved,315);assert.equal(cardCashflow(data,'2026-02').afterReserve,1685);
- settleStatement(data,'2026-02','2026-02-27');assert.equal(monthSummary(data,2026,1).expense,15);assert.equal(cardCashflow(data,'2026-02').paid,315);
+ settleStatement(data,'2026-02','2026-02-27');assert.equal(monthSummary(data,2026,1).expense,0);assert.equal(cardCashflow(data,'2026-02').paid,315);
  assert.equal(data.days['2026-01-10'].items.length,1);assert.deepEqual(normalizeData(JSON.parse(JSON.stringify(data))),data);
  assert.throws(()=>settleStatement(data,'2026-02','2026-02-27'));assert.throws(()=>saveStatement(data,source()));
  undoSettlement(data,'2026-02');assert.equal(cardCashflow(data,'2026-02').paid,0);assert.equal(cardCashflow(data,'2026-02').reserved,315);assert.deepEqual(normalizeData(data),data);
@@ -18,7 +18,7 @@ test('statement separates one-off, revolving principal and fees; principal alone
 
 test('fee editing moves one linked expense, preserves notes, and draft does not recognize a fee',()=>{
  const data=emptyData();data.days['2026-02-20']={note:'Ghi chú',items:[{id:'x',title:'Khác',amount:7}]};saveStatement(data,source());saveStatement(data,source({fees:12,confirmedOn:'2026-02-21'}));
- assert.equal(data.days['2026-02-20'].note,'Ghi chú');assert.equal(data.days['2026-02-20'].items.length,1);assert.equal(data.days['2026-02-21'].items.length,1);assert.equal(monthSummary(data,2026,1).expense,19);
+ assert.equal(data.days['2026-02-20'].note,'Ghi chú');assert.equal(data.days['2026-02-20'].items.length,1);assert.equal(data.days['2026-02-21'].items.length,1);assert.equal(monthSummary(data,2026,1).expense,7);
  saveStatement(data,source({status:'draft',confirmedOn:''}));assert.equal(monthSummary(data,2026,1).expense,7);assert.deepEqual(normalizeData(data),data);
  const before=structuredClone(data);assert.throws(()=>saveStatement(data,source({principal:2000})));assert.deepEqual(data,before);
 });

@@ -28,3 +28,34 @@ test('month end handles leap years and year rollover, rejects future/invalid clo
 test('legacy transfer records show in expense search without duplicate balance changes',()=>{
  const d=fixture();d.accounts.transfers.push({id:'old',date:'2026-01-05',from:'bank',to:'cash',amount:10});assert.equal(expenseRows(d,2026,0,{query:'rút tiền'}).length,1);assert.equal(accountBalances(d,'2026-01-31').bank,840);assert.equal(accountBalances(d,'2026-01-31').cash,240);assert.equal(monthSummary(d,2026,0).expense,20);assert.deepEqual(normalizeData(d),d);
 });
+
+test('ordinary-day confirmations persist per-account monthly quota and preserve card limit/history',()=>{
+ const d=fixture(), options=id=>({id,today:'2026-02-05',manual:true});
+ for(let i=1;i<=3;i++){
+  reconcileMonth(d,'2026-01-30',{bank:1000+i,cash:100+i},options(`manual-${i}`));
+  Object.assign(d,normalizeData(JSON.parse(JSON.stringify(d))));
+ }
+ assert.equal(d.accounts.reconciliations.filter(r=>r.kind==='manual').length,3);
+ assert.equal(d.accounts.creditLimit,5000);assert.equal(d.accounts.creditDebt,0);
+ assert.match(d.days['2026-01-30'].note,/Tổng chênh lệch/);
+ const before=structuredClone(d);
+ assert.throws(()=>reconcileMonth(d,'2026-02-04',{bank:5,cash:5},options('four')),/3 lượt/);assert.deepEqual(d,before);
+ reconcileMonth(d,'2026-01-31',{bank:900,cash:200},{id:'month-end',today:'2026-02-05'});
+ assert.equal(d.accounts.reconciliations.length,4);
+ // Quota is the confirmation month, not the historical date being corrected.
+ reconcileMonth(d,'2026-02-04',{bank:800,cash:300},{id:'next-month',today:'2026-03-01',manual:true});
+ assert.equal(d.accounts.reconciliations.length,5);assert.equal(accountBalances(d,'2026-02-05').bank,800);
+ assert.deepEqual(normalizeData(d),d);
+ const other=fixture();reconcileMonth(other,'2026-02-04',{bank:5,cash:5},options('other-user'));
+ assert.equal(other.accounts.reconciliations.length,1);
+});
+
+test('ordinary corrections reject future dates, invalid values, duplicate IDs and forged monthly overflow atomically',()=>{
+ const d=fixture(),opts={id:'manual',today:'2026-02-01',manual:true},before=structuredClone(d);
+ for(const [date,values] of [['2026-02-02',{bank:1,cash:1}],['2026-01-31',{bank:1,cash:1}],['2026-01-30',{bank:'bad',cash:1}]]){assert.throws(()=>reconcileMonth(d,date,values,opts));assert.deepEqual(d,before);}
+ reconcileMonth(d,'2026-01-30',{bank:850,cash:200},opts);
+ assert.equal(accountBalances(d,'2026-01-31').bank,700); // later ATM/deposit remain effective
+ assert.equal(accountBalances(d,'2026-01-31').cash,330);
+ const snapshot=structuredClone(d);assert.throws(()=>reconcileMonth(d,'2026-01-30',{bank:1,cash:1},opts));assert.deepEqual(d,snapshot);
+ const row=d.accounts.reconciliations[0];d.accounts.reconciliations=Array.from({length:4},(_,i)=>({...row,id:String(i)}));assert.throws(()=>normalizeData(d),/3 lượt/);
+});

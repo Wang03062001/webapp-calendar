@@ -58,6 +58,33 @@ export class SyncController {
     this.queued = { data: structuredClone(this.data), counter: this.counter }; this.cache();
     return this.flush();
   }
+  // Explicit balance confirmations become visible/countable only after the
+  // optimistic server write succeeds. Failed attempts never enter the cache.
+  async commitConfirmed(next) {
+    if (!this.user) throw new Error('Hãy đăng nhập trước khi lưu dữ liệu.');
+    const epoch = this.epoch, counter = this.counter;
+    const snapshot = normalizeData(structuredClone(next)), before = JSON.stringify(this.data);
+    // A failed confirmation has no queued draft: re-read before retrying so a
+    // lost response or another device cannot be overwritten.
+    if (!this.dirty && this.status === 'error') await this.refresh();
+    if (JSON.stringify(this.data) !== before) throw new Error('Dữ liệu đã thay đổi. Đóng và mở lại để kiểm tra.');
+    await this.commit();
+    if (epoch !== this.epoch || counter !== this.counter || this.dirty || this.status !== 'ready') throw new Error('Chưa lưu được thay đổi. Kiểm tra đồng bộ và thử lại.');
+    this.statusChanged('saving');
+    this.inFlight = (async () => {
+      try {
+        const row = await this.client.save(snapshot, this.revision);
+        if (epoch !== this.epoch) throw new Error('Phiên đăng nhập đã thay đổi.');
+        this.revision = row.revision;
+        this.data = snapshot; this.counter++; this.dirty = false; this.queued = null;
+        this.cache(); this.onData(this.data); this.statusChanged('ready');
+      } catch (error) {
+        if (epoch === this.epoch) this.statusChanged(error.code === '40001' ? 'conflict' : 'error', error.message);
+        throw error;
+      } finally { this.inFlight = null; }
+    })();
+    return this.inFlight;
+  }
   async flush() {
     if (!this.user || !this.queued || this.status === 'conflict') return;
     if (this.inFlight) return this.inFlight;

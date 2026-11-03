@@ -1,6 +1,30 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Lương & thưởng|Salary & bonus|給与・賞与|급여 및 상여|薪資與獎金
+Chi từ ngân hàng|Bank spending|銀行からの支出|은행 지출|銀行支出
+Mua bằng thẻ tín dụng|Credit card purchases|クレジットカード購入|신용카드 구매|信用卡消費
+Thanh toán thẻ tín dụng|Credit card payment|クレジットカード支払い|신용카드 결제|信用卡繳款
+Thanh toán thẻ hiển thị riêng, không cộng lại vào chi phí.|Card payments are shown separately and excluded from costs.|カード支払いは別表示で、費用に重複計上しません。|카드 결제는 별도 표시하며 비용에 중복 합산하지 않습니다.|信用卡繳款另行顯示，不重複計入費用。
+Thiết lập số dư trực tiếp chưa khả dụng ở ngày thường.|Direct balance setup is unavailable on ordinary days.|通常日は残高を直接設定できません。|일반 날짜에는 잔액 직접 설정을 사용할 수 없습니다.|一般日期無法直接設定餘額。
+Dùng Đối chiếu cuối tháng trên trang để cập nhật số dư, không tính lượt.|Use month-end reconciliation on this page; it does not use an update.|このページの月末照合をご利用ください。回数には含まれません。|이 페이지의 월말 대조를 사용하세요. 횟수에 포함되지 않습니다.|請使用本頁的月底核對，不計入次數。
+Đã dùng|Used|使用済み|사용|已使用
+/3 lượt cập nhật thành công trong tháng hiện tại. Hủy hoặc lưu lỗi không tính lượt.|/3 successful updates this month. Canceled or failed saves do not count.|/3 回（今月の保存成功分）。取消や保存失敗は含みません。|/3회 이번 달 저장 성공. 취소 또는 저장 실패는 포함되지 않습니다.|/3 次本月成功更新。取消或儲存失敗不計次。
+Yêu cầu thêm|Request an update|追加更新を申請|추가 요청|申請更新
+Không thể cập nhật số dư cho ngày tương lai.|Future balances cannot be updated.|未来日の残高は更新できません。|미래 날짜의 잔액은 업데이트할 수 없습니다.|無法更新未來日期的餘額。
+Yêu cầu cập nhật số dư|Request a balance update|残高更新の申請|잔액 업데이트 요청|申請更新餘額
+Số dư thực tế cuối ngày|Actual end-of-day balances|一日の終了時の実際の残高|하루 마감 실제 잔액|當日結束時的實際餘額
+Giữ nguyên hạn mức và dư nợ thẻ.|Card limit and debt remain unchanged.|カード限度額と債務残高は変わりません。|카드 한도와 부채는 유지됩니다.|信用卡額度與欠款維持不變。
+Cập nhật số dư|Balance update|残高更新|잔액 업데이트|更新餘額
+Xác nhận cập nhật số dư|Confirm balance update|残高更新を確認|잔액 업데이트 확인|確認更新餘額
+Ghi chú chênh lệch được lưu vào ngày đã chọn cùng lịch sử. Số dư thực tế áp dụng từ cuối ngày đó; không sửa hoặc tạo thêm khoản chi.|Differences are saved with history on the selected date. Actual balances apply at that day's end; expenses are unchanged.|差額は選択日の履歴に保存されます。実残高はその日末から適用され、支出は変更しません。|차액은 선택한 날짜의 기록에 저장됩니다. 실제 잔액은 해당 날짜 마감부터 적용되며 지출은 변경하지 않습니다.|差額會連同歷史記錄儲存在所選日期。實際餘額自當日結束起適用，不修改支出。
+Số dư đã cập nhật. Ghi chú chênh lệch được lưu cùng lịch sử.|Balances updated. Difference notes are saved with history.|残高を更新しました。差額メモは履歴に保存されました。|잔액을 업데이트했습니다. 차액 메모는 기록에 저장됩니다.|餘額已更新。差額備註已儲存在歷史記錄中。
+Đã dùng hết 3 lượt cập nhật số dư trong tháng.|All 3 monthly balance updates have been used.|今月の残高更新は3回すべて使用済みです。|이번 달 잔액 업데이트 3회를 모두 사용했습니다.|本月 3 次餘額更新已用完。
+Cập nhật số dư không hợp lệ.|Invalid balance update.|残高更新が無効です。|유효하지 않은 잔액 업데이트입니다.|餘額更新無效。
+Ngày đã thay đổi. Đóng và mở lại để kiểm tra.|The date changed. Close and reopen to review.|日付が変わりました。閉じて再度開き確認してください。|날짜가 변경되었습니다. 닫고 다시 열어 확인하세요.|日期已變更。請關閉後重新開啟確認。
+Chưa lưu được thay đổi. Kiểm tra đồng bộ và thử lại.|Changes were not saved. Check sync and retry.|保存できませんでした。同期を確認して再試行してください。|변경 사항이 저장되지 않았습니다. 동기화를 확인하고 다시 시도하세요.|尚未儲存變更。請檢查同步後重試。
+Phí chỉ hiển thị trong sao kê và đã nằm trong tổng thanh toán; không cộng vào tổng chi tiêu hoặc trừ ngân hàng thêm lần nữa.|Fees appear only on statements and are included in the payment total; they do not add spending or another bank debit.|手数料は明細の支払総額に含まれ、支出や銀行引落しに重複計上しません。|수수료는 명세서 결제 총액에 포함되며 지출이나 은행 출금에 중복 반영하지 않습니다.|費用只在帳單顯示且已含於繳款總額，不另計支出或再次扣銀行餘額。
+
 Tài sản còn lại|Remaining assets|残りの資産|남은 자산|剩餘資產
 Ngân hàng + tiền mặt|Bank + cash|銀行＋現金|은행 + 현금|銀行＋現金
 Loại giao dịch|Transaction type|取引の種類|거래 유형|交易類型

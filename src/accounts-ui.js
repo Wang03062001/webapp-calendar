@@ -1,6 +1,6 @@
 import { t } from './i18n.js';
 import { formatAmount } from './model.js';
-import { accountBalances, normalizeAccounts, moneyOut, monthEnd, reconcileMonth, isInternalMovement } from './account-model.js';
+import { accountBalances, normalizeAccounts, moneyOut, monthEnd, reconcileMonth, isInternalMovement, balanceUpdateCount } from './account-model.js';
 import { currencyLabel, currencyCode } from './preferences.js';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>`${formatAmount(value)} ${currencyLabel()}`;
@@ -10,7 +10,7 @@ export const sourceName=source=>source==='bank'?'Tài khoản ngân hàng':sourc
 export function accountsPanel(data,date,creditAllowed) {
   const b=accountBalances(data,date), a=data.accounts;
   const transfers=[...(a?.transfers||[]),...Object.entries(data.days).flatMap(([date,entry])=>entry.items.filter(isInternalMovement).map(item=>({date,id:item.id,amount:item.amount,from:item.movement==='withdraw'?'bank':'cash',to:item.movement==='withdraw'?'cash':'bank',expense:true})))].sort((a,b)=>b.date.localeCompare(a.date));
-  return `<section class="card accounts-panel"><div class="card-heading"><div><h2>Số dư theo nguồn tiền</h2><p>Tính đến cuối ngày ${dateLabel(date)} · ${a?`Số dư đầu ngày ${dateLabel(a.openedOn)}`:'Chưa thiết lập số dư đầu ngày'}</p></div><button class="button secondary" data-action="account-balances">Thiết lập số dư</button></div><div class="account-balances"><article class="assets-total"><span>Tài sản còn lại</span><strong data-balance="assets">${b?money(b.bank+b.cash):'Chưa thiết lập'}</strong><small>Ngân hàng + tiền mặt</small></article><article><span>Tài khoản ngân hàng</span><strong data-balance="bank">${b?money(b.bank):'Chưa thiết lập'}</strong></article><article><span>Tiền mặt</span><strong data-balance="cash">${b?money(b.cash):'Chưa thiết lập'}</strong></article>${creditAllowed?`<article><span>Hạn mức khả dụng PayPay</span><strong data-balance="credit">${b?.available!=null?money(b.available):'Cần nhập / đối chiếu hạn mức'}</strong><small>Dư nợ ghi sổ: ${b?money(b.creditDebt):'Chưa thiết lập'}</small></article>`:''}</div><p class="account-note">Số dư dựa trên các giao dịch đã ghi; không kết nối trực tiếp với ngân hàng. Khoản cũ chưa có nguồn được tính là tiền mặt. Thu nhập chưa chọn nơi nhận được tính vào ngân hàng.</p>${b && b.creditDebt<0 && creditAllowed?'<p class="account-note negative">Cần đối chiếu dư nợ đầu kỳ và giao dịch thẻ: tiền đã trả vượt dư nợ ghi sổ.</p>':''}<div class="account-period"><span>Tiền ra ngân hàng / tiền mặt trong tháng <strong data-money-out>${money(moneyOut(data,date.slice(0,7)))}</strong></span><small>Gồm trả sao kê; chi phí mua bằng thẻ không bị cộng hai lần.</small></div>${a?`<div class="account-transfers"><button class="button secondary" data-action="account-transfer">Chuyển ngân hàng ↔ tiền mặt</button><details><summary>Lịch sử chuyển tiền</summary>${transfers.map(t=>`<div><span>${dateLabel(t.date)} · ${sourceName(t.from)} → ${sourceName(t.to)} · ${money(t.amount)}</span>${t.expense?`<button class="text-button" data-open-day="${t.date}">Xem</button>`:`<button class="text-button danger" data-remove-transfer="${encodeURIComponent(t.id)}">Xóa</button>`}</div>`).join('')||'<p>Chưa có chuyển tiền.</p>'}</details></div>`:''}${monthClosingPanel(data,date,b)}</section>`;
+  return `<section class="card accounts-panel"><div class="card-heading"><div><h2>Số dư theo nguồn tiền</h2><p>Tính đến cuối ngày ${dateLabel(date)} · ${a?`Số dư đầu ngày ${dateLabel(a.openedOn)}`:'Chưa thiết lập số dư đầu ngày'}</p></div><button class="button secondary" data-action="account-balances">Thiết lập số dư</button></div><div class="account-balances"><article class="assets-total"><span>Tài sản còn lại</span><strong data-balance="assets">${b?money(b.bank+b.cash):'Chưa thiết lập'}</strong><small>Ngân hàng + tiền mặt</small></article><article><span>Tài khoản ngân hàng</span><strong data-money-kind="bank" data-balance="bank">${b?money(b.bank):'Chưa thiết lập'}</strong></article><article><span>Tiền mặt</span><strong data-money-kind="cash" data-balance="cash">${b?money(b.cash):'Chưa thiết lập'}</strong></article>${creditAllowed?`<article><span>Hạn mức khả dụng PayPay</span><strong data-money-kind="card" data-balance="credit">${b?.available!=null?money(b.available):'Cần nhập / đối chiếu hạn mức'}</strong><small>Dư nợ ghi sổ: ${b?money(b.creditDebt):'Chưa thiết lập'}</small></article>`:''}</div><p class="account-note">Số dư dựa trên các giao dịch đã ghi; không kết nối trực tiếp với ngân hàng. Khoản cũ chưa có nguồn được tính là tiền mặt. Thu nhập chưa chọn nơi nhận được tính vào ngân hàng.</p>${b && b.creditDebt<0 && creditAllowed?'<p class="account-note negative">Cần đối chiếu dư nợ đầu kỳ và giao dịch thẻ: tiền đã trả vượt dư nợ ghi sổ.</p>':''}<div class="account-period"><span>Tiền ra ngân hàng / tiền mặt trong tháng <strong data-money-out>${money(moneyOut(data,date.slice(0,7)))}</strong></span><small>Gồm trả sao kê; chi phí mua bằng thẻ không bị cộng hai lần.</small></div>${a?`<div class="account-transfers"><button class="button secondary" data-action="account-transfer">Chuyển ngân hàng ↔ tiền mặt</button><details><summary>Lịch sử chuyển tiền</summary>${transfers.map(t=>`<div><span>${dateLabel(t.date)} · ${sourceName(t.from)} → ${sourceName(t.to)} · ${money(t.amount)}</span>${t.expense?`<button class="text-button" data-open-day="${t.date}">Xem</button>`:`<button class="text-button danger" data-remove-transfer="${encodeURIComponent(t.id)}">Xóa</button>`}</div>`).join('')||'<p>Chưa có chuyển tiền.</p>'}</details></div>`:''}${monthClosingPanel(data,date,b)}</section>`;
 }
 export function showAccountLedger(context,mode='balances',transferId) {
   if(!context.canEdit())return;
@@ -49,16 +49,16 @@ function monthClosingPanel(data,date,balance) {
   if(!balance)return `<section class="month-closing"><h3>Đối chiếu cuối tháng</h3><p>Thiết lập số dư đầu ngày trước khi đối chiếu.</p></section>${history}`;
   return `<section class="month-closing"><h3>Đối chiếu cuối tháng · ${dateLabel(date)}</h3><p>Nhập tiền thực có cuối ngày, sau mọi giao dịch. Xác nhận sẽ dùng số thực tế làm số dư đầu tháng mới và giữ nguyên lịch sử chi tiêu.</p><div class="closing-inputs"><label>Ngân hàng thực tế<input data-closing="bank" data-money inputmode="decimal" maxlength="32" placeholder="0"></label><label>Tiền mặt thực tế<input data-closing="cash" data-money inputmode="decimal" maxlength="32" placeholder="0"></label></div><button class="button" data-action="reconcile-month" ${date>today()?'disabled':''}>Kiểm tra chênh lệch</button>${date>today()?'<small>Chưa đến ngày cuối tháng.</small>':''}</section>${history}`;
 }
-export function showMonthReconciliation(context,date,actual) {
+export function showMonthReconciliation(context,date,actual,manual=false) {
   if(!context.canEdit())return;
   const snapshot=JSON.stringify(context.getData()),user=context.getUserId();
   const draft=structuredClone(context.getData());
-  const record=reconcileMonth(draft,date,actual,{id:crypto.randomUUID(),currency:currencyCode(),today:today()});
-  const localizedNote=`[${t('Đối chiếu cuối tháng')} ${dateLabel(date)} · ${currencyLabel()}] ${t('Ngân hàng theo sổ:')} ${money(record.expectedBank)}; ${t('Ngân hàng thực tế:')} ${money(record.bank)}; ${t('Chênh lệch ngân hàng:')} ${money(record.deltaBank)}. ${t('Tiền mặt theo sổ:')} ${money(record.expectedCash)}; ${t('Tiền mặt thực tế:')} ${money(record.cash)}; ${t('Chênh lệch tiền mặt:')} ${money(record.deltaCash)}. ${t('Tổng chênh lệch:')} ${money(record.deltaBank+record.deltaCash)}.`;
+  const record=reconcileMonth(draft,date,actual,{id:crypto.randomUUID(),currency:currencyCode(),today:today(),manual});
+  const localizedNote=`[${t(manual?'Cập nhật số dư':'Đối chiếu cuối tháng')} ${dateLabel(date)} · ${currencyLabel()}] ${t('Ngân hàng theo sổ:')} ${money(record.expectedBank)}; ${t('Ngân hàng thực tế:')} ${money(record.bank)}; ${t('Chênh lệch ngân hàng:')} ${money(record.deltaBank)}. ${t('Tiền mặt theo sổ:')} ${money(record.expectedCash)}; ${t('Tiền mặt thực tế:')} ${money(record.cash)}; ${t('Chênh lệch tiền mặt:')} ${money(record.deltaCash)}. ${t('Tổng chênh lệch:')} ${money(record.deltaBank+record.deltaCash)}.`;
   const dayNote=[context.getData().days[date]?.note,localizedNote].filter(Boolean).join('\n');if(dayNote.length>20000)throw Error('Ghi chú ngày đã đầy. Hãy rút ngắn ghi chú trước khi xác nhận.');
   record.note=localizedNote;draft.accounts.reconciliations.at(-1).note=localizedNote;draft.days[date].note=dayNote;
   document.querySelector('#reconcile-dialog')?.remove();const dialog=document.createElement('dialog');dialog.id='reconcile-dialog';dialog.className='account-dialog ledger-dialog';
-  dialog.innerHTML=`<button class="dialog-close" aria-label="Đóng">×</button><h2>Xác nhận đối chiếu cuối tháng</h2><p>${dateLabel(date)}</p><div class="reconciliation-differences"><p>Ngân hàng theo sổ: <strong>${money(record.expectedBank)}</strong></p><p>Ngân hàng thực tế: <strong>${money(record.bank)}</strong></p><p>Chênh lệch ngân hàng: <strong data-delta="bank">${money(record.deltaBank)}</strong></p><p>Tiền mặt theo sổ: <strong>${money(record.expectedCash)}</strong></p><p>Tiền mặt thực tế: <strong>${money(record.cash)}</strong></p><p>Chênh lệch tiền mặt: <strong data-delta="cash">${money(record.deltaCash)}</strong></p><p>Tổng chênh lệch: <strong data-delta="total">${money(record.deltaBank+record.deltaCash)}</strong></p></div><p>Ghi chú chênh lệch sẽ được thêm vào ngày cuối tháng. Số dư thực tế được chuyển sang tháng mới; không sửa hoặc tạo thêm khoản chi.</p><button class="account-submit confirm-reconciliation">Xác nhận số dư thực tế</button><p role="status" aria-live="polite"></p>`;
+  dialog.innerHTML=`<button class="dialog-close" aria-label="Đóng">×</button><h2>${manual?'Xác nhận cập nhật số dư':'Xác nhận đối chiếu cuối tháng'}</h2><p>${dateLabel(date)}</p><div class="reconciliation-differences"><p>Ngân hàng theo sổ: <strong data-money-kind="bank">${money(record.expectedBank)}</strong></p><p>Ngân hàng thực tế: <strong data-money-kind="bank">${money(record.bank)}</strong></p><p>Chênh lệch ngân hàng: <strong data-money-kind="bank" data-delta="bank">${money(record.deltaBank)}</strong></p><p>Tiền mặt theo sổ: <strong data-money-kind="cash">${money(record.expectedCash)}</strong></p><p>Tiền mặt thực tế: <strong data-money-kind="cash">${money(record.cash)}</strong></p><p>Chênh lệch tiền mặt: <strong data-money-kind="cash" data-delta="cash">${money(record.deltaCash)}</strong></p><p>Tổng chênh lệch: <strong data-delta="total">${money(record.deltaBank+record.deltaCash)}</strong></p></div><p>Ghi chú chênh lệch được lưu vào ngày đã chọn cùng lịch sử. Số dư thực tế áp dụng từ cuối ngày đó; không sửa hoặc tạo thêm khoản chi.</p><button class="account-submit confirm-reconciliation">Xác nhận số dư thực tế</button><p role="status" aria-live="polite"></p>`;
   document.body.append(dialog);dialog.showModal();let busy=false,done=false;
   dialog.querySelector('.dialog-close').onclick=()=>{if(!busy)dialog.close();};dialog.addEventListener('close',()=>dialog.remove());dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   dialog.querySelector('.confirm-reconciliation').onclick=async()=>{
@@ -66,9 +66,42 @@ export function showMonthReconciliation(context,date,actual) {
     try{
       if(!context.canEdit()||context.getUserId()!==user||JSON.stringify(context.getData())!==snapshot)throw Error('Dữ liệu đã thay đổi. Đóng và mở lại để kiểm tra.');
       busy=true;dialog.querySelectorAll('button').forEach(button=>button.disabled=true);
-      context.onChange(draft);await context.commit();
+      if(manual){
+        if(today()!==record.confirmedOn)throw Error('Ngày đã thay đổi. Đóng và mở lại để kiểm tra.');
+        await context.commitConfirmed(draft);
+      }else{context.onChange(draft);await context.commit();}
       if(context.getUserId()!==user){dialog.close();return;}
-      done=true;dialog.querySelector('h2').textContent=t('Đã ghi nhận đối chiếu');status.textContent=t(context.getStatus()==='ready'?'Số dư tháng mới đã cập nhật. Ghi chú chênh lệch được lưu cùng lịch sử.':'Bản nháp đối chiếu đã được giữ trên máy. Kiểm tra trạng thái đồng bộ.');dialog.querySelector('.confirm-reconciliation').textContent=t('Đóng');
+      done=true;dialog.querySelector('h2').textContent=t('Đã ghi nhận đối chiếu');status.textContent=t(context.getStatus()==='ready'?'Số dư đã cập nhật. Ghi chú chênh lệch được lưu cùng lịch sử.':'Bản nháp đối chiếu đã được giữ trên máy. Kiểm tra trạng thái đồng bộ.');dialog.querySelector('.confirm-reconciliation').textContent=t('Đóng');
     }catch(error){status.textContent=error.message;}finally{busy=false;dialog.querySelectorAll('button').forEach(button=>button.disabled=false);}
   };
+}
+
+// Ordinary-day corrections share the account document and reconciliation ledger.
+// Opening/canceling either dialog does not write data or reserve a quota slot.
+export function showBalanceRequest(context,date) {
+  if(!context.canEdit())return;
+  if(date===monthEnd(date.slice(0,7))&&context.getData().accounts){
+    showBalanceNotice(context,date,true);return;
+  }
+  showBalanceNotice(context,date,false);
+}
+function showBalanceNotice(context,date,closing) {
+  document.querySelector('#ledger-dialog')?.remove();
+  const user=context.getUserId(), dialog=document.createElement('dialog');dialog.id='ledger-dialog';dialog.className='account-dialog ledger-dialog';
+  const used=balanceUpdateCount(context.getData().accounts,today().slice(0,7));
+  dialog.innerHTML=`<button class="dialog-close" aria-label="Đóng">×</button><h2>Thiết lập số dư</h2><p>${closing?'Dùng Đối chiếu cuối tháng trên trang để cập nhật số dư, không tính lượt.':'Thiết lập số dư trực tiếp chưa khả dụng ở ngày thường.'}</p>${closing?'':`<p>Đã dùng ${used}/3 lượt cập nhật thành công trong tháng hiện tại. Hủy hoặc lưu lỗi không tính lượt.</p><button class="account-submit" data-request-balance ${used>=3||date>today()?'disabled':''}>Yêu cầu thêm</button>${date>today()?'<p>Không thể cập nhật số dư cho ngày tương lai.</p>':''}`}`;
+  document.body.append(dialog);dialog.showModal();dialog.querySelector('.dialog-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());
+  dialog.querySelector('[data-request-balance]')?.addEventListener('click',()=>{
+    if(!context.canEdit()||context.getUserId()!==user)return;
+    if(balanceUpdateCount(context.getData().accounts,today().slice(0,7))>=3)return;
+    if(!context.getData().accounts){dialog.close();showAccountLedger(context);return;}
+    const b=accountBalances(context.getData(),date);if(!b)return;
+    dialog.innerHTML=`<button class="dialog-close" aria-label="Đóng">×</button><h2>Yêu cầu cập nhật số dư</h2><p>Số dư thực tế cuối ngày ${dateLabel(date)}. Giữ nguyên hạn mức và dư nợ thẻ.</p><form><label>Ngân hàng thực tế<input name="bank" data-money-kind="bank" data-money inputmode="decimal" required value="${formatAmount(b.bank)}"></label><label>Tiền mặt thực tế<input name="cash" data-money-kind="cash" data-money inputmode="decimal" required value="${formatAmount(b.cash)}"></label><button class="account-submit">Kiểm tra chênh lệch</button></form><p role="status"></p>`;
+    dialog.querySelector('.dialog-close').onclick=()=>dialog.close();
+    dialog.querySelector('form').onsubmit=event=>{
+      event.preventDefault();
+      if(!context.canEdit()||context.getUserId()!==user)return;
+      try{showMonthReconciliation(context,date,{bank:event.target.elements.bank.value,cash:event.target.elements.cash.value},true);dialog.close();}catch(error){dialog.querySelector('[role=status]').textContent=error.message;}
+    };
+  });
 }

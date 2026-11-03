@@ -113,3 +113,26 @@ html[data-theme=dark] .account-balances article{background:#30263f;border-color:
 .account-balances{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.account-balances .assets-total{background:#eaf7f0;border-color:#bfdece}.assets-total strong{color:#276344}.month-closing{margin:0 20px 20px;padding:18px;border:1px solid #d8c9ec;border-radius:12px;background:#f8f4ff}.month-closing h3{font-size:var(--text-lg)}.month-closing p,.month-closing small{display:block;font-size:var(--text-sm);line-height:1.8;margin:12px 0}.closing-inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}.closing-inputs label{font-size:var(--text-sm)}.closing-inputs input{display:block;width:100%;min-width:0;margin-top:7px;padding:12px;border:1px solid #d8c9ec;border-radius:8px;background:white;font:inherit}.reconciliation-history{padding:0 20px 20px;font-size:var(--text-sm)}.reconciliation-history p{line-height:1.8;padding:12px 0;border-bottom:1px solid #e1d8ed;overflow-wrap:anywhere}.reconciliation-differences strong{overflow-wrap:anywhere}
 html[data-theme=dark] .account-balances .assets-total{background:#244537;border-color:#4a7a61}html[data-theme=dark] .assets-total strong{color:#a9e9c6}html[data-theme=dark] .month-closing{background:#2b223a;border-color:#605071}html[data-theme=dark] .reconciliation-history{color:#e2d8ef}
 @media(max-width:640px){.account-balances{grid-template-columns:1fr}.month-closing{margin:0 16px 16px;padding:14px}.closing-inputs{grid-template-columns:1fr}.reconciliation-history{padding:0 16px 16px}}
+
+/* Shared transaction palette; combined totals keep their neutral text color. */
+:root{--money-payment:#b42335;--money-income:#207044;--money-bank:#175eae;--money-cash:#a94c08;--money-card:#7739ad}
+html[data-theme=dark]{--money-payment:#ff9ca9;--money-income:#8be0ad;--money-bank:#8dc6ff;--money-cash:#ffc08b;--money-card:#d5acff}
+[data-money-kind=payment]{--money-color:var(--money-payment)}
+[data-money-kind=income]{--money-color:var(--money-income)}
+[data-money-kind=bank]{--money-color:var(--money-bank)}
+[data-money-kind=cash]{--money-color:var(--money-cash)}
+[data-money-kind=card]{--money-color:var(--money-card)}
+[data-money-kind]:not([data-money-kind=""]){color:var(--money-color)!important}
+.bar-pair i[data-money-kind]{background:var(--money-color)!important}
+.calendar-days{grid-auto-rows:minmax(90px,auto)}
+.calendar-day{min-height:90px;height:auto}
+.calendar-day small{max-width:100%;overflow-wrap:anywhere;line-height:1.4}
+.period-bars{height:auto;min-height:190px;align-items:stretch;gap:12px;flex-wrap:wrap}
+.period-bars .bar-column{flex:1 1 80px;min-width:0;justify-content:flex-end}
+.period-bars .bar-pair{height:110px;flex:none}
+.period-bars small{white-space:normal;text-align:center}
+
+.category-chart i[data-money-kind]{background:linear-gradient(to right,var(--money-color) var(--share),var(--border) var(--share))}
+.period-bars{grid-template-columns:repeat(3,minmax(0,1fr))}
+.money-legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px;font-size:var(--text-xs)}
+@media(max-width:640px){.period-bars{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-days{grid-auto-rows:minmax(108px,auto)}}

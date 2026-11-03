@@ -125,3 +125,22 @@ test('corrupt account caches stay intact and do not echo private fragments into 
  const {sync,store}=setup(t);const key='lich-cloud:example.supabase.co:user-a';store.setItem(key,'SECRET_FINANCIAL_NOTE invalid json');
  await sync.open();assert.equal(sync.user,null);assert.equal(sync.message.includes('SECRET_FINANCIAL_NOTE'),false);assert.equal(store.getItem(key),'SECRET_FINANCIAL_NOTE invalid json');
 });
+
+test('confirmed snapshots only enter account data/cache after successful optimistic save',async t=>{
+ let fail=true;const {sync,store,client}=setup(t,{save:async()=>{if(fail)throw new CloudError('offline','NETWORK');return {revision:2};}});
+ await sync.open();const before=structuredClone(sync.data),next=doc(123);
+ await assert.rejects(sync.commitConfirmed(next));assert.deepEqual(sync.data,before);assert.deepEqual(JSON.parse(store.getItem(sync.cacheKey)).data,before);assert.equal(sync.queued,null);
+ fail=false;await sync.commitConfirmed(next);assert.deepEqual(sync.data,next);assert.equal(sync.status,'ready');
+ assert.deepEqual(JSON.parse(store.getItem(sync.cacheKey)).data,next);
+ client.save=async()=>{throw new CloudError('stale revision','40001');};await assert.rejects(sync.commitConfirmed(doc(456)));assert.equal(sync.status,'conflict');assert.deepEqual(sync.data,next);
+});
+
+test('concurrent confirmed updates keep optimistic conflicts and account caches isolated',async t=>{
+ let remote=doc(0),revision=1;
+ const api={load:async()=>({data:remote,revision}),save:async(next,expected)=>{if(expected!==revision)throw new CloudError('conflict','40001');remote=structuredClone(next);return {revision:++revision};}};
+ const first=setup(t,api),second=setup(t,api);await first.sync.open();await second.sync.open();
+ await first.sync.commitConfirmed(doc(3));await assert.rejects(second.sync.commitConfirmed(doc(4)));assert.equal(second.sync.status,'conflict');assert.equal(remote.goals['2026'],3);
+ second.client.user=async()=>({id:'user-b',email:'b@example.com'});second.client.load=async()=>null;
+ await second.sync.logout();await second.sync.open();assert.equal(second.sync.data.goals['2026'],undefined);assert.equal(second.sync.cacheKey,'lich-cloud:example.supabase.co:user-b');
+ assert.equal(JSON.parse(first.store.getItem(first.sync.cacheKey)).data.goals['2026'],3);
+});

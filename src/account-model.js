@@ -3,6 +3,7 @@ export const accountSource = item => item.paymentMethod === 'card' ? 'card' : it
 export const isInternalMovement = item => ['withdraw','deposit'].includes(item.movement);
 export const monthEnd = month => { if(!validMonth(month))throw Error('Tháng không hợp lệ.'); const [year,m]=month.split('-').map(Number); return `${month}-${String(new Date(Date.UTC(year,m,0)).getUTCDate()).padStart(2,'0')}`; };
 const signedMoney=value=>{const n=Number(value);if(!Number.isFinite(n)||roundCard(n)!==n)throw Error('Số tiền đối chiếu không hợp lệ.');return n;};
+export const moneyKind = item => item.cardPaymentMonth ? 'payment' : accountSource(item);
 export const isCardPayment = item => Boolean(item.cardPaymentMonth);
 export function normalizeAccounts(raw) {
   if (!raw || !cardDate(raw.openedOn) || !Array.isArray(raw.transfers)) throw new Error('Sổ nguồn tiền không hợp lệ.');
@@ -15,12 +16,14 @@ export function normalizeAccounts(raw) {
     if(!Array.isArray(raw.reconciliations))throw Error('Lịch sử đối chiếu không hợp lệ.');
     result.reconciliations=[];
     for(const row of raw.reconciliations){
-      if(!row||!String(row.id||'').trim()||result.reconciliations.some(r=>r.id===String(row.id))||!cardDate(row.date)||row.date!==monthEnd(row.date.slice(0,7))||row.date<result.openedOn)throw Error('Đối chiếu cuối tháng không hợp lệ.');
+      if(!row||!String(row.id||'').trim()||result.reconciliations.some(r=>r.id===String(row.id))||!cardDate(row.date)||(row.kind!=='manual'&&row.date!==monthEnd(row.date.slice(0,7)))||row.date<result.openedOn)throw Error('Đối chiếu cuối tháng không hợp lệ.');
       const r={id:String(row.id),date:row.date,bank:cardMoney(row.bank),cash:cardMoney(row.cash),expectedBank:signedMoney(row.expectedBank),expectedCash:signedMoney(row.expectedCash),deltaBank:signedMoney(row.deltaBank),deltaCash:signedMoney(row.deltaCash),note:String(row.note||'').slice(0,20000)};
       if(r.deltaBank!==roundCard(r.bank-r.expectedBank)||r.deltaCash!==roundCard(r.cash-r.expectedCash))throw Error('Chênh lệch đối chiếu không khớp.');
+      if(row.kind!==undefined){if(row.kind!=='manual'||!cardDate(row.confirmedOn)||row.date>row.confirmedOn||row.date===monthEnd(row.date.slice(0,7)))throw Error('Cập nhật số dư không hợp lệ.');r.kind='manual';r.confirmedOn=row.confirmedOn;}
       result.reconciliations.push(r);
     }
   }
+  for(const month of new Set((result.reconciliations||[]).filter(r=>r.kind==='manual').map(r=>r.confirmedOn.slice(0,7))))if(balanceUpdateCount(result,month)>3)throw Error('Đã dùng hết 3 lượt cập nhật số dư trong tháng.');
   return result;
 }
 export function moneyOut(data, prefix) {
@@ -58,14 +61,17 @@ export function accountBalances(data, through, {ignoreReconciliationOn} = {}) {
 export function transferRows(data,prefix='') {
   return (data.accounts?.transfers||[]).filter(t=>t.date.startsWith(prefix)).map(t=>({id:`legacy-transfer-${t.id}`,legacyTransferId:t.id,date:t.date,title:t.from==='bank'?'Rút tiền mặt':'Nạp tiền vào ngân hàng',category:'Chuyển tiền nội bộ',movement:t.from==='bank'?'withdraw':'deposit',paymentMethod:t.from,status:'paid',amount:t.amount}));
 }
-export function reconcileMonth(data,date,actual,{id,currency='JPY',today}={}) {
-  if(!cardDate(date)||date!==monthEnd(date.slice(0,7))||(today&&date>today))throw Error('Chỉ đối chiếu khi đã đến ngày cuối tháng.');
+export const balanceUpdateCount=(accounts,month)=>(accounts?.reconciliations||[]).filter(r=>r.kind==='manual'&&r.confirmedOn.startsWith(month+'-')).length;
+export function reconcileMonth(data,date,actual,{id,currency='JPY',today,manual=false}={}) {
+  if(!cardDate(date)||(!manual&&date!==monthEnd(date.slice(0,7)))||(manual&&(!cardDate(today)||date===monthEnd(date.slice(0,7))))||(today&&date>today))throw Error('Chỉ đối chiếu khi đã đến ngày cuối tháng.');
+  if(manual&&balanceUpdateCount(data.accounts,today.slice(0,7))>=3)throw Error('Đã dùng hết 3 lượt cập nhật số dư trong tháng.');
   if(!id||(data.accounts?.reconciliations||[]).some(r=>r.id===id))throw Error('Đối chiếu đã tồn tại.');
   const expected=accountBalances(data,date,{ignoreReconciliationOn:date});if(!expected)throw Error('Cần thiết lập số dư đầu ngày trước khi đối chiếu.');
   const row={id,date,bank:cardMoney(actual.bank),cash:cardMoney(actual.cash),expectedBank:expected.bank,expectedCash:expected.cash};
+  if(manual){row.kind='manual';row.confirmedOn=today;}
   row.deltaBank=roundCard(row.bank-row.expectedBank);row.deltaCash=roundCard(row.cash-row.expectedCash);
   const fmt=n=>new Intl.NumberFormat('en-US',{maximumFractionDigits:3}).format(n);
-  row.note=`[Đối chiếu ${date} · ${currency}] Ngân hàng: sổ ${fmt(row.expectedBank)}, thực tế ${fmt(row.bank)}, chênh lệch ${fmt(row.deltaBank)}. Tiền mặt: sổ ${fmt(row.expectedCash)}, thực tế ${fmt(row.cash)}, chênh lệch ${fmt(row.deltaCash)}. Tổng chênh lệch ${fmt(roundCard(row.deltaBank+row.deltaCash))}. Số dư thực tế được dùng cho tháng mới.`;
+  row.note=`[Đối chiếu ${date} · ${currency}] Ngân hàng: sổ ${fmt(row.expectedBank)}, thực tế ${fmt(row.bank)}, chênh lệch ${fmt(row.deltaBank)}. Tiền mặt: sổ ${fmt(row.expectedCash)}, thực tế ${fmt(row.cash)}, chênh lệch ${fmt(row.deltaCash)}. Tổng chênh lệch ${fmt(roundCard(row.deltaBank+row.deltaCash))}. Số dư thực tế được dùng từ cuối ngày đối chiếu.`;
   const note=[data.days[date]?.note,row.note].filter(Boolean).join('\n');if(note.length>20000)throw Error('Ghi chú ngày đã đầy. Hãy rút ngắn ghi chú trước khi xác nhận.');
   const accounts=normalizeAccounts({...data.accounts,reconciliations:[...(data.accounts.reconciliations||[]),row]});
   data.accounts=accounts;const entry=data.days[date] ||= {note:'',items:[]};entry.note=note;

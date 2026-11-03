@@ -29,13 +29,13 @@ export const CATEGORIES = ['Ăn uống', 'Nhà ở', 'Đi lại', 'Mua sắm', '
 // Records created before status was introduced remain paid, preserving old totals.
 export const categoryOf = item => item.category || (item.debtPaymentId ? 'Trả nợ' : 'Khác');
 export const expenseStatus = item => item.status === 'planned' ? 'planned' : 'paid';
-export const dayTotal = (day, status = 'all') => roundMoney((day?.items || []).filter(item => !isCardPayment(item) && !isInternalMovement(item) && (status === 'all' || expenseStatus(item) === status)).reduce((sum, item) => sum + amount(item.amount), 0));
+export const dayTotal = (day, status = 'all') => roundMoney((day?.items || []).filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && (status === 'all' || expenseStatus(item) === status)).reduce((sum, item) => sum + amount(item.amount), 0));
 export function expenseRows(data, year, month = null, { query = '', category = '', status = '' } = {}) {
   const prefix = month === null ? `${year}-` : `${monthKey(year, month)}-`;
   const fold = value => String(value).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
   return Object.entries(data.days).filter(([key]) => key.startsWith(prefix)).sort(([a], [b]) => b.localeCompare(a))
     .flatMap(([date, day]) => day.items.map(item => ({ ...item, date }))).concat(transferRows(data,prefix)).sort((a,b)=>b.date.localeCompare(a.date))
-    .filter(item => (!query || fold(`${item.title} ${categoryOf(item)}`).includes(fold(query))) && (!category || categoryOf(item) === category) && (!status || expenseStatus(item) === status));
+    .filter(item => !item.cardFeeMonth && (!query || fold(`${item.title} ${categoryOf(item)}`).includes(fold(query))) && (!category || categoryOf(item) === category) && (!status || expenseStatus(item) === status));
 }
 export function monthSummary(data, year, month) {
   const prefix = monthKey(year, month);
@@ -45,8 +45,8 @@ export function monthSummary(data, year, month) {
   const income = data.incomes[prefix] || {};
   const salary = amount(income.salary), bonus = amount(income.bonus);
   const savings = amount(data.savings?.[prefix]);
-  const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
-  const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
+  const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
+  const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
   return { salary, bonus, expense, planned, savings, balance: roundMoney(salary + bonus - expense), count, plannedCount };
 }
 export function yearSummary(data, year) {
