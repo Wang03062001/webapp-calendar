@@ -1,3 +1,4 @@
+import { financeView, isCreditItem, creditSnapshot } from './credit-access.js';
 import { accountsPanel, showAccountLedger, showMonthReconciliation, showBalanceRequest, sourceName } from './accounts-ui.js';
 import { accountSource, moneyKind, moneyOut, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
 import { setCurrencies, currencyLabel, readDisplay, saveDisplay, installMoneyFormatting } from './preferences.js';
@@ -37,6 +38,7 @@ let data = emptyData(), savedTimer, debtFilter = 'all', expenseQuery = '', expen
 const newExpense = () => ({ id: crypto.randomUUID(), title: '', amount: 0, status: 'planned', category: 'Khác', paymentMethod: 'bank' });
 let creditRole = { userId: null, allowed: false, checked: false, request: 0, pending: null };
 const root = document.querySelector('#app');
+let creditWritePending = false;
 let accountProfile = null, profileUserId = null, currencyPromptUser = null;
 let display = readDisplay();
 document.documentElement.dataset.theme = display.theme;
@@ -53,10 +55,11 @@ function notify(message) {
 }
 function persist() {
   if (!canEdit()) { notify('Hãy đăng nhập trước khi nhập dữ liệu.'); return false; }
-  try { cloud.save(data); return true; }
-  catch { notify('Không thể lưu trên trình duyệt. Hãy xuất dữ liệu để tránh mất thay đổi.'); return false; }
+  try { if(!canUseCredit()&&creditSnapshot(data)!==creditSnapshot(cloud.data))throw Error('Chức năng Thẻ & sao kê chỉ dành cho admin.'); const creditChanged=creditSnapshot(data)!==creditSnapshot(cloud.data); cloud.save(data); creditWritePending ||= creditChanged; return true; }
+  catch(error) { notify(error.message||'Không thể lưu trên trình duyệt. Hãy xuất dữ liệu để tránh mất thay đổi.'); return false; }
 }
 function canEdit() { return Boolean(cloud.user) && cloud.status !== 'loading'; }
+const visibleData = () => financeView(data, canUseCredit());
 function canUseCredit() { return canEdit() && creditRole.userId === cloud.user.id && creditRole.allowed; }
 function resetCreditRole(userId = null) { creditRole = { userId, allowed: false, checked: false, request: creditRole.request + 1, pending: null }; }
 function syncCreditRole() {
@@ -77,7 +80,7 @@ async function refreshCreditRole(force = false) {
     if (cloud.user?.id !== userId || creditRole.request !== request) return false;
     const changed = creditRole.allowed !== allowed;
     creditRole.allowed = allowed; creditRole.checked = true;
-    if (!allowed) { document.querySelector('#credit-dialog')?.close(); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
+    if (!allowed) { document.querySelectorAll('#credit-dialog,#debt-dialog,#reconcile-dialog,#ledger-dialog').forEach(d=>d.close()); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
     if (changed) render();
     return allowed;
   })();
@@ -89,7 +92,9 @@ async function saveChanges() {
   if (!canEdit()) return;
   try {
     for (const input of root.querySelectorAll('[data-money], input[type=month], input[type=date]')) { if (!input.reportValidity()) return; if (input.hasAttribute('data-money')) formatMoneyInput(input); }
+    if(creditWritePending&&!await refreshCreditRole(true)){notify('Chức năng Thẻ & sao kê chỉ dành cho admin.');return;}
     await cloud.commit();
+    if(cloud.status==='ready')creditWritePending=false;
     if (cloud.status === 'ready') notify('Đã lưu thay đổi.');
     else if (['error', 'conflict'].includes(cloud.status)) notify(cloud.message);
   } catch (error) { notify(error.message); }
@@ -98,7 +103,7 @@ function render() {
   setCurrencies(data.currencies);
   if (view === 'credit' && !canUseCredit()) view = 'calendar';
   if (!years().includes(year)) { year = years()[0]; day = Math.min(day, daysInMonth(year, month)); }
-  const totals = view === 'calendar' ? monthSummary(data, year, month) : yearSummary(data, year);
+  const totals = view === 'calendar' ? monthSummary(visibleData(), year, month) : yearSummary(visibleData(), year);
   const pageTitle = ({ calendar: 'Thu chi & kỳ lương', year: 'Tổng kết năm', debts: 'Khoản vay khác', credit: 'Thẻ & sao kê' })[view];
   root.innerHTML = `
     <aside class="sidebar">
@@ -119,8 +124,8 @@ function render() {
       <div id="cloud-notice" aria-live="polite"></div>
       <div class="page">
         <div class="page-heading"><h2 id="summary-period">${view === 'calendar' ? `Tổng kết tháng ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'year' ? `Tổng kết năm ${year}` : view === 'credit' ? `Thẻ & sao kê · ${String(month + 1).padStart(2, '0')} / ${year}` : 'Khoản vay khác · __CASH__'}</h2>${view === 'debts' ? '' : `<div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div>`}</div>
-        ${view === 'debts' ? debtsPanel(data, debtFilter) : view === 'credit' ? `${monthTabs()}${creditPanel(data, monthKey(year, month))}` : `
-          ${view === 'calendar' ? `${monthTabs()}<div id=accounts-overview>${accountsPanel(data,selectedKey(),canUseCredit())}</div>${canUseCredit() ? `<div id="cashflow-overview">${salaryTimeline(data, monthKey(year, month))}</div>` : ''}` : ''}
+        ${view === 'debts' ? debtsPanel(visibleData(), debtFilter) : view === 'credit' ? `${monthTabs()}${creditPanel(data, monthKey(year, month))}` : `
+          ${view === 'calendar' ? `${monthTabs()}<div id=accounts-overview>${accountsPanel(visibleData(),selectedKey(),canUseCredit())}</div>${canUseCredit() ? `<div id="cashflow-overview">${salaryTimeline(data, monthKey(year, month))}</div>` : ''}` : ''}
           <div class="stats">${statsContent(totals)}</div>
           ${view === 'calendar' ? `<div class="editor-actions">${canUseCredit() ? '<button class="button secondary" data-view="credit">Thẻ & sao kê</button>' : ''}<button class="button save-button" data-action="quick-expense">${icon('plus')} Thêm khoản chi</button><button class="button secondary" data-action="quick-income">Thu nhập</button><button class="button secondary" data-action="quick-savings">Tiết kiệm</button><button class="button secondary" data-view="debts">Nợ phải trả</button></div>${calendarView()}${expenseBrowser()}<div class="finance-panels">${incomePanel()}${savingsPanel()}</div>` : `${yearView()}${savingsPanel()}`}
           <details class="analysis-panel card" ${analysisExpanded ? 'open' : ''}><summary>Biểu đồ phân tích · ${view === 'year' ? year : `tháng ${month + 1} / ${year}`}</summary><div class="dashboard-charts" id="dashboard-charts">${dashboardCharts()}</div></details>`}
@@ -133,22 +138,22 @@ function render() {
 }
 function statsContent(totals) {
   return stat('wallet', 'Thu nhập', totals.salary + totals.bonus, 'Lương + thưởng · __CASH__', 'purple')
-    + stat('down', 'Chi tiêu phát sinh', totals.expense, `${totals.count} khoản · gồm chi bằng thẻ`, 'orange')
+    + stat('down', 'Chi tiêu phát sinh', totals.expense, `${totals.count} khoản${canUseCredit()?' · gồm chi bằng thẻ':''}`, 'orange')
     + stat('note', 'Dự kiến chi', totals.planned, `${totals.plannedCount} khoản chưa chi · __CASH__`, 'pink')
     + stat('chart', 'Chênh lệch thu − chi', totals.balance, 'Thu nhập − đã chi; chưa tính tiền đầu kỳ', 'blue');
 }
 function dashboardCharts() {
-  const total = view === 'year' ? yearSummary(data, year) : monthSummary(data, year, month);
-  const rows=expenseRows(data,year,view==='year'?null:month,{status:'paid'});
-  const labels={income:'Lương & thưởng',bank:'Chi từ ngân hàng',cash:'Tiền mặt',card:'Mua bằng thẻ tín dụng',payment:'Thanh toán thẻ tín dụng',planned:'Dự kiến'};
-  const values={income:total.salary+total.bonus,bank:0,cash:0,card:0,payment:0,planned:total.planned};
+  const total = view === 'year' ? yearSummary(visibleData(), year) : monthSummary(visibleData(), year, month);
+  const rows=expenseRows(visibleData(),year,view==='year'?null:month,{status:'paid'});
+  const labels={income:'Lương & thưởng',bank:'Chi từ ngân hàng',cash:'Tiền mặt',...(canUseCredit()?{card:'Mua bằng thẻ tín dụng',payment:'Thanh toán thẻ tín dụng'}:{}),planned:'Dự kiến'};
+  const values={income:total.salary+total.bonus,bank:0,cash:0,...(canUseCredit()?{card:0,payment:0}:{}),planned:total.planned};
   for(const item of rows)if(!isInternalMovement(item))values[moneyKind(item)]+=item.amount;
   const max=Math.max(1,...Object.values(values)), categories=new Map();
   for(const item of rows.filter(item=>!isCardPayment(item)&&!isInternalMovement(item))){
     const kind=moneyKind(item), key=JSON.stringify([categoryOf(item),kind]);
     categories.set(key,(categories.get(key)||0)+item.amount);
   }
-  return `<section class="chart-card"><div class="chart-heading"><h2>Thu nhập & chi tiêu</h2><span class="tag">__CASH__</span></div><p class="account-note">Thanh toán thẻ hiển thị riêng, không cộng lại vào chi phí.</p><div class="bar-chart period-bars">${Object.entries(values).map(([kind,value])=>`<div class="bar-column"><strong data-money-kind="${kind==='planned'?'':kind}">${money(value)}</strong><span class="bar-pair"><i class="${kind==='planned'?'planned-bar':''}" data-money-kind="${kind==='planned'?'':kind}" style="height:${value/max*100}%"></i></span><small>${labels[kind]}</small></div>`).join('')}</div></section>
+  return `<section class="chart-card"><div class="chart-heading"><h2>Thu nhập & chi tiêu</h2><span class="tag">__CASH__</span></div>${canUseCredit()?'<p class="account-note">Thanh toán thẻ hiển thị riêng, không cộng lại vào chi phí.</p>':''}<div class="bar-chart period-bars">${Object.entries(values).map(([kind,value])=>`<div class="bar-column"><strong data-money-kind="${kind==='planned'?'':kind}">${money(value)}</strong><span class="bar-pair"><i class="${kind==='planned'?'planned-bar':''}" data-money-kind="${kind==='planned'?'':kind}" style="height:${value/max*100}%"></i></span><small>${labels[kind]}</small></div>`).join('')}</div></section>
     <section class="chart-card"><div class="chart-heading"><h2>Đã chi theo danh mục</h2><span class="tag">__CASH__</span></div><div class="category-chart">${categories.size?[...categories].sort((a,b)=>b[1]-a[1]).map(([key,value])=>{const [label,kind]=JSON.parse(key);return `<div><span>${escape(label)} · ${labels[kind]}</span><strong data-money-kind="${kind}">${money(value)}</strong><i data-money-kind="${kind}" style="--share:${total.expense?value/total.expense*100:0}%"></i></div>`;}).join(''):'<p>Chưa có khoản đã chi trong kỳ này.</p>'}</div></section>`;
 }
 function focusEditor(selector) {
@@ -178,8 +183,8 @@ function savingsPanel() {
     <p class="savings-hint">Quỹ tiết kiệm __SAVINGS__ được theo dõi riêng với thu chi __CASH__.</p></section>`;
 }
 function savingsProgressContent() {
-  if (view === 'calendar') return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong tháng</span><strong>${dong(monthSummary(data, year, month).savings)}</strong></div>`;
-  const progress = savingsProgress(data, year);
+  if (view === 'calendar') return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong tháng</span><strong>${dong(monthSummary(visibleData(), year, month).savings)}</strong></div>`;
+  const progress = savingsProgress(visibleData(), year);
   const percent = Math.min(100, progress.percent);
   return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong năm</span><strong id="year-savings-total">${dong(progress.saved)}</strong></div>
     <div class="savings-progress-track" role="progressbar" aria-label="Tiến độ tiết kiệm năm ${year}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-valuetext="${progress.goal ? `${progress.percent}% mục tiêu, đã tiết kiệm ${dong(progress.saved)}` : 'Chưa đặt mục tiêu'}"><span style="width:${percent}%"></span></div>
@@ -194,11 +199,11 @@ function calendarView() {
 function calendarPanel() {
   const start = (new Date(year, month, 1).getDay() + 6) % 7;
   const length = daysInMonth(year, month);
-  const summary = monthSummary(data, year, month);
+  const summary = monthSummary(visibleData(), year, month);
   return `<section class="card calendar-panel"><div class="card-heading"><div><h2>Tháng ${String(month + 1).padStart(2, '0')} <span class="muted">/ ${year}</span></h2><p>Mỗi ngày một kế hoạch nhỏ</p></div><div class="calendar-controls"><button class="button secondary small" data-action="today">Hôm nay</button><button class="icon-button rotate" data-action="prev" aria-label="Tháng trước" ${year === years()[0] && month === 0 ? 'disabled' : ''}>${icon('arrow')}</button><button class="icon-button" data-action="next" aria-label="Tháng sau" ${year === years().at(-1) && month === 11 ? 'disabled' : ''}>${icon('arrow')}</button></div></div>
     <div class="weekdays">${['THỨ 2', 'THỨ 3', 'THỨ 4', 'THỨ 5', 'THỨ 6', 'THỨ 7', 'CN'].map(d => `<span>${d}</span>`).join('')}</div>
     <div class="calendar-days">${Array.from({ length: start }, () => '<span class="empty-day" aria-hidden="true"></span>').join('')}${Array.from({ length }, (_, i) => {
-      const n = i + 1, entry = data.days[dayKey(year, month, n)], total = dayTotal(entry, 'paid');
+      const n = i + 1, entry = visibleData().days[dayKey(year, month, n)], total = dayTotal(entry, 'paid');
       const today = n === now.getDate() && month === now.getMonth() && year === now.getFullYear();
       const amounts=new Map(), labels={income:'Lương & thưởng',bank:'Chi từ ngân hàng',cash:'Tiền mặt',card:'Mua bằng thẻ tín dụng',payment:'Thanh toán thẻ tín dụng'};
       for(const item of entry?.items||[])if(!item.cardFeeMonth&&!isInternalMovement(item)){
@@ -208,11 +213,11 @@ function calendarPanel() {
       const income=data.incomes[monthKey(year,month)];
       if(income&&(income.receivedOn||dayKey(year,month,15))===dayKey(year,month,n))amounts.set('income',amount(income.salary)+amount(income.bonus));
       return `<button class="calendar-day ${n === day ? 'selected' : ''} ${today ? 'today' : ''} ${(i + start) % 7 > 4 ? 'weekend' : ''}" data-day="${n}" aria-pressed="${n === day}" aria-label="Ngày ${n} tháng ${month + 1}, ${money(total)}"><span class="day-number">${String(n).padStart(2, '0')}</span>${[...amounts].filter(([,value])=>value).map(([key,value])=>{const [kind,planned]=key.split(':');return `<small data-money-kind="${kind}" title="${labels[kind]}${planned?' · Dự kiến':''}: ${money(value)}">${planned?'DK ':kind==='income'?'+ ':kind==='payment'?'↗ ':''}${formatAmount(value)}</small>`;}).join('')}${entry?.note?'<i class="note-indicator" title="Có ghi chú"></i>':''}</button>`;
-    }).join('')}</div><div class="money-legend"><span data-money-kind="payment">Thanh toán thẻ tín dụng</span><span data-money-kind="income">Lương & thưởng</span><span data-money-kind="bank">Chi từ ngân hàng</span><span data-money-kind="cash">Tiền mặt</span><span data-money-kind="card">Mua bằng thẻ tín dụng</span></div><div class="calendar-bottom"><span><i></i> Ngày đang chọn <b class="today-legend"></b> Hôm nay</span><strong>Đã chi tháng <span>${money(summary.expense)}</span></strong></div></section>`;
+    }).join('')}</div><div class="money-legend">${canUseCredit()?'<span data-money-kind="payment">Thanh toán thẻ tín dụng</span>':''}<span data-money-kind="income">Lương & thưởng</span><span data-money-kind="bank">Chi từ ngân hàng</span><span data-money-kind="cash">Tiền mặt</span>${canUseCredit()?'<span data-money-kind="card">Mua bằng thẻ tín dụng</span>':''}</div><div class="calendar-bottom"><span><i></i> Ngày đang chọn <b class="today-legend"></b> Hôm nay</span><strong>Đã chi tháng <span>${money(summary.expense)}</span></strong></div></section>`;
 }
 function incomePanel() {
   const income = data.incomes[monthKey(year, month)] || {};
-  const summary = monthSummary(data, year, month);
+  const summary = monthSummary(visibleData(), year, month);
   return `<section class="card income-panel"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('wallet')}</span><div><h2>Thu nhập tháng ${String(month + 1).padStart(2, '0')}</h2><p>Ghi lại lương và những khoản thưởng của bạn</p></div></div><span class="tag">${year}</span></div>
     <div class="income-fields"><label>Lương thực nhận <span>__CASH__</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0" value="${amount(income.salary) ? formatAmount(income.salary) : ''}" data-money-kind="income" data-income="salary" /></label><label>Thưởng & thu nhập thêm <span>__CASH__</span><input inputmode="decimal" type="text" data-money maxlength="32" placeholder="0" value="${amount(income.bonus) ? formatAmount(income.bonus) : ''}" data-money-kind="income" data-income="bonus" /></label></div>
     <label class="income-note-label">Nơi nhận thu nhập<select data-income="account"><option value="bank" ${income.account!=='cash'?'selected':''}>Tài khoản ngân hàng</option><option value="cash" ${income.account==='cash'?'selected':''}>Tiền mặt</option></select></label><div class="salary-period"><label>Lương của tháng<input type="month" data-income="earnedMonth" value="${income.earnedMonth || shiftMonth(monthKey(year,month),-1)}" /></label><label>Ngày nhận tiền<input type="date" data-income="receivedOn" min="${monthKey(year,month)}-01" max="${dayKey(year,month,daysInMonth(year,month))}" value="${income.receivedOn || dayKey(year,month,15)}" /></label></div>
@@ -220,43 +225,43 @@ function incomePanel() {
     <div class="income-total"><span>Tổng thu nhập tháng</span><strong data-money-kind="income" id="income-total">${money(summary.salary + summary.bonus)}</strong></div></section>`;
 }
 function categoryOptions(value, any = '') {
-  const categories = [...new Set([...CATEGORIES, ...Object.values(data.days).flatMap(entry => entry.items.filter(item=>!item.cardFeeMonth).map(item => categoryOf(item)))])];
+  const categories = [...new Set([...CATEGORIES, ...Object.values(visibleData().days).flatMap(entry => entry.items.filter(item=>!item.cardFeeMonth).map(item => categoryOf(item)))])];
   return `${any ? `<option value="">${any}</option>` : ''}${categories.map(category => `<option value="${escape(category)}" ${category === value ? 'selected' : ''}>${escape(category)}</option>`).join('')}`;
 }
 function dayPanel() {
   const entry = currentDay();
   return `<div class="day-panel-header"><div class="eyebrow">CHI TIÊU TRONG NGÀY</div><h2>${String(day).padStart(2, '0')} <span>/ ${String(month + 1).padStart(2, '0')} / ${year}</span></h2><label class="day-picker-label">Chọn ngày<input id="day-select" aria-label="Chọn ngày nhập chi tiêu" type="date" value="${selectedKey()}" min="${year}-01-01" max="${year}-12-31" /></label></div>
     <div class="expense-heading"><h3>Các khoản chi</h3><span>__CASH__</span></div>
-    <div class="expense-list">${entry.items.map((item, index) => item.cardFeeMonth?'':`<article class="expense-entry" data-item="${index}"><div class="expense-entry-title"><input aria-label="Mục đích chi tiêu ${index + 1}" placeholder="Mục đích chi tiêu" maxlength="500" data-field="title" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? `readonly title="${item.cardPaymentMonth ? 'Thanh toán liên kết sao kê' : item.cardFeeMonth ? 'Phí liên kết sao kê' : 'Khoản chi liên kết trả nợ'}"` : ''} value="${escape(item.title)}" /><button class="delete-button" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? `data-debt-linked disabled title="${item.cardPaymentMonth ? 'Hủy thanh toán trong Thẻ & sao kê' : item.cardFeeMonth ? 'Sửa phí trong Thẻ & sao kê' : 'Hủy lần trả trong Khoản vay khác'}"` : ''} data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></div>
+    <div class="expense-list">${entry.items.map((item, index) => item.cardFeeMonth||!visibleData().days[selectedKey()]?.items.some(i=>i===item)?'':`<article class="expense-entry" data-item="${index}"><div class="expense-entry-title"><input aria-label="Mục đích chi tiêu ${index + 1}" placeholder="Mục đích chi tiêu" maxlength="500" data-field="title" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? `readonly title="${item.cardPaymentMonth ? 'Thanh toán liên kết sao kê' : item.cardFeeMonth ? 'Phí liên kết sao kê' : 'Khoản chi liên kết trả nợ'}"` : ''} value="${escape(item.title)}" /><button class="delete-button" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? `data-debt-linked disabled title="${item.cardPaymentMonth ? 'Hủy thanh toán trong Thẻ & sao kê' : item.cardFeeMonth ? 'Sửa phí trong Thẻ & sao kê' : 'Hủy lần trả trong Khoản vay khác'}"` : ''} data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></div>
       <label>Loại giao dịch<select data-field="movement" ${(item.debtPaymentId||item.cardFeeMonth||item.cardPaymentMonth)?'disabled data-debt-linked':''}><option value="" ${!item.movement?'selected':''}>Chi tiêu</option><option value="withdraw" ${item.movement==='withdraw'?'selected':''}>Rút tiền mặt</option><option value="deposit" ${item.movement==='deposit'?'selected':''}>Nạp tiền vào ngân hàng</option></select></label><label>Số tiền · __CASH__<input aria-label="Số tiền khoản chi ${index + 1}" type="text" data-money data-money-kind="${moneyKind(item)}" maxlength="32" inputmode="decimal" placeholder="0" data-field="amount" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? 'readonly' : ''} value="${item.amount ? formatAmount(item.amount) : ''}" /></label>
       <div class="expense-entry-meta"><label>Danh mục<select aria-label="Danh mục khoản chi ${index + 1}" data-field="category" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? 'data-debt-linked disabled' : ''}>${categoryOptions(categoryOf(item))}</select></label><label>Trạng thái<select aria-label="Trạng thái khoản chi ${index + 1}" data-field="status" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? 'data-debt-linked disabled' : ''}><option value="planned" ${expenseStatus(item) === 'planned' ? 'selected' : ''}>Dự kiến</option><option value="paid" ${expenseStatus(item) === 'paid' ? 'selected' : ''}>Đã chi</option></select></label></div>
-      <div class="expense-entry-meta"><label>Nguồn tiền<select aria-label="Phương thức khoản chi ${index+1}" data-field="paymentMethod" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? 'disabled data-debt-linked' : isInternalMovement(item)?'disabled data-movement-source':''}><option value="bank" ${item.paymentMethod === 'bank' ? 'selected' : ''}>Tài khoản ngân hàng</option><option value="cash" ${!['bank','card'].includes(item.paymentMethod) ? 'selected' : ''}>Tiền mặt</option><option value="card" ${item.paymentMethod === 'card' ? 'selected' : ''}>Thẻ tín dụng</option></select></label>${item.paymentMethod === 'card' ? `<label>Cách trả<select data-field="settlement" aria-label="Cách trả thẻ khoản chi ${index+1}" ${item.cardFeeMonth ? 'disabled data-debt-linked' : ''}><option value="oneoff" ${item.settlement === 'oneoff' ? 'selected' : ''}>Một lần tháng sau · 1回</option><option value="ribo" ${item.settlement === 'ribo' ? 'selected' : ''}>Bổ sung vào リボ</option>${item.cardFeeMonth ? '<option value="fee" selected>Phí sao kê</option>' : ''}</select></label><label>Kỳ sao kê trả tiền<input aria-label="Kỳ sao kê khoản chi ${index+1}" data-field="billingMonth" type="month" required value="${item.billingMonth || shiftMonth(selectedKey().slice(0,7),1)}" ${item.cardFeeMonth ? 'readonly' : ''} /></label>` : ''}</div>
+      <div class="expense-entry-meta"><label>Nguồn tiền<select aria-label="Phương thức khoản chi ${index+1}" data-field="paymentMethod" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? 'disabled data-debt-linked' : isInternalMovement(item)?'disabled data-movement-source':''}><option value="bank" ${item.paymentMethod === 'bank' ? 'selected' : ''}>Tài khoản ngân hàng</option><option value="cash" ${!['bank','card'].includes(item.paymentMethod) ? 'selected' : ''}>Tiền mặt</option>${canUseCredit()?`<option value="card" ${item.paymentMethod === 'card' ? 'selected' : ''}>Thẻ tín dụng</option>`:''}</select></label>${item.paymentMethod === 'card' ? `<label>Cách trả<select data-field="settlement" aria-label="Cách trả thẻ khoản chi ${index+1}" ${item.cardFeeMonth ? 'disabled data-debt-linked' : ''}><option value="oneoff" ${item.settlement === 'oneoff' ? 'selected' : ''}>Một lần tháng sau · 1回</option><option value="ribo" ${item.settlement === 'ribo' ? 'selected' : ''}>Bổ sung vào リボ</option>${item.cardFeeMonth ? '<option value="fee" selected>Phí sao kê</option>' : ''}</select></label><label>Kỳ sao kê trả tiền<input aria-label="Kỳ sao kê khoản chi ${index+1}" data-field="billingMonth" type="month" required value="${item.billingMonth || shiftMonth(selectedKey().slice(0,7),1)}" ${item.cardFeeMonth ? 'readonly' : ''} /></label>` : ''}</div>
       ${isInternalMovement(item)?'<small class=linked-note>Chuyển giữa ngân hàng và tiền mặt; tổng tài sản không đổi.</small>':''}${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) ? `<small class="linked-note">${item.cardPaymentMonth ? 'Thanh toán sao kê · không cộng lại chi phí. Sửa/hủy trong Thẻ & sao kê.' : item.cardFeeMonth ? 'Phí liên kết sao kê · sửa trong Thẻ & sao kê.' : 'Liên kết trả nợ · Sửa/hủy trong Khoản vay khác.'}</small>` : ''}</article>`).join('')}${transferRows(data,selectedKey()).map(item=>`<article class="expense-entry"><strong>${item.title}</strong><p>${sourceName(item.paymentMethod)} → ${sourceName(item.paymentMethod==='bank'?'cash':'bank')}</p><strong data-money-kind="${moneyKind(item)}">${money(item.amount)}</strong><button class="text-button danger" data-remove-transfer="${encodeURIComponent(item.legacyTransferId)}">Xóa</button></article>`).join('')}</div>
     <button class="add-expense" data-action="add">${icon('plus')} Thêm khoản chi</button>
-    <div class="day-total"><span>Chi phí phát sinh</span><strong id="day-total">${money(dayTotal(entry, 'paid'))}</strong></div><div class="account-period"><span>Tiền ra ngân hàng / tiền mặt trong ngày</span><strong id="day-money-out">${money(moneyOut(data,selectedKey()))}</strong></div><div class="planned-total"><span>Dự kiến</span><strong id="day-planned-total">${money(dayTotal(entry, 'planned'))}</strong></div>
+    <div class="day-total"><span>Chi phí phát sinh</span><strong id="day-total">${money(dayTotal(visibleData().days[selectedKey()], 'paid'))}</strong></div><div class="account-period"><span>Tiền ra ngân hàng / tiền mặt trong ngày</span><strong id="day-money-out">${money(moneyOut(visibleData(),selectedKey()))}</strong></div><div class="planned-total"><span>Dự kiến</span><strong id="day-planned-total">${money(dayTotal(visibleData().days[selectedKey()], 'planned'))}</strong></div>
     <div class="note-section"><label for="day-note">${icon('note')} Ghi chú</label><textarea id="day-note" maxlength="20000" placeholder="Ghi chú trong ngày" rows="2">${escape(entry.note)}</textarea></div>`;
 }
 function expenseBrowser() {
   return `<details class="card expense-browser" ${searchExpanded ? 'open' : ''}><summary>Tìm kiếm khoản chi trong tháng</summary><div class="expense-filters"><label>Tìm nội dung<input type="search" id="expense-search" placeholder="Ví dụ: tiền nhà, ăn uống…" value="${escape(expenseQuery)}" /></label><label>Danh mục<select id="expense-category">${categoryOptions(expenseCategory, 'Tất cả danh mục')}</select></label><label>Trạng thái<select id="expense-status"><option value="">Tất cả</option><option value="paid" ${expenseFilterStatus === 'paid' ? 'selected' : ''}>Đã chi</option><option value="planned" ${expenseFilterStatus === 'planned' ? 'selected' : ''}>Dự kiến</option></select></label></div><div id="expense-results" aria-live="polite">${expenseResults()}</div></details>`;
 }
 function expenseResults() {
-  const rows = expenseRows(data, year, month, { query: expenseQuery, category: expenseCategory, status: expenseFilterStatus });
+  const rows = expenseRows(visibleData(), year, month, { query: expenseQuery, category: expenseCategory, status: expenseFilterStatus });
   return `<p class="search-summary">${rows.length} khoản · ${money(rows.reduce((sum, item) => sum + (isCardPayment(item)||isInternalMovement(item)?0:item.amount), 0))}</p><div class="expense-search-list">${rows.map(item => `<button data-open-day="${item.date}"><time>${item.date.split('-').reverse().join('/')}</time><span><strong translate="no">${escape(item.title || 'Chưa đặt tên')}</strong><small>${sourceName(accountSource(item))} · ${escape(categoryOf(item))} · ${expenseStatus(item) === 'paid' ? 'Đã chi' : 'Dự kiến'}</small></span><strong data-money-kind="${moneyKind(item)}">${money(item.amount)}</strong></button>`).join('') || '<p>Không có khoản chi khớp bộ lọc.</p>'}</div>`;
 }
 function yearView() {
   return `<section class="card annual-months"><div class="card-heading"><div><h2>Xem riêng từng tháng</h2><p>Chọn tháng để xem tổng thu, chi và tiết kiệm của tháng đó.</p></div><span class="tag">${year}</span></div><div class="month-grid" aria-label="Tổng kết theo tháng">${Array.from({ length: 12 }, (_, m) => `<button class="month-card" data-open-month="${m}"><span>Tháng ${String(m + 1).padStart(2, '0')}</span>${icon('arrow')}</button>`).join('')}</div></section>`;
 }
 function refreshTotals() {
-  const summary = monthSummary(data, year, month), totals = view === 'year' ? yearSummary(data, year) : summary;
-  const accounts=document.querySelector('#accounts-overview');if(accounts)accounts.innerHTML=accountsPanel(data,selectedKey(),canUseCredit());
+  const summary = monthSummary(visibleData(), year, month), totals = view === 'year' ? yearSummary(visibleData(), year) : summary;
+  const accounts=document.querySelector('#accounts-overview');if(accounts)accounts.innerHTML=accountsPanel(visibleData(),selectedKey(),canUseCredit());
   const overview = document.querySelector('#cashflow-overview'); if (overview) overview.innerHTML = salaryTimeline(data, monthKey(year,month));
   document.querySelector('.stats').innerHTML = statsContent(totals);
   document.querySelector('#dashboard-charts').innerHTML = dashboardCharts();
   const progress = document.querySelector('#savings-progress'); if (progress) progress.innerHTML = savingsProgressContent();
   if (view === 'year') return;
-  document.querySelector('#day-money-out').textContent=money(moneyOut(data,selectedKey()));
-  document.querySelector('#day-total').textContent = money(dayTotal(currentDay(), 'paid'));
-  document.querySelector('#day-planned-total').textContent = money(dayTotal(currentDay(), 'planned'));
+  document.querySelector('#day-money-out').textContent=money(moneyOut(visibleData(),selectedKey()));
+  document.querySelector('#day-total').textContent = money(dayTotal(visibleData().days[selectedKey()], 'paid'));
+  document.querySelector('#day-planned-total').textContent = money(dayTotal(visibleData().days[selectedKey()], 'planned'));
   document.querySelector('#income-total').textContent = money(summary.salary + summary.bonus);
   document.querySelector('.calendar-panel').outerHTML = calendarPanel();
   document.querySelector('#expense-results').innerHTML = expenseResults();
@@ -279,7 +284,8 @@ root.addEventListener('click', async event => {
   if (button.dataset.view) { view = button.dataset.view; render(); }
   if (button.dataset.openMonth !== undefined) { month = +button.dataset.openMonth; day = Math.min(day, daysInMonth(year, month)); view = 'calendar'; render(); }
   if (button.dataset.openDay) { [year, month, day] = button.dataset.openDay.split('-').map(Number); month--; view = 'calendar'; render(); }
-  if (button.dataset.delete !== undefined) { if (currentDay().items[+button.dataset.delete]?.debtPaymentId || currentDay().items[+button.dataset.delete]?.cardFeeMonth || currentDay().items[+button.dataset.delete]?.cardPaymentMonth) return; ensureDay().items.splice(+button.dataset.delete, 1); persist(); render(); }
+  if(button.dataset.delete!==undefined&&isCreditItem(currentDay().items[+button.dataset.delete]||{})&&!await refreshCreditRole(true))return;
+  if (button.dataset.delete !== undefined) { if (!visibleData().days[selectedKey()]?.items.includes(currentDay().items[+button.dataset.delete]) || (!canUseCredit() && isCreditItem(currentDay().items[+button.dataset.delete]||{})) || currentDay().items[+button.dataset.delete]?.debtPaymentId || currentDay().items[+button.dataset.delete]?.cardFeeMonth || currentDay().items[+button.dataset.delete]?.cardPaymentMonth) return; ensureDay().items.splice(+button.dataset.delete, 1); persist(); render(); }
   switch (button.dataset.action) {
     case 'theme': display.theme = display.theme === 'dark' ? 'light' : 'dark'; saveDisplay(display); render(); break;
     case 'settings': showSettings(financeContext(), display, next => { display = next; saveDisplay(display); setLanguage(display.language); render(); }); break;
@@ -329,7 +335,7 @@ root.addEventListener('click', async event => {
     case 'import': document.querySelector('#import-file').click(); break;
   }
 });
-root.addEventListener('input', event => {
+root.addEventListener('input', async event => {
   if (!canEdit()) return;
   const target = event.target;
   if (target.id === 'expense-search') { expenseQuery = target.value; document.querySelector('#expense-results').innerHTML = expenseResults(); return; }
@@ -344,7 +350,11 @@ root.addEventListener('input', event => {
   if (target.id === 'day-note') { ensureDay().note = target.value; persist(); document.querySelector('.calendar-panel').outerHTML = calendarPanel(); }
   if (target.dataset.field) {
     const item = ensureDay().items[+target.closest('[data-item]').dataset.item];
-    if (item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) return;
+    if(item&&(isCreditItem(item)||['settlement','billingMonth'].includes(target.dataset.field)||target.dataset.field==='paymentMethod'&&target.value==='card')){
+      const user=cloud.user?.id;
+      if(!await refreshCreditRole(true)||user!==cloud.user?.id||currentDay().items[+target.closest('[data-item]').dataset.item]!==item)return;
+    }
+    if (!item || !visibleData().days[selectedKey()]?.items.includes(item) || (!canUseCredit() && isCreditItem(item)) || item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth) return;
     if(target.dataset.field==='movement'){
       if(target.value){item.movement=target.value;item.paymentMethod=target.value==='withdraw'?'bank':'cash';item.status='paid';item.category='Chuyển tiền nội bộ';if(!item.title||['Rút tiền mặt','Nạp tiền vào ngân hàng'].includes(item.title))item.title=target.value==='withdraw'?'Rút tiền mặt':'Nạp tiền vào ngân hàng';delete item.settlement;delete item.billingMonth;}
       else {delete item.movement;item.category='Khác';if(['Rút tiền mặt','Nạp tiền vào ngân hàng'].includes(item.title))item.title='';}
@@ -352,6 +362,7 @@ root.addEventListener('input', event => {
     }
     if(target.dataset.field==='paymentMethod'&&isInternalMovement(item))return;
     if (target.dataset.field === 'paymentMethod') {
+      if(target.value==='card'&&!canUseCredit())return;
       item.paymentMethod = target.value; if (target.value === 'card') { item.settlement = 'oneoff'; item.billingMonth = shiftMonth(selectedKey().slice(0,7),1); } else { delete item.settlement; delete item.billingMonth; }
       persist(); render(); return;
     }
@@ -400,7 +411,7 @@ root.addEventListener('toggle', event => {
 const authClient = new SupabaseClient(supabaseConfig, localStorage);
 const cloud = new SyncController(authClient, localStorage, {
   onData: next => {
-    data = next;
+    data = structuredClone(next); creditWritePending=false;
     syncAccountProfile(); syncCreditRole(); render();
 
   }, onStatus: () => { syncAccountProfile(); syncCreditRole(); renderCloud(); queueMicrotask(maybeChooseCurrencies); },
@@ -463,9 +474,9 @@ function renderCloud() {
 }
 
 function financeContext() {
-  return { getData: () => data, getUserId: () => cloud.user?.id, canEdit, canUseCredit, verifyCreditAccess: () => refreshCreditRole(true),
+  return { getData: () => data, getFinanceData: visibleData, getUserId: () => cloud.user?.id, canEdit, canUseCredit, verifyCreditAccess: () => refreshCreditRole(true),
     onChange: next => { const previous = data; data = next; if (!persist()) { data = previous; throw new Error('Chưa lưu được thay đổi. Vui lòng thử lại.'); } render(); },
-    commitConfirmed: next => cloud.commitConfirmed(next), commit: () => cloud.commit(), getStatus: () => cloud.status,
+    commitConfirmed: next => { if(!canUseCredit()&&creditSnapshot(next)!==creditSnapshot(cloud.data))throw Error('Chức năng Thẻ & sao kê chỉ dành cho admin.'); return cloud.commitConfirmed(next); }, commit: () => cloud.commit(), getStatus: () => cloud.status,
   };
 }
 function openDebtDialog(debtId, mode, paymentId) {

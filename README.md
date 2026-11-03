@@ -159,3 +159,9 @@ Dư nợ/hạn mức PayPay vẫn tính theo sổ thẻ riêng, không bị đ�
 Phí/lãi chỉ hiển thị trong sao kê, không xuất hiện trong danh sách chi tiêu, danh mục, lịch, biểu đồ hoặc tổng chi phí. Liên kết phí cũ vẫn được giữ nội bộ để tính dư nợ đúng. Tổng thanh toán gồm phí và chỉ trừ nguồn tiền một lần. Màu dùng thống nhất ở giao dịch và biểu đồ: thanh toán thẻ đỏ, lương/thưởng xanh lá, ngân hàng xanh dương, tiền mặt cam, mua bằng thẻ tím; tổng gộp nhiều nguồn giữ màu trung tính.
 
 Nút **Thiết lập số dư** ngày thường mở thông báo chưa khả dụng và nút **Yêu cầu thêm**. Sau lần thiết lập đầu tiên, yêu cầu cập nhật nhập số thực tế cuối ngày, xem chênh lệch rồi xác nhận. Mỗi tài khoản có tối đa 3 cập nhật lưu thành công trong tháng xác nhận (không phải tháng của ngày lịch đang xem). Hủy, lưu lỗi và đối chiếu ngày cuối tháng không dùng lượt. Cập nhật ngày thường cần đồng bộ thành công; lỗi/xung đột không áp dụng số dư mới. Lịch sử và ghi chú chênh lệch lưu cùng tài khoản, giữ qua tải lại/đồng bộ; dư nợ và hạn mức thẻ không bị đặt lại. Các khoản chi cũ được giữ nguyên. Không xác nhận số dư cho ngày tương lai.
+
+## Phạm vi thẻ theo quyền tài khoản
+
+Chỉ tài khoản được `calendar_is_admin` xác nhận là admin mới thấy và dùng **Thẻ & sao kê**, nguồn chi thẻ, sao kê/thanh toán, dư nợ/hạn mức, màu và biểu đồ thẻ. Tài khoản thường chỉ có ngân hàng/tiền mặt: tổng ngày/tháng/năm, tìm kiếm, biểu đồ, số dư và đối chiếu dùng cùng bộ phép tính nhưng loại dữ liệu thẻ. Khi thu hồi quyền hoặc kiểm tra quyền lỗi, module và hộp thoại thẻ được đóng/ẩn. Dữ liệu thẻ đã có trong tài khoản được bảo toàn khi lưu các thay đổi thường; không chuyển giao dịch thẻ thành chi tiền mặt. Bản sao lưu vẫn giữ đầy đủ dữ liệu của chủ tài khoản để tránh mất lịch sử.
+
+Đây là giới hạn chức năng ứng dụng theo quyền admin xác minh từ máy chủ; chính sách RLS tài liệu JSON theo chủ tài khoản vẫn giữ nguyên. Không triển khai thay đổi SQL hoặc sửa dữ liệu thật cho thay đổi giao diện này.

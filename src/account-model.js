@@ -1,3 +1,4 @@
+import { financeView } from './credit-access.js';
 import { cardMoney, cardDate, roundCard, statementNumbers, validMonth } from './card-model.js';
 export const accountSource = item => item.paymentMethod === 'card' ? 'card' : item.paymentMethod === 'bank' ? 'bank' : 'cash';
 export const isInternalMovement = item => ['withdraw','deposit'].includes(item.movement);
@@ -62,11 +63,11 @@ export function transferRows(data,prefix='') {
   return (data.accounts?.transfers||[]).filter(t=>t.date.startsWith(prefix)).map(t=>({id:`legacy-transfer-${t.id}`,legacyTransferId:t.id,date:t.date,title:t.from==='bank'?'Rút tiền mặt':'Nạp tiền vào ngân hàng',category:'Chuyển tiền nội bộ',movement:t.from==='bank'?'withdraw':'deposit',paymentMethod:t.from,status:'paid',amount:t.amount}));
 }
 export const balanceUpdateCount=(accounts,month)=>(accounts?.reconciliations||[]).filter(r=>r.kind==='manual'&&r.confirmedOn.startsWith(month+'-')).length;
-export function reconcileMonth(data,date,actual,{id,currency='JPY',today,manual=false}={}) {
+export function reconcileMonth(data,date,actual,{id,currency='JPY',today,manual=false,creditAllowed=true}={}) {
   if(!cardDate(date)||(!manual&&date!==monthEnd(date.slice(0,7)))||(manual&&(!cardDate(today)||date===monthEnd(date.slice(0,7))))||(today&&date>today))throw Error('Chỉ đối chiếu khi đã đến ngày cuối tháng.');
   if(manual&&balanceUpdateCount(data.accounts,today.slice(0,7))>=3)throw Error('Đã dùng hết 3 lượt cập nhật số dư trong tháng.');
   if(!id||(data.accounts?.reconciliations||[]).some(r=>r.id===id))throw Error('Đối chiếu đã tồn tại.');
-  const expected=accountBalances(data,date,{ignoreReconciliationOn:date});if(!expected)throw Error('Cần thiết lập số dư đầu ngày trước khi đối chiếu.');
+  const expected=accountBalances(financeView(data,creditAllowed),date,{ignoreReconciliationOn:date});if(!expected)throw Error('Cần thiết lập số dư đầu ngày trước khi đối chiếu.');
   const row={id,date,bank:cardMoney(actual.bank),cash:cardMoney(actual.cash),expectedBank:expected.bank,expectedCash:expected.cash};
   if(manual){row.kind='manual';row.confirmedOn=today;}
   row.deltaBank=roundCard(row.bank-row.expectedBank);row.deltaCash=roundCard(row.cash-row.expectedCash);
