@@ -27,7 +27,7 @@ test('all regions/archived records/currencies and monthly financial totals match
  const data=excelFixture(),before=structuredClone(data),sheets=reportSheets(data,options),totals=records(sheets,'Tổng hợp tháng');
  for(const [label,book]of [['Sổ nước ngoài',data],['Sổ Việt Nam',data.regional.vietnam]]){
   const row=totals.find(r=>r['Khu vực']===label&&r['Tháng']==='2026-10'),expected=monthSummary(book,2026,9);
-  assert.equal(row['Chi phí đã chi'],expected.expense);assert.equal(row['Chi phí dự kiến'],expected.planned);assert.equal(row['Chênh lệch thu chi'],expected.balance);assert.equal(row['Tiền ra các nguồn'],moneyOut(book,'2026-10'));
+  assert.equal(row['Chi phí đã chi'],expected.expense);assert.equal(row['Chi phí dự kiến'],expected.planned);assert.equal(row['Chênh lệch theo chi phí'],expected.balance);assert.equal(row['Tiền ra các nguồn'],moneyOut(book,'2026-10'));
  }
  assert(records(sheets,'Giao dịch').some(r=>r.ID==='archived'));assert(records(sheets,'Tiết kiệm cũ và mục tiêu').some(r=>r['Tiền tệ']==='VND'&&r['Kỳ']==='2024'));
  const vn=records(sheets,'Giao dịch').find(r=>r.ID==='vn');assert.equal(vn['Tiền tệ'],'VND');assert.equal(vn['Số tiền giao dịch'],123456.789);assert.deepEqual(data,before);
@@ -36,7 +36,7 @@ test('all regions/archived records/currencies and monthly financial totals match
 test('protected payments/transfers/fees do not double count costs; notes/history/nulls survive',()=>{
  const sheets=reportSheets(excelFixture(),options),rows=records(sheets,'Giao dịch');
  for(const row of rows.filter(r=>r['Loại giao dịch']==='Thanh toán sao kê'||r['Loại giao dịch']==='Chuyển nội bộ'))assert.equal(row['Chi phí đã chi'],0);
- assert(!rows.some(r=>r['Loại giao dịch']==='Phí sao kê'));assert.equal(records(sheets,'Sao kê thẻ')[0]['Tổng sao kê'],31.5);
+ assert(!rows.some(r=>r['Loại giao dịch']==='Phí sao kê'));assert.equal(records(sheets,'Sao kê thẻ')[0]['Tổng sao kê'],31.5);const summary=records(sheets,'Tổng hợp tháng').find(r=>r['Khu vực']==='Sổ nước ngoài'&&r['Tháng']==='2026-10');assert.equal(summary['Chênh lệch thu chi'],summary['Chênh lệch theo chi phí']-31.5);
  const payment=records(sheets,'Lịch sử trả nợ').find(r=>r['ID lần trả']==='payment');assert.equal(payment['Tổng thanh toán'],10.125);assert.equal(records(sheets,'Lịch sử trả nợ').find(r=>r['ID lần trả']==='voided')['Đã hủy'],'Có');
  assert.equal(records(sheets,'Kế hoạch').find(r=>r['ID khoản vay']==='loan')['APR %'],0);assert.equal(records(sheets,'Kế hoạch').find(r=>r['ID khoản vay']==='loan')['Mức tối thiểu'],null);
  assert(records(sheets,'Ghi chú ngày').some(r=>r['Ghi chú'].includes('😀 & <tag>\nKeep newline')));assert.equal(records(sheets,'Lịch sử quỹ')[0]['Ghi chú'],'Fund audit');assert.equal(records(sheets,'Mốc số dư').find(r=>r.ID==='opening')['Ghi chú'],'Opening audit');assert.equal(records(sheets,'Khoản phải thu')[0]['Gốc còn lại'],95);assert.equal(records(sheets,'Đối chiếu')[0]['ID'],'close');assert.equal(records(sheets,'Số dư nguồn tiền').find(r=>r['Khu vực']==='Sổ nước ngoài')['Hạn mức khả dụng đang hiển thị'],4000);

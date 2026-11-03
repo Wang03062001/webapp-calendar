@@ -1,6 +1,54 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Chi tiêu & trả thẻ|Spending & card payments|支出・カード支払|지출 및 카드 납부|支出與卡費支付
+Chi tiết thu nhập|Income details|収入の詳細|수입 상세|收入明細
+Chi tiết chi tiêu|Spending details|支出の詳細|지출 상세|支出明細
+Chi tiết dự kiến chi|Planned spending details|支出予定の詳細|예정 지출 상세|預計支出明細
+Biểu đồ chênh lệch thu − chi|Income and spending difference chart|収支差額グラフ|수입 및 지출 차이 차트|收支差額圖表
+Xem chi tiết|View details|詳細を見る|상세 보기|查看明細
+Tổng lương|Total salary|給与合計|급여 합계|薪資合計
+Tổng thưởng|Total bonus|賞与合計|상여금 합계|獎金合計
+Tổng thu nhập khác|Total other income|その他収入合計|기타 수입 합계|其他收入合計
+Tổng thu nhập|Total income|収入合計|총수입|收入總計
+Chi phí phát sinh|Incurred costs|発生した費用|발생 비용|已發生費用
+Tổng chi phí phát sinh|Total incurred costs|発生費用合計|발생 비용 합계|已發生費用合計
+Thanh toán sao kê trong kỳ|Statements paid in this period|期間内の明細支払|기간 내 명세서 납부|本期已支付帳單
+Tổng thanh toán sao kê|Total statement payments|明細支払合計|명세서 납부 합계|帳單支付合計
+Tổng chi tiêu & trả thẻ|Total spending & card payments|支出・カード支払合計|지출 및 카드 납부 합계|支出與卡費支付總計
+Tổng chi tiêu|Total spending|支出合計|지출 합계|支出總計
+Tiền ra từng nguồn|Outflows by source|資金源別の出金|출처별 출금|各資金來源支出
+Chi trực tiếp từ các nguồn|Direct spending from sources|資金源からの直接支出|자금 출처에서 직접 지출|資金來源的直接支出
+Trả sao kê từ các nguồn|Statement payments from sources|資金源からの明細支払|자금 출처에서 명세서 납부|資金來源的帳單支付
+Tổng tiền ra thực tế|Total actual outflow|実際の出金合計|실제 출금 합계|實際流出總計
+Khoản dự kiến đã nhập|Recorded planned expenses|入力済みの支出予定|입력된 예정 지출|已輸入的預計支出
+Tổng chi dự kiến đã nhập|Total recorded planned expenses|入力済み支出予定合計|입력된 예정 지출 합계|已輸入預計支出合計
+Sao kê đã xác nhận, chưa trả|Confirmed unpaid statements|確認済み・未払の明細|확인된 미납 명세서|已確認但未支付的帳單
+Tổng sao kê chờ trả trong kỳ|Total statements awaiting payment in period|期間内の未払明細合計|기간 내 납부 대기 명세서 합계|本期待支付帳單合計
+Sao kê cần xác nhận số tiền|Statements awaiting amount confirmation|金額未確認の明細|금액 확인이 필요한 명세서|待確認金額的帳單
+Tổng dự kiến đã biết|Total known planned amount|判明している予定額合計|확인된 예정 금액 합계|已知預計金額合計
+Chưa có khoản nào trong kỳ này.|No records in this period.|この期間の記録はありません。|이 기간의 기록이 없습니다.|此期間沒有紀錄。
+Chọn nguồn khi thanh toán|Choose source when paying|支払時に資金源を選択|납부 시 출처 선택|支付時選擇資金來源
+Trả mua một lần|One-off purchase payment|一回払い分|일시불 구매 납부|一次付清購物款
+Gốc リボ|Revolving principal|リボ元金|리볼빙 원금|循環信用本金
+Quỹ:|Fund:|目的別資金：|목적 자금:|基金：
+Tháng làm việc:|Earned month:|勤務月：|근무 월:|工作月份：
+lần trả sao kê|statement payments|回の明細支払|회 명세서 납부|次帳單支付
+khoản dự kiến|planned expenses|件の支出予定|건 예정 지출|筆預計支出
+sao kê chờ trả|unpaid statements|件の未払明細|건 미납 명세서|筆待支付帳單
+có sao kê chưa xác nhận|includes unconfirmed statements|未確認明細あり|미확인 명세서 있음|含未確認帳單
+Thu nhập − chi phát sinh − trả sao kê|Income − incurred costs − statement payments|収入 − 発生費用 − 明細支払|수입 − 발생 비용 − 명세서 납부|收入 − 已發生費用 − 帳單支付
+Thu nhập − chi phát sinh|Income − incurred costs|収入 − 発生費用|수입 − 발생 비용|收入 − 已發生費用
+Chênh lệch theo chi phí|Income less incurred costs|発生費用ベースの収支|발생 비용 기준 차이|按費用計算的收支差額
+Thu nhập − tiền ra thực tế|Income − actual outflow|収入 − 実際の出金|수입 − 실제 출금|收入 − 實際流出
+Xem thêm chi phí và dòng tiền|More cost and cashflow details|費用・資金移動の詳細|비용 및 현금 흐름 더 보기|更多費用與現金流明細
+Biểu đồ thu nhập, chi tiêu và chênh lệch|Income, spending and difference chart|収入・支出・差額グラフ|수입, 지출 및 차이 차트|收入、支出及差額圖表
+Tiền chuyển của bản thân và thu hồi nợ gốc được theo dõi ở Tiền vào khác.|Own transfers and principal collections are tracked in Other inflows.|自己資金の送金と元本回収は「その他入金」で管理します。|본인 자금 이체 및 원금 회수는 기타 입금에서 관리합니다.|本人資金轉入及本金收回於其他入帳追蹤。
+Tiền ra thực tế = chi từ ngân hàng/tiền mặt/tiết kiệm + trả sao kê. Mua bằng thẻ được ghi nhận chi phí tại ngày mua.|Actual outflow = bank/cash/savings spending + statement payments. Card purchases become costs on the purchase date.|実際の出金＝銀行・現金・貯蓄からの支出＋明細支払。カード購入は購入日の費用として計上します。|실제 출금 = 은행/현금/저축 지출 + 명세서 납부입니다. 카드 구매는 구매일에 비용으로 기록됩니다.|實際流出＝銀行／現金／儲蓄支出＋帳單支付。刷卡購物於購買日列為費用。
+Sao kê bản nháp chưa được cộng vào tổng số tiền đã biết.|Draft statements are excluded from the known-amount total.|下書き明細は判明済み金額の合計に含めません。|초안 명세서는 확인된 총액에 포함되지 않습니다.|帳單草稿尚未計入已知金額合計。
+Khoản phải trả đã liên kết được tính theo đúng một giao dịch dự kiến. Xác nhận thanh toán sẽ chuyển khoản đó sang đã chi.|Each linked obligation is counted as one planned expense. Confirming payment moves it to paid spending.|紐付け済みの支払予定は一件の予定取引として計上します。支払確認後は支払済みに移ります。|연결된 납부 일정은 하나의 예정 거래로 계산됩니다. 납부 확인 후 지출 완료로 이동합니다.|已連結的應付款僅計為一筆預計交易，確認支付後轉為已支出。
+Tiền có sẵn đầu kỳ được theo dõi trong Số dư theo nguồn tiền. Chuyển nội bộ giữ nguyên tổng tài sản.|Opening funds are tracked in Balances by source. Internal transfers preserve total assets.|期首資金は資金源別残高で管理します。内部振替で総資産は変わりません。|기초 자금은 출처별 잔액에서 관리합니다. 내부 이체는 총자산을 유지합니다.|期初資金於各資金來源餘額追蹤，內部轉帳不改變總資產。
+Kỳ thống kê không hợp lệ.|Invalid statistics period.|集計期間が無効です。|통계 기간이 유효하지 않습니다.|統計期間無效。
 Sao lưu bản nháp JSON|Back up draft as JSON|下書きをJSONでバックアップ|초안을 JSON으로 백업|將草稿備份為 JSON
 Xuất Excel|Export Excel|Excel出力|Excel 내보내기|匯出 Excel
 Xuất dữ liệu Excel|Export data to Excel|データをExcelに出力|데이터를 Excel로 내보내기|匯出資料為 Excel

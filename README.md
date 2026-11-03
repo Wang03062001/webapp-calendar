@@ -47,7 +47,7 @@ Sau khi bật Pages, mỗi lần push lên `main`, GitHub sẽ tự triển khai
 - Mở **Tổng kết năm** để xem lương, thưởng, chi tiêu, số dư dự kiến và nội dung mọi khoản chi; nhấn tháng hoặc ngày để mở lại lịch.
 - Khi chưa đăng nhập, các ô nhập và nhập/xuất bản sao lưu bị khóa; dữ liệu tài chính cũ không hiển thị. Khi đã đăng nhập, thay đổi được giữ trong bản nháp riêng của tài khoản. Nhấn **Enter** trong ô nhập hoặc nút **Lưu thay đổi** để gửi lên Supabase. Trong ghi chú, **Shift+Enter** để xuống dòng. **Xuất Excel** mở hộp tải báo cáo `.xlsx`; **Sao lưu và khôi phục → Sao lưu JSON** tải bản sao lưu đầy đủ; nút nhập bên cạnh khôi phục bản sao lưu sau xác nhận thay thế dữ liệu hiện tại.
 
-Khoản chi mới mặc định Dự kiến; chỉ khoản Đã chi được trừ khỏi chênh lệch thu − chi. Chênh lệch = lương + thưởng − đã chi, không phải số dư ví. Tiền tệ được chọn theo hai nhóm liên kết, mặc định thu chi JPY và tiết kiệm VNĐ. Các số đã nhập được giữ nguyên; ứng dụng không tự quy đổi tỷ giá. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Xóa dữ liệu trình duyệt sẽ xóa dữ liệu chưa đồng bộ và bản nháp trên máy; dữ liệu đã đồng bộ có thể tải lại sau khi đăng nhập. Nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
+Khoản chi mới mặc định Dự kiến; chỉ khoản Đã chi được trừ khỏi chênh lệch thu − chi. Chênh lệch trên ô thống kê = thu nhập − chi phí phát sinh − sao kê đã thanh toán trong kỳ (phần thẻ chỉ hiển thị theo quyền admin), không phải số dư ví. Tiền tệ được chọn theo hai nhóm liên kết, mặc định thu chi JPY và tiết kiệm VNĐ. Các số đã nhập được giữ nguyên; ứng dụng không tự quy đổi tỷ giá. Mục tiêu tiết kiệm năm dùng để theo dõi, không tự trừ tiền hoặc tự phân bổ sang các tháng. Xóa dữ liệu trình duyệt sẽ xóa dữ liệu chưa đồng bộ và bản nháp trên máy; dữ liệu đã đồng bộ có thể tải lại sau khi đăng nhập. Nên xuất bản sao lưu định kỳ. Không có dữ liệu tài chính giả được thêm sẵn.
 
 ## Thiết lập Supabase (chủ project thực hiện một lần)
 
@@ -78,7 +78,7 @@ Trang tháng đặt ô nhập chi tiêu và lịch lên trước, có bộ chọ
 
 Để sửa khoản đã lưu, mở **Khoản chi trong tháng** và bấm **Sửa nội dung**. Popup cho sửa nội dung, số tiền, danh mục, trạng thái, nguồn/quỹ và thông tin thẻ theo quyền hiện có. Enter hoặc **Lưu** xác nhận gửi, **Hủy** bỏ chỉnh sửa. **Xóa khoản chi** yêu cầu xác nhận trước khi gửi. Bấm ngày hoặc nội dung chỉ xem ngày. Khoản liên kết trả nợ, sao kê, phí thẻ và lịch phải trả vẫn sửa/hủy ở chức năng gốc; đổi tài khoản/khu vực hoặc thu hồi quyền admin sẽ chặn popup cũ ghi dữ liệu.
 
-Mỗi khoản chi có **danh mục** và trạng thái **Dự kiến / Đã chi**. Khoản mới mặc định Dự kiến; chỉ khoản Đã chi mới được trừ khỏi thu nhập. Dữ liệu cũ chưa có trạng thái được hiểu là Đã chi để giữ nguyên tổng tiền. Các thẻ phân biệt Thu nhập, Đã chi, Dự kiến chi và Chênh lệch thu − chi. Chênh lệch là thu nhập trừ số đã chi trong kỳ, chưa phải số dư ví vì chưa tính tiền đầu kỳ; VNĐ tiết kiệm vẫn theo dõi riêng với JPY.
+Mỗi khoản chi có **danh mục** và trạng thái **Dự kiến / Đã chi**. Khoản mới mặc định Dự kiến; chỉ khoản Đã chi mới được trừ khỏi thu nhập. Dữ liệu cũ chưa có trạng thái được hiểu là Đã chi để giữ nguyên tổng tiền. Các ô thống kê phân biệt Thu nhập, Chi tiêu & trả thẻ, Dự kiến chi và Chênh lệch thu − chi. Chênh lệch trừ cả chi phí phát sinh và tiền sao kê đã trả trong kỳ, chưa tính tiền đầu kỳ; VNĐ tiết kiệm vẫn theo dõi riêng với JPY.
 
 Trang Tổng kết năm chỉ hiển thị số liệu tổng năm; chọn một tháng để xem riêng tổng tháng. Vùng **Tìm kiếm khoản chi trong tháng** hỗ trợ tìm tiếng Việt có/không dấu và kết hợp lọc danh mục, trạng thái. Nhấn kết quả để mở đúng ngày nhập. Biểu đồ thu/chi/dự kiến và phân bổ đã chi theo danh mục chỉ dùng dữ liệu của kỳ đang chọn.
 
@@ -292,3 +292,18 @@ Excel tuân theo quyền xem hiện tại: xác minh admin với máy chủ trư
 Excel là báo cáo để xem/tính toán; chức năng nhập lại dữ liệu vẫn dùng JSON. Trong hộp xuất, mở **Sao lưu và khôi phục → Sao lưu JSON** để giữ bản sao lưu đầy đủ của tài khoản, gồm dữ liệu ẩn theo quyền như cơ chế sao lưu trước đây. Khi xung đột, **Sao lưu bản nháp JSON** giữ nguyên đường khôi phục đầy đủ trước khi tải lại bản đám mây.
 
 Kiểm thử: `node test/excel.test.js`, `npm test`, `npm run build`; tùy chọn `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node scripts/check-excel-browser.mjs` với máy chủ ở cổng 5175 (hoặc đặt `CALENDAR_URL`). Chỉ dùng dữ liệu giả lập; file/ảnh kiểm thử nằm ở `/tmp`. Bộ ghi OOXML/ZIP không cần cài thêm thư viện hay gọi CDN khi xuất.
+
+## Popup thống kê và thanh toán thẻ
+
+Bấm icon trên từng ô thống kê (có cả trên điện thoại):
+
+- **Thu nhập**: danh sách lương, thưởng và thu nhập khác, tổng từng nhóm và tổng cuối. Tiền của bản thân chuyển về và thu hồi gốc không tính thêm thu nhập.
+- **Chi tiêu & trả thẻ**: chi phí phát sinh (gồm mua bằng thẻ) cộng sao kê thực sự đã thanh toán trong tháng/năm đang xem. Popup tách hai nhóm, hiển thị mua một lần/gốc リボ/phí trong sao kê Nhật, tổng cuối và phần tiền ra thực tế. Sổ dùng sao kê đơn giản chỉ hiện tổng sao kê.
+- **Dự kiến chi**: khoản dự kiến đã nhập và sao kê đã xác nhận nhưng chưa thanh toán, theo hạn phải trả trong kỳ. Khoản phải trả có liên kết chỉ tính một giao dịch. Sao kê bản nháp nằm riêng, chưa giả định là 0 hoặc cộng vào tổng đã biết.
+- **Chênh lệch thu − chi**: biểu đồ thu nhập, chi phí phát sinh, thanh toán sao kê và số còn lại; có số chi tiết kèm theo. Công thức ô này = thu nhập − chi phát sinh − sao kê đã trả.
+
+Trả sao kê của tháng trước vẫn tính vào kỳ **ngày thanh toán thực tế**, gồm tiền một lần, phí và gốc リボ; không lấy kỳ sao kê làm ngày chi tiền. Đây là tổng chi và trả thẻ để theo dõi ngân sách. Phần **tiền ra thực tế** = chi trực tiếp từ ngân hàng/tiền mặt/tiết kiệm + trả sao kê. Số dư các nguồn tiếp tục trừ tiền một lần theo sổ; chi phí gốc, lịch, danh mục, ngân sách và lịch sử không bị sửa để tạo thống kê này.
+
+Popup chỉ xem, không tự lưu hay sửa giao dịch. Xác minh quyền admin lại trước khi mở; tài khoản thường không thấy số liệu thẻ. Đổi tài khoản/khu vực/kỳ hoặc nhận dữ liệu mới sẽ đóng popup cũ. Tổng hợp Excel có cột riêng cho chi phí, tiền trả sao kê, tổng chi & trả thẻ, chênh lệch theo từng cách và tổng dự kiến, khớp các ô thống kê.
+
+Kiểm tra: `node test/stats.test.js`, `npm test`, `npm run build`; tùy chọn `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node scripts/check-stats-browser.mjs` với máy chủ ở cổng 5176 hoặc đặt `CALENDAR_URL`. Chỉ dùng tài khoản/dữ liệu mô phỏng.

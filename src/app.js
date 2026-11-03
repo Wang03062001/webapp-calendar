@@ -1,3 +1,5 @@
+import {statsDetails} from './stats-model.js';
+import {showStatsDialog} from './stats-ui.js';
 import {downloadFile,showExportDialog} from './export-ui.js';
 import {expenseConfirmed, protectedExpense} from './expense-model.js';
 import {showExpenseDialog} from './expense-ui.js';
@@ -92,7 +94,7 @@ async function refreshCreditRole(force = false) {
     if (cloud.user?.id !== userId || creditRole.request !== request) return false;
     const changed = creditRole.allowed !== allowed;
     creditRole.allowed = allowed; creditRole.checked = true;
-    if (!allowed) { document.querySelector('#safety-dialog[data-credit-guard]')?.close(); if(changed)document.querySelectorAll('#expense-dialog,#opening-dialog').forEach(d=>d.close()); document.querySelectorAll('#credit-dialog,#credit-limit-dialog,#debt-dialog,#reconcile-dialog,#ledger-dialog').forEach(d=>d.close()); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
+    if (!allowed) { document.querySelector('#safety-dialog[data-credit-guard]')?.close(); if(changed)document.querySelectorAll('#expense-dialog,#opening-dialog,#stat-dialog').forEach(d=>d.close()); document.querySelectorAll('#credit-dialog,#credit-limit-dialog,#debt-dialog,#reconcile-dialog,#ledger-dialog').forEach(d=>d.close()); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
     if (changed) render();
     return allowed;
   })();
@@ -126,6 +128,7 @@ async function saveChanges() {
   } catch (error) { notify(error.message); }
 }
 function render() {
+  document.querySelector('#stat-dialog')?.close();
   setCurrencies(data.currencies);
   if (view === 'credit' && !canUseCredit() || view==='debts'&&!moduleEnabled(data,'debts') || view==='safety'&&!moduleEnabled(data,'safety')) view = 'calendar';
   if (!years().includes(year)) { year = years()[0]; day = Math.min(day, daysInMonth(year, month)); }
@@ -165,10 +168,11 @@ function render() {
   if (activeTab) tabs.scrollLeft += activeTab.getBoundingClientRect().left - tabs.getBoundingClientRect().left - (tabs.clientWidth - activeTab.offsetWidth) / 2;
 }
 function statsContent(totals) {
-  return stat('wallet', 'Thu nhập', totals.salary + totals.bonus + (totals.otherIncome||0), 'Lương + thưởng + thu nhập khác · __CASH__', 'purple')
-    + stat('down', 'Chi tiêu phát sinh', totals.expense, `${totals.count} khoản${canUseCredit()?' · gồm chi bằng thẻ':''}`, 'orange')
-    + stat('note', 'Dự kiến chi', totals.planned, `${totals.plannedCount} khoản chưa chi · __CASH__`, 'pink')
-    + stat('chart', 'Chênh lệch thu − chi', totals.balance, 'Thu nhập − đã chi; chưa tính tiền đầu kỳ', 'blue');
+  const credit=hasCreditAccess(),details=statsDetails(data,{year,month:view==='year'?null:month,creditAllowed:credit});
+  return stat('wallet', 'Thu nhập', details.income, 'Lương + thưởng + thu nhập khác · __CASH__', 'purple')
+    + stat('down', credit?'Chi tiêu & trả thẻ':'Chi tiêu phát sinh', details.activityTotal, credit?`${totals.count} khoản chi · ${details.settlements.length} lần trả sao kê`:`${totals.count} khoản`, 'orange')
+    + stat('note', 'Dự kiến chi', details.plannedTotal, `${totals.plannedCount} khoản dự kiến${credit?` · ${details.upcomingStatements.length} sao kê chờ trả`:''}${details.unknownStatements.length?' · có sao kê chưa xác nhận':''}`, 'pink')
+    + stat('chart', 'Chênh lệch thu − chi', details.activityDifference, credit?'Thu nhập − chi phát sinh − trả sao kê':'Thu nhập − đã chi; chưa tính tiền đầu kỳ', 'blue');
 }
 function dashboardCharts() {
   const total = view === 'year' ? yearSummary(visibleData(), year) : monthSummary(visibleData(), year, month);
@@ -200,7 +204,7 @@ function showYearDialog() {
   };
 }
 function stat(symbol, label, value, detail, color, currency = 'cash') {
-  return `<section class="stat" data-stat="${symbol}"><div class="stat-top"><span>${label}</span><span class="stat-icon ${color}">${icon(symbol)}</span></div><strong data-money-kind="${symbol==='wallet'?'income':''}" class="${value < 0 ? 'negative' : ''}">${money(value, currency)}</strong><small>${detail}</small></section>`;
+  return `<section class="stat" data-stat="${symbol}"><div class="stat-top"><span>${label}</span><button type="button" class="stat-icon ${color}" data-stat-details="${symbol}" aria-haspopup="dialog" aria-label="Xem chi tiết ${label}" title="Xem chi tiết ${label}">${icon(symbol)}</button></div><strong data-money-kind="${symbol==='wallet'?'income':''}" class="${value < 0 ? 'negative' : ''}">${money(value, currency)}</strong><small>${detail}</small></section>`;
 }
 function savingsPanel() {
   return `<section class="card savings-panel" aria-label="Kế hoạch tiết kiệm"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('spark')}</span><div><h2>Quỹ tiết kiệm của bạn</h2><p>${view === 'year' ? `Mục tiêu tiết kiệm năm ${year}` : `Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} / ${year}`}</p></div></div><span class="tag">TIẾT KIỆM</span></div>
@@ -309,6 +313,7 @@ function yearView() {
   return `<section class="card annual-months"><div class="card-heading"><div><h2>Xem riêng từng tháng</h2><p>Chọn tháng để xem tổng thu, chi và tiết kiệm của tháng đó.</p></div><span class="tag">${year}</span></div><div class="month-grid" aria-label="Tổng kết theo tháng">${Array.from({ length: 12 }, (_, m) => `<button class="month-card" data-open-month="${m}"><span>Tháng ${String(m + 1).padStart(2, '0')}</span>${icon('arrow')}</button>`).join('')}</div></section>`;
 }
 function refreshTotals() {
+  document.querySelector('#stat-dialog')?.close();
   const summary = monthSummary(visibleData(), year, month), totals = view === 'year' ? yearSummary(visibleData(), year) : summary;
   const accounts=document.querySelector('#accounts-overview');if(accounts)accounts.innerHTML=accountsPanel(visibleData(),selectedKey(),hasCreditAccess());
   const overview = document.querySelector('#cashflow-overview'); if (overview) overview.innerHTML = salaryTimeline(data, monthKey(year,month));
@@ -327,6 +332,13 @@ function refreshTotals() {
 root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
+  if(button.dataset.statDetails){
+    if(!canEdit())return;
+    const context=financeContext(),period={year,month:view==='year'?null:month},requestedView=view;
+    await context.verifyCreditAccess();
+    if(!context.canEdit()||view!==requestedView||year!==period.year||period.month!==null&&month!==period.month)return;
+    showStatsDialog(context,button.dataset.statDetails,period);return;
+  }
   if(button.dataset.editExpense){if(canEdit())showExpenseDialog(financeContext(),button.dataset.expenseDate,button.dataset.editExpense,expenseEditor);return;}
   if(button.dataset.safetyAction){if(!canEdit()||!moduleEnabled(data,'safety'))return;if(button.dataset.safetyAction==='payDebt'){openDebtDialog(button.dataset.safetyId);return;}showSafetyDialog(financeContext(),button.dataset.safetyAction,button.dataset.safetyId||'',selectedKey());return;}
   if(button.dataset.region){if(!canEdit()||cloud.inFlight)return;document.querySelectorAll('dialog').forEach(d=>d.close());activeRegion=button.dataset.region==='vietnam'?'vietnam':'foreign';data=readBook(cloud.data,activeRegion);view='calendar';expenseQuery='';expenseCategory='';render();return;}
@@ -530,7 +542,7 @@ async function refreshAccountIdentity() {
 function syncAccountProfile() {
   const id = cloud.user?.id || null;
   if (profileUserId === id) return;
-  if (profileUserId && profileUserId !== id) document.querySelectorAll('#profile-dialog,#admin-dialog,#settings-dialog,#credit-dialog,#credit-limit-dialog,#debt-dialog,#ledger-dialog,#reconcile-dialog,#region-dialog,#cash-entry-dialog,#savings-opening-dialog,#safety-dialog,#expense-dialog,#opening-dialog,#export-dialog').forEach(dialog => dialog.close());
+  if (profileUserId && profileUserId !== id) document.querySelectorAll('#profile-dialog,#admin-dialog,#settings-dialog,#credit-dialog,#credit-limit-dialog,#debt-dialog,#ledger-dialog,#reconcile-dialog,#region-dialog,#cash-entry-dialog,#savings-opening-dialog,#safety-dialog,#expense-dialog,#opening-dialog,#export-dialog,#stat-dialog').forEach(dialog => dialog.close());
   profileUserId = id; accountProfile = null;
   if (!id) currencyPromptUser = null;
   if (!id) return;
@@ -553,7 +565,7 @@ function renderCloud() {
   document.querySelector('[data-action="import"]').disabled = !canEdit();
   document.querySelector('[data-action="export"]').disabled = !canEdit();
   document.querySelector('.page').inert = !canEdit();
-  document.querySelectorAll('.page input, .page textarea, .page select, .page [data-action="add"], .page [data-action="add-year"], .page .quick-grid button, .page [data-delete]').forEach(input => input.disabled = !canEdit() || input.hasAttribute('data-debt-linked') || input.hasAttribute('data-debt-complete') || input.hasAttribute('data-movement-source') || input.hasAttribute('data-fund-source'));
+  document.querySelectorAll('.page input, .page textarea, .page select, .page [data-action="add"], .page [data-action="add-year"], .page .quick-grid button, .page [data-delete], .page [data-stat-details]').forEach(input => input.disabled = !canEdit() || input.hasAttribute('data-debt-linked') || input.hasAttribute('data-debt-complete') || input.hasAttribute('data-movement-source') || input.hasAttribute('data-fund-source'));
   const removeYearButton = document.querySelector('[data-action="remove-year"]');
   if (removeYearButton) removeYearButton.disabled = !canEdit() || years().length <= 1;
   document.querySelector('[data-action="save"]').hidden = !cloud.user;
