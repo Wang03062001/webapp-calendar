@@ -1,3 +1,4 @@
+import { availableCredit, setAvailableCredit } from './card-model.js';
 import { financeView } from './credit-access.js';
 import { t } from './i18n.js';
 import { formatAmount } from './model.js';
@@ -10,9 +11,9 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 export const sourceName=source=>source==='bank'?'Tài khoản ngân hàng':source==='card'?'PayPay / thẻ tín dụng':'Tiền mặt';
 export function accountsPanel(data,date,creditAllowed) {
   data=financeView(data,creditAllowed);
-  const b=accountBalances(data,date), a=data.accounts;
+  const b=accountBalances(data,date), a=data.accounts, available=availableCredit(data,date,b?.available??null);
   const transfers=[...(a?.transfers||[]),...Object.entries(data.days).flatMap(([date,entry])=>entry.items.filter(isInternalMovement).map(item=>({date,id:item.id,amount:item.amount,from:item.movement==='withdraw'?'bank':'cash',to:item.movement==='withdraw'?'cash':'bank',expense:true})))].sort((a,b)=>b.date.localeCompare(a.date));
-  return `<section class="card accounts-panel"><div class="card-heading"><div><h2>Số dư theo nguồn tiền</h2><p>Tính đến cuối ngày ${dateLabel(date)} · ${a?`Số dư đầu ngày ${dateLabel(a.openedOn)}`:'Chưa thiết lập số dư đầu ngày'}</p></div><button class="button secondary" data-action="account-balances">Thiết lập số dư</button></div><div class="account-balances"><article class="assets-total"><span>Tài sản còn lại</span><strong data-balance="assets">${b?money(b.bank+b.cash):'Chưa thiết lập'}</strong><small>Ngân hàng + tiền mặt</small></article><article><span>Tài khoản ngân hàng</span><strong data-money-kind="bank" data-balance="bank">${b?money(b.bank):'Chưa thiết lập'}</strong></article><article><span>Tiền mặt</span><strong data-money-kind="cash" data-balance="cash">${b?money(b.cash):'Chưa thiết lập'}</strong></article>${creditAllowed?`<article><span>Hạn mức khả dụng PayPay</span><strong data-money-kind="card" data-balance="credit">${b?.available!=null?money(b.available):'Cần nhập / đối chiếu hạn mức'}</strong><small>Dư nợ ghi sổ: ${b?money(b.creditDebt):'Chưa thiết lập'}</small></article>`:''}</div><p class="account-note">Số dư dựa trên các giao dịch đã ghi; không kết nối trực tiếp với ngân hàng. Khoản cũ chưa có nguồn được tính là tiền mặt. Thu nhập chưa chọn nơi nhận được tính vào ngân hàng.</p>${b && b.creditDebt<0 && creditAllowed?'<p class="account-note negative">Cần đối chiếu dư nợ đầu kỳ và giao dịch thẻ: tiền đã trả vượt dư nợ ghi sổ.</p>':''}<div class="account-period"><span>Tiền ra ngân hàng / tiền mặt trong tháng <strong data-money-out>${money(moneyOut(data,date.slice(0,7)))}</strong></span>${creditAllowed?'<small>Gồm trả sao kê; chi phí mua bằng thẻ không bị cộng hai lần.</small>':''}</div>${a?`<div class="account-transfers"><button class="button secondary" data-action="account-transfer">Chuyển ngân hàng ↔ tiền mặt</button><details><summary>Lịch sử chuyển tiền</summary>${transfers.map(t=>`<div><span>${dateLabel(t.date)} · ${sourceName(t.from)} → ${sourceName(t.to)} · ${money(t.amount)}</span>${t.expense?`<button class="text-button" data-open-day="${t.date}">Xem</button>`:`<button class="text-button danger" data-remove-transfer="${encodeURIComponent(t.id)}">Xóa</button>`}</div>`).join('')||'<p>Chưa có chuyển tiền.</p>'}</details></div>`:''}${monthClosingPanel(data,date,b)}</section>`;
+  return `<section class="card accounts-panel"><div class="card-heading"><div><h2>Số dư theo nguồn tiền</h2><p>Tính đến cuối ngày ${dateLabel(date)} · ${a?`Số dư đầu ngày ${dateLabel(a.openedOn)}`:'Chưa thiết lập số dư đầu ngày'}</p></div><button class="button secondary" data-action="account-balances">Thiết lập số dư</button></div><div class="account-balances"><article class="assets-total"><span>Tài sản còn lại</span><strong data-balance="assets">${b?money(b.bank+b.cash):'Chưa thiết lập'}</strong><small>Ngân hàng + tiền mặt</small></article><article><span>Tài khoản ngân hàng</span><strong data-money-kind="bank" data-balance="bank">${b?money(b.bank):'Chưa thiết lập'}</strong></article><article><span>Tiền mặt</span><strong data-money-kind="cash" data-balance="cash">${b?money(b.cash):'Chưa thiết lập'}</strong></article>${creditAllowed?`<article><span>Hạn mức khả dụng PayPay</span><strong data-money-kind="card" data-balance="credit">${available!=null?money(available):'Cần nhập / đối chiếu hạn mức'}</strong><small>Dư nợ ghi sổ: ${b?money(b.creditDebt):'Chưa thiết lập'}</small><button class="text-button" data-action="paypay-available">Nhập / cập nhật hạn mức</button></article>`:''}</div><p class="account-note">Số dư dựa trên các giao dịch đã ghi; không kết nối trực tiếp với ngân hàng. Khoản cũ chưa có nguồn được tính là tiền mặt. Thu nhập chưa chọn nơi nhận được tính vào ngân hàng.</p>${b && b.creditDebt<0 && creditAllowed?'<p class="account-note negative">Cần đối chiếu dư nợ đầu kỳ và giao dịch thẻ: tiền đã trả vượt dư nợ ghi sổ.</p>':''}<div class="account-period"><span>Tiền ra ngân hàng / tiền mặt trong tháng <strong data-money-out>${money(moneyOut(data,date.slice(0,7)))}</strong></span>${creditAllowed?'<small>Gồm trả sao kê; chi phí mua bằng thẻ không bị cộng hai lần.</small>':''}</div>${a?`<div class="account-transfers"><button class="button secondary" data-action="account-transfer">Chuyển ngân hàng ↔ tiền mặt</button><details><summary>Lịch sử chuyển tiền</summary>${transfers.map(t=>`<div><span>${dateLabel(t.date)} · ${sourceName(t.from)} → ${sourceName(t.to)} · ${money(t.amount)}</span>${t.expense?`<button class="text-button" data-open-day="${t.date}">Xem</button>`:`<button class="text-button danger" data-remove-transfer="${encodeURIComponent(t.id)}">Xóa</button>`}</div>`).join('')||'<p>Chưa có chuyển tiền.</p>'}</details></div>`:''}${monthClosingPanel(data,date,b)}</section>`;
 }
 export function showAccountLedger(context,mode='balances',transferId) {
   if(!context.canEdit())return;
@@ -106,4 +107,28 @@ function showBalanceNotice(context,date,closing) {
       try{showMonthReconciliation(context,date,{bank:event.target.elements.bank.value,cash:event.target.elements.cash.value},true);dialog.close();}catch(error){dialog.querySelector('[role=status]').textContent=error.message;}
     };
   });
+}
+
+export function showAvailableCredit(context,date) {
+  if(!context.canEdit()||!context.canUseCredit())return;
+  const user=context.getUserId(),snapshot=JSON.stringify(context.getData());
+  const balance=accountBalances(context.getData(),date),value=availableCredit(context.getData(),date,balance?.available??null);
+  document.querySelector('#credit-limit-dialog')?.remove();
+  const dialog=document.createElement('dialog');dialog.id='credit-limit-dialog';dialog.className='account-dialog ledger-dialog';
+  dialog.innerHTML=`<button class="dialog-close" aria-label="Đóng">×</button><h2>Hạn mức khả dụng PayPay</h2><p>Nhập số tiền còn có thể sử dụng cuối ngày ${dateLabel(date)} theo PayPay. Giao dịch thẻ sau ngày này sẽ tiếp tục cộng/trừ hạn mức. Cập nhật không giới hạn số lần và không dùng lượt thiết lập số dư.</p><form><label>Hạn mức khả dụng · ${currencyLabel()}<input name="available" data-money data-money-kind="card" inputmode="decimal" maxlength="32" required value="${value!=null&&value>=0?formatAmount(value):''}"></label><button class="account-submit">Lưu thay đổi</button></form><p role="status" aria-live="polite"></p>`;
+  document.body.append(dialog);dialog.showModal();let busy=false;
+  dialog.querySelector('.dialog-close').onclick=()=>{if(!busy)dialog.close();};
+  dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();});dialog.addEventListener('close',()=>dialog.remove());
+  dialog.querySelector('form').onsubmit=async event=>{
+    event.preventDefault();if(busy)return;const status=dialog.querySelector('[role=status]');
+    try{
+      busy=true;dialog.querySelectorAll('button,input').forEach(e=>e.disabled=true);
+      if(!context.canEdit()||!await context.verifyCreditAccess()||context.getUserId()!==user)throw Error('Chức năng Thẻ & sao kê chỉ dành cho admin.');
+      if(JSON.stringify(context.getData())!==snapshot)throw Error('Dữ liệu đã thay đổi. Đóng và mở lại để kiểm tra.');
+      if(date>today())throw Error('Không thể cập nhật số dư cho ngày tương lai.');
+      const next=structuredClone(context.getData());
+      setAvailableCredit(next,{id:crypto.randomUUID(),date,amount:event.target.elements.available.value});
+      await context.commitConfirmed(next);dialog.close();
+    }catch(error){status.textContent=t(error.message);}finally{busy=false;dialog.querySelectorAll('button,input').forEach(e=>e.disabled=false);}
+  };
 }

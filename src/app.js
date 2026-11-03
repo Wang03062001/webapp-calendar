@@ -1,5 +1,5 @@
 import { financeView, isCreditItem, creditSnapshot } from './credit-access.js';
-import { accountsPanel, showAccountLedger, showMonthReconciliation, showBalanceRequest, sourceName } from './accounts-ui.js';
+import { accountsPanel, showAccountLedger, showMonthReconciliation, showBalanceRequest, showAvailableCredit, sourceName } from './accounts-ui.js';
 import { accountSource, moneyKind, moneyOut, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
 import { setCurrencies, currencyLabel, readDisplay, saveDisplay, installMoneyFormatting } from './preferences.js';
 import { startTranslations, setLanguage, t } from './i18n.js';
@@ -80,7 +80,7 @@ async function refreshCreditRole(force = false) {
     if (cloud.user?.id !== userId || creditRole.request !== request) return false;
     const changed = creditRole.allowed !== allowed;
     creditRole.allowed = allowed; creditRole.checked = true;
-    if (!allowed) { document.querySelectorAll('#credit-dialog,#debt-dialog,#reconcile-dialog,#ledger-dialog').forEach(d=>d.close()); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
+    if (!allowed) { document.querySelectorAll('#credit-dialog,#credit-limit-dialog,#debt-dialog,#reconcile-dialog,#ledger-dialog').forEach(d=>d.close()); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
     if (changed) render();
     return allowed;
   })();
@@ -270,7 +270,7 @@ root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
   if ((button.dataset.delete !== undefined || ['add-debt', 'add', 'quick-expense', 'quick-income', 'quick-savings', 'add-year', 'remove-year', 'import', 'export', 'save', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
-  if ((button.dataset.view === 'credit' || button.dataset.creditAction || button.dataset.creditMonth) && (!canEdit() || !await refreshCreditRole(true))) { notify('Chức năng Thẻ & sao kê chỉ dành cho admin.'); return; }
+  if ((button.dataset.action==='paypay-available' || button.dataset.view === 'credit' || button.dataset.creditAction || button.dataset.creditMonth) && (!canEdit() || !await refreshCreditRole(true))) { notify('Chức năng Thẻ & sao kê chỉ dành cho admin.'); return; }
   if(button.dataset.removeTransfer){showAccountLedger(financeContext(),'delete',decodeURIComponent(button.dataset.removeTransfer));return;}
   if (button.dataset.creditAction) { showCreditDialog(financeContext(), button.dataset.creditAction, monthKey(year,month)); return; }
   if (button.dataset.creditMonth) { [year, month] = button.dataset.creditMonth.split('-').map(Number); month--; day = Math.min(day, daysInMonth(year,month)); view = 'credit'; render(); return; }
@@ -295,6 +295,7 @@ root.addEventListener('click', async event => {
       bank.required=cash.required=true;if(!bank.reportValidity()||!cash.reportValidity())break;
       try{showMonthReconciliation(financeContext(),selectedKey(),{bank:bank.value,cash:cash.value});}catch(error){notify(error.message);}break;
     }
+    case 'paypay-available': showAvailableCredit(financeContext(),selectedKey()); break;
     case 'account-balances': showBalanceRequest(financeContext(),selectedKey()); break;
     case 'account-transfer': showAccountLedger(financeContext(),'transfer'); break;
     case 'save': await saveChanges(); break;
@@ -434,7 +435,7 @@ async function refreshAccountIdentity() {
 function syncAccountProfile() {
   const id = cloud.user?.id || null;
   if (profileUserId === id) return;
-  if (profileUserId && profileUserId !== id) document.querySelectorAll('#profile-dialog,#admin-dialog,#settings-dialog,#credit-dialog,#debt-dialog,#ledger-dialog,#reconcile-dialog').forEach(dialog => dialog.close());
+  if (profileUserId && profileUserId !== id) document.querySelectorAll('#profile-dialog,#admin-dialog,#settings-dialog,#credit-dialog,#credit-limit-dialog,#debt-dialog,#ledger-dialog,#reconcile-dialog').forEach(dialog => dialog.close());
   profileUserId = id; accountProfile = null;
   if (!id) currencyPromptUser = null;
   if (!id) return;

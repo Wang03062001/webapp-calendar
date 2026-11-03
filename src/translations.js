@@ -1,6 +1,11 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Nhập / cập nhật hạn mức|Enter / update available credit|利用可能額を入力・更新|이용 가능 한도 입력 / 업데이트|輸入／更新可用額度
+Nhập số tiền còn có thể sử dụng cuối ngày|Enter the amount available at the end of|次の日の終了時点の利用可能額を入力|다음 날짜 마감 시 이용 가능 금액 입력|輸入以下日期結束時的可用金額
+ theo PayPay. Giao dịch thẻ sau ngày này sẽ tiếp tục cộng/trừ hạn mức. Cập nhật không giới hạn số lần và không dùng lượt thiết lập số dư.| as shown in PayPay. Later card transactions adjust this amount. Updates are unlimited and do not use balance-update slots.|、PayPayに表示された金額です。その後のカード取引で増減します。更新回数は無制限で、残高更新回数を消費しません。|의 PayPay 표시 금액입니다. 이후 카드 거래로 한도가 조정됩니다. 업데이트 횟수는 무제한이며 잔액 업데이트 횟수를 사용하지 않습니다.| PayPay 顯示的金額。後續信用卡交易會增減此額度。更新不限次數，也不占用餘額更新次數。
+Lịch sử hạn mức không hợp lệ.|Invalid available-credit history.|利用可能額の履歴が無効です。|유효하지 않은 이용 가능 한도 기록입니다.|可用額度歷史記錄無效。
+
 Lương & thưởng|Salary & bonus|給与・賞与|급여 및 상여|薪資與獎金
 Chi từ ngân hàng|Bank spending|銀行からの支出|은행 지출|銀行支出
 Mua bằng thẻ tín dụng|Credit card purchases|クレジットカード購入|신용카드 구매|信用卡消費

@@ -39,6 +39,14 @@ export function normalizeCards(raw) {
     if (source.status === 'paid') { statement.paidOn = source.paidOn; if (source.paymentSource !== undefined) { if (!['bank','cash'].includes(source.paymentSource)) throw new Error('Nguồn thanh toán không hợp lệ.'); statement.paymentSource = source.paymentSource; } }
     result.statements.push(statement);
   }
+  if(raw.availableCreditHistory!==undefined){
+    if(!Array.isArray(raw.availableCreditHistory))throw Error('Lịch sử hạn mức không hợp lệ.');
+    result.availableCreditHistory=[];
+    for(const row of raw.availableCreditHistory){
+      if(!row||!String(row.id||'').trim()||!cardDate(row.date)||result.availableCreditHistory.some(r=>r.id===String(row.id)))throw Error('Lịch sử hạn mức không hợp lệ.');
+      result.availableCreditHistory.push({id:String(row.id),date:row.date,amount:cardMoney(row.amount)});
+    }
+  }
   return result;
 }
 export function cardPurchases(data, month, settlement = 'oneoff') {
@@ -113,4 +121,20 @@ export function validateCardLinks(data) {
     seen.add(statement.month);
   }
   for (const statement of data.cards?.statements || []) if (statement.status !== 'draft' && statement.fees && !seen.has(statement.month)) throw new Error('Thiếu khoản phí liên kết sao kê.');
+}
+
+// Observed available credit is independent of the bank/cash opening balances.
+export function setAvailableCredit(data,{id,date,amount}) {
+  if(!id||!cardDate(date))throw Error('Lịch sử hạn mức không hợp lệ.');
+  const cards=normalizeCards(data.cards||defaultCards());
+  const next=normalizeCards({...cards,availableCreditHistory:[...(cards.availableCreditHistory||[]),{id,date,amount}]});
+  data.cards=next;
+}
+export function availableCredit(data,date,fallback=null) {
+  const anchor=(data.cards?.availableCreditHistory||[]).filter(r=>r.date<=date).reduce((last,r)=>!last||r.date>=last.date?r:last,null);
+  if(!anchor)return fallback;
+  let value=anchor.amount;
+  for(const [day,entry] of Object.entries(data.days))if(day>anchor.date&&day<=date)for(const item of entry.items)if(item.paymentMethod==='card'&&item.status!=='planned'&&!item.movement&&!item.cardPaymentMonth)value-=item.amount;
+  for(const s of data.cards?.statements||[])if(s.status==='paid'&&s.paidOn>anchor.date&&s.paidOn<=date)value+=statementNumbers(s).total;
+  return roundCard(value);
 }
