@@ -167,3 +167,38 @@ Chỉ tài khoản được `calendar_is_admin` xác nhận là admin mới th�
 Đây là giới hạn chức năng ứng dụng theo quyền admin xác minh từ máy chủ; chính sách RLS tài liệu JSON theo chủ tài khoản vẫn giữ nguyên. Không triển khai thay đổi SQL hoặc sửa dữ liệu thật cho thay đổi giao diện này.
 
 Admin có nút **Nhập / cập nhật hạn mức** ngay trong ô **Hạn mức khả dụng PayPay**. Nhập số còn có thể dùng theo PayPay vào cuối ngày đang chọn, không phải tổng hạn mức tín dụng. Có thể cập nhật không giới hạn số lần, kể cả chưa thiết lập số dư ngân hàng/tiền mặt hoặc đã hết 3 lượt cập nhật số dư. Mốc nhập được lưu theo tài khoản, giữ qua đồng bộ/sao lưu/tải lại; mốc mới nhất đến ngày xem được ưu tiên, giao dịch thẻ sau ngày mốc tiếp tục điều chỉnh hạn mức. Thao tác không sửa dư nợ, tổng hạn mức, tiền ngân hàng/tiền mặt hay lịch sử đối chiếu. Khi chưa có mốc nhập riêng, ứng dụng vẫn dùng tổng hạn mức trừ dư nợ như trước.
+
+## Hai khu vực tài chính (A–E)
+
+Một đăng nhập có nút chuyển **Nước ngoài / Việt Nam**. Chọn Nhật (JPY), Anh (GBP), Hàn (KRW) hoặc Trung Quốc (CNY) trong **Chọn quốc gia & chức năng** khi sổ nước ngoài còn trống. Sổ Việt Nam dùng VND, mặc định tắt Lương. Mỗi sổ có lịch, nguồn tiền, tiết kiệm, khoản vay, tiền vào khác, khoản phải thu và báo cáo riêng. Có thể bật/tắt từng mục; thao tác này không xóa lịch sử và không loại tiền đã ghi khỏi tổng hợp. Quốc gia/tiền tệ của sổ có dữ liệu không được đổi nhãn sang quốc gia khác. Ngôn ngữ giao diện không đổi quốc gia hoặc tiền tệ.
+
+Dữ liệu cũ giữ tại sổ gốc/nước ngoài; không chuyển giao dịch sang Việt Nam và không tự quy đổi. Nếu sổ cũ dùng VND, nút sổ gốc ghi **Sổ cũ (Việt Nam)** để phân biệt với sổ Việt Nam mới. Lịch sử tiết kiệm tháng/mục tiêu cũ giữ nguyên tiền tệ riêng (ví dụ VND), không dùng các con số đó để tự tạo số dư tiết kiệm JPY. Sao lưu JSON xuất/nhập toàn bộ hai sổ cùng nhau. Các thiết bị dùng chung một phiên bản dữ liệu và kiểm tra revision, tránh ghi đè sổ không đang xem. Nên xuất sao lưu trước khi bắt đầu nhập các nguồn mới.
+
+### Nguồn tiết kiệm thực
+
+**Tài sản khu vực = ngân hàng chưa phân bổ + tiền mặt + nguồn tiết kiệm**, cùng đơn vị thu chi của khu vực. Nếu tiết kiệm nằm trong ngân hàng, không nhập lại vào cả ngân hàng chưa phân bổ lẫn tiết kiệm. Khi thiết lập số đầu ngày, nhập ba phần riêng biệt. Với sổ cũ chưa có nguồn tiết kiệm, dùng **Thiết lập nguồn tiết kiệm**: nếu tiền đã nằm trong ngân hàng đang ghi, nhập 0 rồi dùng **Phân bổ / chuyển nguồn tiền** để chuyển nội bộ. Phân bổ giữa nguồn không tạo chi phí hoặc thay đổi tổng tài sản. Số theo dõi tiết kiệm tháng là lịch sử tích lũy, không tự sinh thêm tiền trong nguồn.
+
+Khoản **Đã chi** có nguồn Tiết kiệm giảm tiết kiệm và tài sản một lần, đồng thời tăng chi phí; khoản Dự kiến chưa trừ. Sửa/xóa phải điều chỉnh đúng ảnh hưởng; chặn số dư tiết kiệm âm và giao dịch trước ngày mở nguồn. Đối chiếu cuối tháng/ngày thường có thêm số tiết kiệm thực tế khi đã mở nguồn. Giới hạn 3 xác nhận cập nhật số dư thành công/tháng được áp dụng riêng từng sổ; đối chiếu cuối tháng không tính lượt. Hạn mức PayPay vẫn được nhập không giới hạn, độc lập với số dư ba nguồn.
+
+### Nhập tiền vào và khoản phải thu
+
+**Tiền vào khác** có ngày, nguồn nhận, loại, số tiền, ghi chú; có sửa và xóa. Tiền được cho, làm thêm, tiền lãi tăng Thu nhập khác, không tăng Lương. **Tiền của bản thân gửi về** và **Thu hồi nợ gốc** tăng số dư nhưng không tính thu nhập mới. Trước khi thu hồi gốc, ghi khoản người khác đang nợ trong **Khoản phải thu**; không tự trừ tiền lần nữa vì đây là số gốc đã cho vay trước đó. Thu hồi giảm số phải thu; không được vượt gốc còn lại. Sửa/xóa tiền thu hồi cập nhật lại số dư và số gốc; không xóa khoản phải thu còn lịch sử thu hồi. Tiền lãi luôn ghi riêng với gốc.
+
+Không có chức năng chuyển tiền liên khu vực hay lấy tỷ giá. Bạn tự ghi chi 100.000 JPY từ Tiết kiệm tại Nhật, sau đó tự ghi số VND thực nhận ở sổ Việt Nam, chọn loại Tiền của bản thân gửi về và nguồn nhận. Phí có thể ghi thành một khoản chi riêng. Không liên kết hoặc tự tạo giao dịch ở sổ còn lại, không cộng JPY và VND thành một tổng.
+
+### Thẻ theo khu vực và quyền
+
+Chỉ admin được máy chủ xác nhận mới dùng chức năng thẻ. Nhật giữ module PayPay chi tiết và hạn mức khả dụng. Việt Nam và các quốc gia khác dùng sao kê đơn giản: kỳ, số cần trả, ngày đến hạn, trạng thái; khi trả chọn ngày thực trả và nguồn (ngân hàng/tiền mặt/tiết kiệm). Thanh toán không cộng lại chi phí mua hàng. Nếu chỉ nhập sao kê mà chưa có giao dịch mua, app không suy diễn chi phí/danh mục từ tổng thanh toán. Sổ cũ chưa chọn quốc gia giữ chế độ thẻ cũ. Tài khoản thường không được cấp quyền thẻ qua việc bật mục trong cài đặt.
+
+### Kiểm tra thay đổi A–E
+
+`node --test --test-isolation=none` chạy từng kiểm thử và thống kê đầy đủ; `npm test` chạy các tệp test; `npm run build` tạo bản tĩnh. Kiểm tra trình duyệt tùy chọn dùng Chromium và playwright-core ngoài dependency dự án:
+
+```sh
+npm install --prefix /tmp/calendar-browser --no-package-lock playwright-core
+# Chạy npm run dev trong một terminal khác.
+PLAYWRIGHT_MODULE=/tmp/calendar-browser/node_modules/playwright-core/index.mjs \
+  CALENDAR_URL=http://127.0.0.1:5173/ node scripts/check-regions-browser.mjs
+```
+
+Kịch bản chỉ sử dụng dữ liệu mô phỏng và chặn tất cả yêu cầu HTTPS thật; có kiểm tra nguồn tiết kiệm, hai sổ, loại tiền vào, sao kê đơn giản, bảo toàn sổ cũ, tải lại, bật/tắt mục, thu hồi admin, khởi tạo GBP và màn hình điện thoại. Không cần SQL/Edge Function mới: tài liệu vẫn có version 2 ở cấp gốc và dùng RPC/kiểm tra revision hiện có. Push Git không chứng minh trang hosting đã triển khai bản mới.

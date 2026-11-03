@@ -1,4 +1,6 @@
-import { normalizeAccounts, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
+import { normalizeBookSettings,COUNTRIES } from './region-model.js';
+import { normalizeCashEntries, normalizeReceivables, receiptTotals } from './receipt-model.js';
+import { normalizeAccounts, validateSavingsLedger, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
 import { normalizeCurrencies } from './preferences.js';
 import { normalizeCards, migrateLegacyPayments, validateCardLinks, validMonth, cardDate } from './card-model.js';
 export const YEARS = Array.from({ length: 8 }, (_, i) => 2026 + i);
@@ -45,15 +47,16 @@ export function monthSummary(data, year, month) {
   const income = data.incomes[prefix] || {};
   const salary = amount(income.salary), bonus = amount(income.bonus);
   const savings = amount(data.savings?.[prefix]);
+  const other=receiptTotals(data,prefix);
   const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
   const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
-  return { salary, bonus, expense, planned, savings, balance: roundMoney(salary + bonus - expense), count, plannedCount };
+  return { salary, bonus, expense, planned, savings, balance: roundMoney(salary + bonus + other.income - expense), count, plannedCount, ...(data.receipts?{otherIncome:other.income,otherReceipts:other.nonIncome}:{}) };
 }
 export function yearSummary(data, year) {
   return Array.from({ length: 12 }, (_, month) => monthSummary(data, year, month)).reduce((all, item) => {
     for (const key of Object.keys(all)) all[key] = roundMoney(all[key] + item[key]);
     return all;
-  }, { salary: 0, bonus: 0, expense: 0, planned: 0, savings: 0, balance: 0, count: 0, plannedCount: 0 });
+  }, { ...(data.receipts?{otherIncome:0,otherReceipts:0}:{}), salary: 0, bonus: 0, expense: 0, planned: 0, savings: 0, balance: 0, count: 0, plannedCount: 0 });
 }
 export function savingsProgress(data, year) {
   const saved = yearSummary(data, year).savings;
@@ -121,7 +124,7 @@ export function debtDueStatus(debt, today) {
 export function repayDebt(data, debtId, payment, { recordExpense = true } = {}) {
   const debt = data.debts.find(item => item.id === debtId);
   if (!debt) throw new Error('Không tìm thấy khoản nợ.');
-  if(payment.source!==undefined && !['bank','cash'].includes(payment.source))throw new Error('Nguồn thanh toán không hợp lệ.');
+  if(payment.source!==undefined && !['bank','cash','savings'].includes(payment.source))throw new Error('Nguồn thanh toán không hợp lệ.');
   const value = positiveMoney(payment.amount);
   const id = String(payment.id || '');
   if (!id.trim() || debt.payments.some(item => item.id === id)) throw new Error('Lần trả nợ này đã được ghi nhận.');
@@ -147,14 +150,14 @@ export function normalizeData(input) {
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
     if (!match || !validYear(+match[1]) || +match[3] > daysInMonth(+match[1], +match[2] - 1) || !day || !Array.isArray(day.items)) continue;
-    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: amount(item.amount), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod: 'card', settlement: ['oneoff', 'ribo', 'fee'].includes(item.settlement) ? item.settlement : 'oneoff', ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
+    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: amount(item.amount), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod: 'card', settlement: ['oneoff', 'ribo', 'fee'].includes(item.settlement) ? item.settlement : 'oneoff', ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
   }
   for(const entry of Object.values(result.days))for(const item of entry.items)if(isInternalMovement(item)){
     if(item.cardPaymentMonth||item.cardFeeMonth||item.debtPaymentId)throw Error('Chuyển tiền không được gắn với thanh toán nợ.');
     item.paymentMethod=item.movement==='withdraw'?'bank':'cash';delete item.settlement;delete item.billingMonth;
   }
   for (const [key, income] of Object.entries(input.incomes)) {
-    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4)) && income) result.incomes[key] = { salary: amount(income.salary), bonus: amount(income.bonus), note: String(income.note || '').slice(0, 20000), ...(['bank','cash'].includes(income.account) ? {account:income.account} : {}), ...(income.earnedMonth && validMonth(income.earnedMonth) ? { earnedMonth: income.earnedMonth } : {}), ...(income.receivedOn && cardDate(income.receivedOn) ? { receivedOn: income.receivedOn } : {}) };
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4)) && income) result.incomes[key] = { salary: amount(income.salary), bonus: amount(income.bonus), note: String(income.note || '').slice(0, 20000), ...(['bank','cash','savings'].includes(income.account) ? {account:income.account} : {}), ...(income.earnedMonth && validMonth(income.earnedMonth) ? { earnedMonth: income.earnedMonth } : {}), ...(income.receivedOn && cardDate(income.receivedOn) ? { receivedOn: income.receivedOn } : {}) };
   }
   for (const [key, value] of Object.entries(input.savings || {})) {
     if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4))) result.savings[key] = amount(value);
@@ -200,5 +203,15 @@ export function normalizeData(input) {
   migrateLegacyPayments(result);
   validateCardLinks(result);
   if(input.accounts !== undefined)result.accounts=normalizeAccounts(input.accounts);
+  if(input.bookSettings!==undefined){result.bookSettings=normalizeBookSettings(input.bookSettings);if((result.currencies?.cash||'JPY')!==COUNTRIES[result.bookSettings.country].currency)throw Error('Quốc gia không khớp tiền tệ của sổ.');}
+  if(input.receipts!==undefined)result.receipts=normalizeCashEntries(input.receipts);
+  if(input.receivables!==undefined||result.receipts?.some(r=>r.type==='repayment'))result.receivables=normalizeReceivables(input.receivables||[],result.receipts||[]);
+  if(input.regional!==undefined){
+    if(!input.regional||typeof input.regional!=='object'||!input.regional.vietnam||input.regional.vietnam.regional)throw Error('Sổ Việt Nam không hợp lệ.');
+    const vn=normalizeData(input.regional.vietnam);
+    if(vn.bookSettings?.country!=='VN'||vn.currencies?.cash!=='VND')throw Error('Sổ Việt Nam phải dùng VND.');
+    result.regional={vietnam:vn};
+  }
+  validateSavingsLedger(result);
   return result;
 }

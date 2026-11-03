@@ -36,7 +36,7 @@ export function normalizeCards(raw) {
     const statement = { month: source.month, dueDate: source.dueDate, confirmedOn: source.confirmedOn || '', status: source.status, note: String(source.note || '').slice(0, 2000) };
     for (const field of ['priorBalance', 'newRibo', 'principal', 'fees', 'oneOff']) statement[field] = cardMoney(source[field]);
     if (statementNumbers(statement).carry < 0) throw new Error('Gốc trả vượt tổng dư nợ リボ.');
-    if (source.status === 'paid') { statement.paidOn = source.paidOn; if (source.paymentSource !== undefined) { if (!['bank','cash'].includes(source.paymentSource)) throw new Error('Nguồn thanh toán không hợp lệ.'); statement.paymentSource = source.paymentSource; } }
+    if (source.status === 'paid') { statement.paidOn = source.paidOn; if (source.paymentSource !== undefined) { if (!['bank','cash','savings'].includes(source.paymentSource)) throw new Error('Nguồn thanh toán không hợp lệ.'); statement.paymentSource = source.paymentSource; } }
     result.statements.push(statement);
   }
   if(raw.availableCreditHistory!==undefined){
@@ -84,7 +84,7 @@ export function migrateLegacyPayments(data) {
 export function settleStatement(data, month, paidOn, paymentSource = 'bank') {
   const statement = data.cards?.statements.find(item => item.month === month);
   if (statement?.status !== 'confirmed' || !cardDate(paidOn)) throw new Error('Cần sao kê đã chốt và ngày thanh toán hợp lệ.');
-  if(!['bank','cash'].includes(paymentSource))throw new Error('Nguồn thanh toán không hợp lệ.');
+  if(!['bank','cash','savings'].includes(paymentSource))throw new Error('Nguồn thanh toán không hợp lệ.');
   const next={...statement,status:'paid',paidOn,paymentSource};addPaymentRow(data,next);
   Object.assign(statement,next);
   if (!data.years.includes(Number(paidOn.slice(0, 4)))) data.years.push(Number(paidOn.slice(0, 4)));

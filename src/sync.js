@@ -1,7 +1,7 @@
 import { emptyData, normalizeData } from './model.js';
 
 export const LOCAL_KEY = 'lich-cua-toi.v1';
-export const hasData = data => Object.keys(data.days).length + Object.keys(data.incomes).length + Object.keys(data.savings).length + Object.keys(data.goals).length + (data.debts?.length || 0) + (data.cards?.statements.length || 0) + (data.cards?.availableCreditHistory?.length || 0) + (data.accounts ? 1 : 0) > 0;
+export const hasData = data => Object.keys(data.days).length + Object.keys(data.incomes).length + Object.keys(data.savings).length + Object.keys(data.goals).length + (data.debts?.length || 0) + (data.cards?.statements.length || 0) + (data.cards?.availableCreditHistory?.length || 0) + (data.accounts ? 1 : 0) + (data.receipts?.length||0) + (data.receivables?.length||0) + (data.regional?.vietnam&&hasData(data.regional.vietnam)?1:0) > 0;
 
 export class SyncController {
   constructor(client, storage, { onData, onStatus }) {

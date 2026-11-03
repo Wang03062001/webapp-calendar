@@ -144,3 +144,13 @@ test('concurrent confirmed updates keep optimistic conflicts and account caches 
  await second.sync.logout();await second.sync.open();assert.equal(second.sync.data.goals['2026'],undefined);assert.equal(second.sync.cacheKey,'lich-cloud:example.supabase.co:user-b');
  assert.equal(JSON.parse(first.store.getItem(first.sync.cacheKey)).data.goals['2026'],3);
 });
+
+test('regional documents sync as a single revision without dropping the inactive book',async t=>{
+ const {sync,client}=setup(t);await sync.open();
+ const foreign=doc(1),vn={...doc(2),currencies:{cash:'VND',savings:'VND'},bookSettings:{country:'VN',modules:{salary:false,receipts:true,savings:true,debts:true,receivables:true,cards:true}}};
+ foreign.regional={vietnam:vn};let saved;
+ client.save=async(data,revision)=>{saved=structuredClone(data);return {revision:revision+1};};
+ sync.save(foreign);await sync.commit();assert.equal(saved.goals['2026'],1);assert.equal(saved.regional.vietnam.goals['2026'],2);
+ const next=structuredClone(sync.data);next.regional.vietnam.goals['2026']=3;await sync.commitConfirmed(next);assert.equal(sync.data.goals['2026'],1);assert.equal(sync.data.regional.vietnam.goals['2026'],3);
+ client.load=async()=>({data:saved,revision:sync.revision});await sync.refresh();assert.equal(sync.data.regional.vietnam.goals['2026'],3);
+});

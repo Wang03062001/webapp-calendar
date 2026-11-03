@@ -1,6 +1,68 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Khu vực tài chính|Financial region|家計の地域|재정 지역|財務地區
+Nhật Bản|Japan|日本|일본|日本
+Việt Nam|Vietnam|ベトナム|베트남|越南
+Anh|United Kingdom|英国|영국|英國
+Hàn Quốc|South Korea|韓国|한국|韓國
+Trung Quốc|China|中国|중국|中國
+Chọn quốc gia & chức năng|Choose country & features|国・機能を選択|국가 및 기능 선택|選擇國家與功能
+Quốc gia & chức năng|Country & features|国・機能|국가 및 기능|國家與功能
+Quốc gia|Country|国|국가|國家
+Mỗi khu vực có số dư riêng. Nhập tiền gửi và thực nhận thủ công; không quy đổi tỷ giá.|Each region has separate balances. Enter outgoing and received amounts manually; no currency conversion.|地域ごとに残高を分けます。送金額と受取額は手入力し、通貨換算しません。|지역별 잔액을 분리합니다. 송금액과 실수령액을 직접 입력하며 환산하지 않습니다.|各地區餘額獨立。手動輸入匯出與實收金額，不進行匯率換算。
+Chỉ đổi quốc gia khi sổ chưa có dữ liệu. Tắt mục chỉ ẩn giao diện, không xóa số tiền hoặc lịch sử.|Change country only for an empty book. Disabling a feature hides its interface without deleting money or history.|データのない帳簿のみ国を変更できます。機能を非表示にしても金額や履歴は削除しません。|데이터가 없는 장부만 국가를 변경할 수 있습니다. 기능을 꺼도 금액과 기록은 삭제되지 않습니다.|僅空白帳簿可變更國家。關閉功能只隱藏介面，不刪除金額或歷史。
+Không thể đổi quốc gia khi sổ đã có dữ liệu. Dữ liệu cũ được giữ nguyên.|Cannot change country in a populated book. Existing data is preserved.|データのある帳簿の国は変更できません。既存データを保持します。|데이터가 있는 장부는 국가를 변경할 수 없습니다. 기존 데이터는 유지됩니다.|帳簿已有資料，無法變更國家。舊資料會保留。
+Tiền vào khác|Other cash inflows|その他の入金|기타 입금|其他入帳
+Tiền được cho|Gifts received|贈与による入金|받은 선물금|贈與收入
+Làm thêm|Side work|副業|부업|兼職
+Tiền lãi|Interest received|受取利息|받은 이자|利息收入
+Tiền của bản thân gửi về|Own money received|自己資金の受取|본인 자금 수령|收到自己的款項
+Thu hồi nợ gốc|Principal recovered|貸付元本の回収|대여 원금 회수|收回借款本金
+Không tính vào lương. Tiền của bản thân và thu hồi nợ gốc không phải thu nhập mới.|Separate from salary. Own money and principal recovery are not new income.|給与とは別です。自己資金と元本回収は新たな収入ではありません。|급여와 구분합니다. 본인 자금과 원금 회수는 새로운 소득이 아닙니다.|與薪資分開。自己的款項與本金回收不屬於新增收入。
+Ghi tiền nhận|Record money received|入金を記録|입금 기록|記錄收款
+Chưa có khoản tiền vào.|No cash inflows yet.|入金はまだありません。|아직 입금이 없습니다.|尚無入帳記錄。
+Thu nhập khác:|Other income:|その他の収入：|기타 소득:|其他收入：
+Tiền bản thân / thu hồi gốc:|Own money / recovered principal:|自己資金・元本回収：|본인 자금 / 회수 원금:|自有款項／本金回收：
+Khoản phải thu|Receivables|貸付金|받을 채권|應收款
+Ghi khoản phải thu|Record a receivable|貸付金を記録|받을 채권 기록|記錄應收款
+Ghi số tiền người khác đang nợ bạn. Đây là số gốc cần thu, không tự trừ tiền lần nữa.|Record money already owed to you. This opening principal does not deduct cash again.|他者が現在あなたに負っている元本を記録します。現金を再度差し引きません。|다른 사람이 이미 갚아야 할 원금을 기록합니다. 현금을 다시 차감하지 않습니다.|記錄他人目前欠您的本金，不會再次扣款。
+Chưa có khoản phải thu.|No receivables yet.|貸付金はまだありません。|아직 받을 채권이 없습니다.|尚無應收款。
+Gốc:|Principal:|元本：|원금:|本金：
+Người nợ / nội dung|Debtor / description|借り手・内容|채무자 / 내용|欠款人／說明
+Nợ gốc còn phải thu|Outstanding principal|回収予定の元本|미수 원금|尚待收回本金
+Ngày nhận|Date received|受取日|수령일|收款日期
+Loại tiền vào|Inflow type|入金区分|입금 유형|入帳類型
+Nơi nhận|Destination|受取先|입금처|收款來源
+Khoản phải thu (chỉ khi thu hồi gốc)|Receivable (principal recovery only)|貸付金（元本回収時のみ）|받을 채권 (원금 회수만)|應收款（僅回收本金時）
+Chọn khoản phải thu|Select a receivable|貸付金を選択|받을 채권 선택|選擇應收款
+Ngân hàng chưa phân bổ|Unallocated bank funds|銀行の未配分資金|미배정 은행 자금|銀行未分配款項
+Ngân hàng chưa phân bổ + tiền mặt + tiết kiệm|Unallocated bank funds + cash + savings|銀行の未配分資金＋現金＋貯蓄|미배정 은행 자금 + 현금 + 저축|銀行未分配款項＋現金＋儲蓄
+Thiết lập nguồn tiết kiệm|Set up savings funds|貯蓄残高を設定|저축 자금 설정|設定儲蓄來源
+Tiết kiệm đầu ngày (cùng đơn vị nguồn tiền)|Opening savings (same currency as cash sources)|開始時点の貯蓄（資金と同じ通貨）|시작일 저축 (자금과 같은 통화)|日初儲蓄（與資金來源相同幣別）
+Tiết kiệm thực tế|Actual savings|実際の貯蓄|실제 저축|實際儲蓄
+Tiết kiệm theo sổ:|Recorded savings:|帳簿上の貯蓄：|장부상 저축:|帳面儲蓄：
+Phân bổ / chuyển nguồn tiền|Allocate / move funds|資金の配分・移動|자금 배정 / 이동|分配／移轉資金
+Tiền ra các nguồn|Money out of funds|資金の出金|자금 출금|各來源流出款項
+Tiền ra các nguồn trong tháng|Monthly money out|月の出金|월간 출금|本月資金流出
+Tiền ra các nguồn trong ngày|Daily money out|日の出金|일간 출금|當日資金流出
+Chưa thiết lập nguồn tiết kiệm.|Set up savings funds first.|先に貯蓄残高を設定してください。|먼저 저축 자금을 설정하세요.|請先設定儲蓄來源。
+Số dư tiết kiệm không đủ cho giao dịch.|Insufficient savings for this transaction.|この取引に必要な貯蓄残高が不足しています。|이 거래에 필요한 저축 잔액이 부족합니다.|儲蓄餘額不足以支付此交易。
+Giao dịch tiết kiệm có trước ngày bắt đầu nguồn tiền.|Savings transaction predates its opening date.|貯蓄の取引日が開始日より前です。|저축 거래일이 시작일보다 이전입니다.|儲蓄交易早於來源開始日期。
+Tiền thu hồi vượt nợ gốc còn lại.|Recovery exceeds remaining principal.|回収額が残元本を超えています。|회수 금액이 남은 원금을 초과합니다.|收回款項超過剩餘本金。
+Không tìm thấy khoản phải thu.|Receivable not found.|貸付金が見つかりません。|받을 채권을 찾을 수 없습니다.|找不到應收款。
+Tiết kiệm:|Savings:|貯蓄：|저축:|儲蓄：
+Chi từ tiết kiệm|Spending from savings|貯蓄からの支出|저축 지출|從儲蓄支出
+Tổng lương & thưởng tháng|Monthly salary & bonus|月の給与・賞与合計|월 급여 및 상여 합계|每月薪資與獎金合計
+Lương + thưởng + thu nhập khác|Salary + bonus + other income|給与＋賞与＋その他収入|급여 + 상여 + 기타 소득|薪資＋獎金＋其他收入
+Số tiền cần thanh toán|Amount due|支払額|결제 예정 금액|應繳金額
+Nhập / sửa số tiền|Enter / edit amount|金額を入力・編集|금액 입력 / 수정|輸入／修改金額
+Chưa có sao kê.|No statement yet.|明細はまだありません。|아직 명세서가 없습니다.|尚無帳單。
+Ngày đến hạn:|Due date:|支払期限：|납부 기한:|到期日：
+Chưa thanh toán|Unpaid|未払い|미결제|未繳款
+Ngày thực trả|Actual payment date|実際の支払日|실제 결제일|實際付款日期
+Chọn quốc gia trong Quốc gia & chức năng để thiết lập tiền tệ.|Choose a country in Country & features to set the currency.|通貨は「国・機能」で国を選んで設定してください。|통화는 국가 및 기능에서 국가를 선택해 설정하세요.|請在「國家與功能」選擇國家來設定幣別。
+
 Nhập / cập nhật hạn mức|Enter / update available credit|利用可能額を入力・更新|이용 가능 한도 입력 / 업데이트|輸入／更新可用額度
 Nhập số tiền còn có thể sử dụng cuối ngày|Enter the amount available at the end of|次の日の終了時点の利用可能額を入力|다음 날짜 마감 시 이용 가능 금액 입력|輸入以下日期結束時的可用金額
  theo PayPay. Giao dịch thẻ sau ngày này sẽ tiếp tục cộng/trừ hạn mức. Cập nhật không giới hạn số lần và không dùng lượt thiết lập số dư.| as shown in PayPay. Later card transactions adjust this amount. Updates are unlimited and do not use balance-update slots.|、PayPayに表示された金額です。その後のカード取引で増減します。更新回数は無制限で、残高更新回数を消費しません。|의 PayPay 표시 금액입니다. 이후 카드 거래로 한도가 조정됩니다. 업데이트 횟수는 무제한이며 잔액 업데이트 횟수를 사용하지 않습니다.| PayPay 顯示的金額。後續信用卡交易會增減此額度。更新不限次數，也不占用餘額更新次數。

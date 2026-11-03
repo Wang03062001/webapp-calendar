@@ -1,5 +1,5 @@
 // Display preferences are local; linked financial currencies travel with account data.
-export const CURRENCIES = ['JPY', 'VND', 'USD', 'EUR', 'KRW', 'TWD', 'CNY'];
+export const CURRENCIES = ['GBP','JPY', 'VND', 'USD', 'EUR', 'KRW', 'TWD', 'CNY'];
 export const LANGUAGES = [['vi','Tiếng Việt'],['en','English'],['ja','日本語'],['ko','한국어'],['zh-TW','繁體中文（台灣）']];
 const LANGUAGE_CURRENCY = Object.freeze({ vi: 'VND', en: 'USD', ja: 'JPY', ko: 'KRW', 'zh-TW': 'TWD' });
 export function currenciesForLanguage(language) {
