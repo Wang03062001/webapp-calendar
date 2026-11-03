@@ -42,7 +42,7 @@ export function normalizeCards(raw) {
   return result;
 }
 export function cardPurchases(data, month, settlement = 'oneoff') {
-  return Object.entries(data.days).flatMap(([date, entry]) => entry.items.map(item => ({ ...item, date }))).filter(item => item.paymentMethod === 'card' && item.status !== 'planned' && (item.settlement || 'oneoff') === settlement && (item.billingMonth || shiftMonth(item.date.slice(0, 7), 1)) === month);
+  return Object.entries(data.days).flatMap(([date, entry]) => entry.items.map(item => ({ ...item, date }))).filter(item => item.paymentMethod === 'card' && !item.movement && item.status !== 'planned' && (item.settlement || 'oneoff') === settlement && (item.billingMonth || shiftMonth(item.date.slice(0, 7), 1)) === month);
 }
 export function projectedStatement(data, month) {
   const cards = data.cards || defaultCards(), previous = cards.statements.filter(item => item.month < month && item.status !== 'draft').sort((a, b) => b.month.localeCompare(a.month))[0];
@@ -92,7 +92,7 @@ export function undoSettlement(data, month) {
 export function cardCashflow(data, month) {
   const cards = data.cards || defaultCards(), statement = cards.statements.find(item => item.month === month), estimate = statement || projectedStatement(data, month);
   const income = data.incomes[month] || {}, earned = Number(income.salary || 0) + Number(income.bonus || 0);
-  const direct = roundCard(Object.entries(data.days).filter(([date]) => date.startsWith(`${month}-`)).reduce((sum, [, entry]) => sum + entry.items.filter(item => item.status !== 'planned' && item.paymentMethod !== 'card' && !item.cardPaymentMonth).reduce((total, item) => total + item.amount, 0), 0));
+  const direct = roundCard(Object.entries(data.days).filter(([date]) => date.startsWith(`${month}-`)).reduce((sum, [, entry]) => sum + entry.items.filter(item => item.status !== 'planned' && item.paymentMethod !== 'card' && !item.cardPaymentMonth && !item.movement).reduce((total, item) => total + item.amount, 0), 0));
   const paid = roundCard(cards.statements.filter(item => item.status === 'paid' && item.paidOn.startsWith(`${month}-`)).reduce((sum, item) => sum + statementNumbers(item).total, 0));
   const reserved = roundCard(cards.statements.filter(item => item.status === 'confirmed' && item.dueDate.startsWith(`${month}-`)).reduce((sum, item) => sum + statementNumbers(item).total, 0));
   const estimatedReserve = (!statement || statement.status === 'draft') && estimate.dueDate.startsWith(`${month}-`) ? statementNumbers(estimate).total : 0;

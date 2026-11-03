@@ -1,6 +1,36 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Tài sản còn lại|Remaining assets|残りの資産|남은 자산|剩餘資產
+Ngân hàng + tiền mặt|Bank + cash|銀行＋現金|은행 + 현금|銀行＋現金
+Loại giao dịch|Transaction type|取引の種類|거래 유형|交易類型
+Rút tiền mặt|Cash withdrawal|現金引き出し|현금 인출|提領現金
+Nạp tiền vào ngân hàng|Cash deposit to bank|銀行へ現金入金|은행에 현금 입금|現金存入銀行
+Chi tiêu|Spending|支出|지출|支出
+Xem|View|表示|보기|查看
+Chuyển giữa ngân hàng và tiền mặt; tổng tài sản không đổi.|Transfers between bank and cash keep total assets unchanged.|銀行と現金間の振替では資産合計は変わりません。|은행과 현금 간 이체는 총자산을 변경하지 않습니다.|銀行與現金之間轉移不改變總資產。
+Đối chiếu cuối tháng|Month-end reconciliation|月末残高の照合|월말 잔액 대조|月底餘額核對
+Thiết lập số dư đầu ngày trước khi đối chiếu.|Set opening balances before reconciling.|照合前に期首残高を設定してください。|대조 전에 기초 잔액을 설정하세요.|核對前請先設定期初餘額。
+Nhập tiền thực có cuối ngày, sau mọi giao dịch. Xác nhận sẽ dùng số thực tế làm số dư đầu tháng mới và giữ nguyên lịch sử chi tiêu.|Enter actual balances after all transactions on the final day. Confirmation uses them for next month's opening balances and keeps spending history unchanged.|月末の全取引後の実残高を入力します。確認後は翌月の期首残高に使い、支出履歴は保持します。|월말 모든 거래 후의 실제 잔액을 입력하세요. 확인하면 다음 달 기초 잔액에 반영하며 지출 내역은 유지됩니다.|請輸入月底所有交易後的實際餘額。確認後將作為下月期初餘額，並保留支出紀錄。
+Ngân hàng thực tế|Actual bank balance|銀行の実残高|은행 실제 잔액|銀行實際餘額
+Tiền mặt thực tế|Actual cash balance|現金の実残高|현금 실제 잔액|實際現金餘額
+Kiểm tra chênh lệch|Review differences|差額を確認|차액 확인|檢查差額
+Chưa đến ngày cuối tháng.|The final day of the month has not arrived.|まだ月末日ではありません。|아직 월말이 아닙니다.|尚未到月底。
+Lịch sử đối chiếu|Reconciliation history|照合履歴|대조 내역|核對紀錄
+Xác nhận đối chiếu cuối tháng|Confirm month-end balances|月末残高を確定|월말 잔액 확인|確認月底餘額
+Ngân hàng theo sổ:|Recorded bank balance:|銀行の帳簿残高：|은행 장부 잔액:|銀行帳面餘額：
+Ngân hàng thực tế:|Actual bank balance:|銀行の実残高：|은행 실제 잔액:|銀行實際餘額：
+Chênh lệch ngân hàng:|Bank difference:|銀行の差額：|은행 차액:|銀行差額：
+Tiền mặt theo sổ:|Recorded cash balance:|現金の帳簿残高：|현금 장부 잔액:|現金帳面餘額：
+Tiền mặt thực tế:|Actual cash balance:|現金の実残高：|현금 실제 잔액:|實際現金餘額：
+Chênh lệch tiền mặt:|Cash difference:|現金の差額：|현금 차액:|現金差額：
+Tổng chênh lệch:|Total difference:|差額合計：|총 차액:|總差額：
+Ghi chú chênh lệch sẽ được thêm vào ngày cuối tháng. Số dư thực tế được chuyển sang tháng mới; không sửa hoặc tạo thêm khoản chi.|A difference note is added to the final day. Actual balances carry to the new month; no expenses are changed or added.|差額メモを月末日に追加します。実残高を翌月に繰り越し、支出は変更・追加しません。|월말에 차액 메모를 추가합니다. 실제 잔액은 다음 달로 이월되며 지출을 수정하거나 추가하지 않습니다.|差額備註將加入月底當天。實際餘額結轉下月，不修改或新增支出。
+Xác nhận số dư thực tế|Confirm actual balances|実残高を確定|실제 잔액 확인|確認實際餘額
+Đã ghi nhận đối chiếu|Reconciliation recorded|照合を記録しました|대조 기록 완료|已記錄核對
+Số dư tháng mới đã cập nhật. Ghi chú chênh lệch được lưu cùng lịch sử.|New-month balances updated. The difference note is saved in history.|翌月残高を更新し、差額メモを履歴に保存しました。|다음 달 잔액을 업데이트하고 차액 메모를 내역에 저장했습니다.|已更新下月餘額，差額備註已保存於紀錄。
+Bản nháp đối chiếu đã được giữ trên máy. Kiểm tra trạng thái đồng bộ.|Reconciliation draft kept on this device. Check sync status.|照合の下書きを端末に保持しました。同期状態を確認してください。|대조 초안을 기기에 보관했습니다. 동기화 상태를 확인하세요.|核對草稿已保留於此裝置，請確認同步狀態。
+
 Thu nhập sau chi trực tiếp & dự phòng thẻ|Income after direct spending & card reserve|直接支出とカード確保額を引いた収入|직접 지출 및 카드 준비금 차감 후 수입|扣除直接支出與信用卡預留金後的收入
 Số tiền thanh toán|Payment amount|支払額|결제 금액|付款金額
 
