@@ -121,3 +121,6 @@ Chức năng hồ sơ/đổi email mới cần triển khai máy chủ riêng: x
 
 
 Có thể gửi mã đổi email bằng **Gmail SMTP, không cần tên miền riêng**: bật Xác minh 2 bước của Google, tạo mật khẩu ứng dụng rồi đặt `SMTP_USER` và `SMTP_PASS` trong Edge Functions Secrets. Deploy lại `account-settings` từ bundle mới. Xem các bước cụ thể trong [ACCOUNT-SETTINGS.md](supabase/ACCOUNT-SETTINGS.md). Gmail SMTP và Resend là hai lựa chọn; SMTP được ưu tiên khi cấu hình đủ. Mật khẩu chỉ lưu phía server.
+
+
+Admin có nút **Xóa tài khoản** trong **Quản lý tài khoản** để xóa tài khoản khác, gồm tài khoản admin khác. Tài khoản đang đăng nhập bị vô hiệu hóa nút xóa và server cũng từ chối tự xóa. Hộp xác nhận hiển thị email/ID chính xác và thông báo xóa vĩnh viễn tài khoản cùng dữ liệu trên máy chủ. API kiểm tra lại quyền admin và email/ID xác nhận trước khi gọi Auth DELETE; dữ liệu liên kết được xóa qua khóa ngoại CASCADE đã có. Bản sao lưu đã xuất và dữ liệu lưu trên thiết bị khác không thể bị xóa từ xa bởi thao tác này. Không có tài khoản thật nào bị xóa khi kiểm thử. Để kích hoạt, cập nhật **Edge Functions → admin-accounts → Code** bằng [bundle mới](supabase/dashboard/admin-accounts.ts), rồi Deploy; không cần SQL mới.

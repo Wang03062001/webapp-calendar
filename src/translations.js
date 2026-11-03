@@ -1,6 +1,17 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Xóa tài khoản|Delete account|アカウントを削除|계정 삭제|刪除帳戶
+Xóa vĩnh viễn tài khoản:|Permanently delete account:|アカウントを完全に削除：|계정 영구 삭제:|永久刪除帳戶：
+Tài khoản và dữ liệu trên máy chủ sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.|The account and its server data will be permanently deleted. This cannot be undone.|アカウントとサーバー上のデータを完全に削除します。元に戻せません。|계정과 서버의 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.|帳戶及其伺服器資料將永久刪除，此操作無法復原。
+Bạn có chắc chắn muốn xóa?|Are you sure you want to delete?|削除してもよろしいですか？|정말 삭제하시겠습니까?|確定要刪除嗎？
+Đã xóa tài khoản.|Account deleted.|アカウントを削除しました。|계정을 삭제했습니다.|已刪除帳戶。
+Đã xóa tài khoản nhưng chưa tải lại được danh sách. Hãy thử tải lại.|Account deleted but the list could not be refreshed. Please reload.|削除しましたが一覧を更新できませんでした。再読み込みしてください。|계정이 삭제되었지만 목록을 새로고침하지 못했습니다. 다시 불러오세요.|已刪除帳戶，但無法重新載入清單，請重試。
+Không thể tự xóa tài khoản admin đang sử dụng.|You cannot delete your own active admin account.|使用中の管理者アカウントは削除できません。|사용 중인 본인 관리자 계정은 삭제할 수 없습니다.|無法刪除目前登入的管理員帳戶。
+Cần xác nhận đúng tài khoản cần xóa.|Confirm the correct account before deleting.|削除するアカウントを確認してください。|삭제할 계정을 정확히 확인하세요.|請確認要刪除的正確帳戶。
+Thông tin tài khoản đã thay đổi. Tải lại danh sách trước khi xóa.|Account details changed. Refresh the list before deleting.|情報が変更されました。削除前に一覧を更新してください。|계정 정보가 변경되었습니다. 삭제 전에 목록을 새로고침하세요.|帳戶資料已變更，請先重新載入清單再刪除。
+Chưa xóa được tài khoản. Hãy tải lại danh sách và kiểm tra trước khi thử lại.|Account could not be deleted. Reload and check the list before retrying.|削除できませんでした。一覧を再読み込みして確認してください。|계정을 삭제하지 못했습니다. 목록을 다시 불러와 확인한 후 재시도하세요.|無法刪除帳戶。請重新載入並確認清單後再試。
+
 Hãy đăng nhập trước khi nhập dữ liệu.|Sign in before entering data.|入力前にログインしてください。|데이터를 입력하기 전에 로그인하세요.|輸入資料前請先登入。
 Hãy đăng nhập trước khi lưu dữ liệu.|Sign in before saving data.|保存前にログインしてください。|저장하기 전에 로그인하세요.|儲存資料前請先登入。
 Hãy đăng nhập để đồng bộ.|Sign in to sync.|同期するにはログインしてください。|동기화하려면 로그인하세요.|請登入以同步。

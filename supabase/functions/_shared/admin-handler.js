@@ -33,7 +33,7 @@ export function createAdminHandler({ url, serviceKey, publicKey, fetcher = globa
       let input; try { input = JSON.parse(raw); } catch { return reply(400, { message: 'Yêu cầu JSON không hợp lệ.' }); }
       if (!input || typeof input !== 'object' || Array.isArray(input)) return reply(400, { message: 'Yêu cầu không hợp lệ.' });
       const action = input.action;
-      const actions = { list: ['action', 'page'], profile: ['action', 'user_id', 'username', 'display_name'], role: ['action', 'user_id', 'admin'], ban: ['action', 'user_id', 'banned'], recovery: ['action', 'user_id'] };
+      const actions = { list: ['action', 'page'], profile: ['action', 'user_id', 'username', 'display_name'], role: ['action', 'user_id', 'admin'], ban: ['action', 'user_id', 'banned'], recovery: ['action', 'user_id'], delete: ['action', 'user_id', 'confirmation'] };
       const fields = Object.hasOwn(actions, action) ? actions[action] : null;
       if (!fields || Object.keys(input).some(key => !fields.includes(key))) return reply(400, { message: 'Thao tác hoặc trường dữ liệu không được hỗ trợ.' });
       if (action === 'list') {
@@ -48,12 +48,21 @@ export function createAdminHandler({ url, serviceKey, publicKey, fetcher = globa
         return reply(200, { users: result.body.users.map(user => { const profile = profiles.body.find(row => row.user_id === user.id); return { ...publicUser(user), username: profile?.username || '', display_name: profile?.display_name || '', is_admin: roles.body.some(row => row.user_id === user.id) }; }), page, has_more: result.body.users.length === 50 });
       }
       if (!UUID.test(input.user_id || '')) return reply(400, { message: 'Mã tài khoản không hợp lệ.' });
+      if (action === 'delete' && input.user_id === actor.body.id) return reply(400, { message: 'Không thể tự xóa tài khoản admin đang sử dụng.' });
+      if (action === 'delete' && (typeof input.confirmation !== 'string' || input.confirmation.length > 254)) return reply(400, { message: 'Cần xác nhận đúng tài khoản cần xóa.' });
       if (action === 'ban' && (typeof input.banned !== 'boolean' || input.user_id === actor.body.id)) return reply(400, { message: 'Không thể tự khóa tài khoản admin đang sử dụng.' });
       if (action === 'profile' && (typeof input.username !== 'string' || !/^[a-z][a-z0-9_]{2,29}$/.test(input.username) || typeof input.display_name !== 'string' || input.display_name.trim().length > 100)) return reply(400, { message: 'Tên tài khoản cần 3–30 ký tự chữ thường, số hoặc dấu gạch dưới; tên hiển thị tối đa 100 ký tự.' });
       if (action === 'role' && (typeof input.admin !== 'boolean' || input.user_id === actor.body.id)) return reply(400, { message: 'Không thể tự thay đổi quyền admin của tài khoản đang sử dụng.' });
       const target = await call(`/auth/v1/admin/users/${input.user_id}`);
       if (target.response.status === 404) return reply(404, { message: 'Không tìm thấy tài khoản.' });
       if (!target.response.ok || target.body?.id !== input.user_id) return reply(502, { message: 'Không đọc được tài khoản cần chỉnh sửa.' });
+      if (action === 'delete') {
+        const expected = target.body.email || target.body.id;
+        if (input.confirmation !== expected) return reply(409, { message: 'Thông tin tài khoản đã thay đổi. Tải lại danh sách trước khi xóa.' });
+        const result = await call(`/auth/v1/admin/users/${input.user_id}`, { method: 'DELETE', body: JSON.stringify({ should_soft_delete: false }) });
+        if (!result.response.ok) return reply(502, { message: 'Chưa xóa được tài khoản. Hãy tải lại danh sách và kiểm tra trước khi thử lại.' });
+        return reply(200, { ok: true, deleted_user_id: input.user_id });
+      }
       if (action === 'profile') {
         const result = await call(`/rest/v1/calendar_profiles?user_id=eq.${input.user_id}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ username: input.username, display_name: input.display_name.trim() }) });
         if (!result.response.ok || !result.body?.length) return reply(409, { message: 'Tên tài khoản đã được dùng hoặc hồ sơ không tồn tại.' });

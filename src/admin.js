@@ -17,9 +17,9 @@ export async function showAdmin(client, currentUserId, onUpdated) {
     disabled(true); status.textContent = 'Đang tải tài khoản…';
     try {
       const result = await client.adminAction({ action: 'list', page }); users = result.users; hasMore = result.has_more;
-      body.innerHTML = users.length ? `<table class="admin-table"><thead><tr><th>Tên tài khoản</th><th>Email</th><th>Tên hiển thị</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${users.map((user, index) => `<tr data-user="${index}"><td><input aria-label="Tên đăng nhập ${index + 1}" maxlength="30" value="${esc(user.username)}" /></td><td><input aria-label="Email tài khoản ${index + 1}" type="email" readonly maxlength="254" value="${esc(user.email)}" /></td><td><input aria-label="Tên tài khoản ${index + 1}" maxlength="100" value="${esc(user.display_name)}" /></td><td>${user.is_admin ? 'Admin · ' : ''}${banned(user) ? 'Đang khóa' : 'Hoạt động'}${user.id === currentUserId ? '<small>Đang đăng nhập</small>' : ''}</td><td><div class="admin-row-actions"><button data-task="profile">Lưu hồ sơ</button><button data-task="update">Đổi email</button><button data-task="role" ${user.id === currentUserId ? 'data-self="true"' : ''}>${user.is_admin ? 'Thu quyền admin' : 'Cấp admin'}</button><button data-task="ban" ${user.id === currentUserId ? 'data-self="true"' : ''}>${banned(user) ? 'Mở khóa' : 'Khóa'}</button><button data-task="recovery">Đặt lại mật khẩu</button></div></td></tr>`).join('')}</tbody></table>` : '<p>Chưa có tài khoản.</p>';
-      dialog.querySelector('.admin-pagination span').textContent = `Trang ${page}`; status.textContent = '';
-    } catch (error) { status.textContent = error.message; }
+      body.innerHTML = users.length ? `<table class="admin-table"><thead><tr><th>Tên tài khoản</th><th>Email</th><th>Tên hiển thị</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${users.map((user, index) => `<tr data-user="${index}"><td><input aria-label="Tên đăng nhập ${index + 1}" maxlength="30" value="${esc(user.username)}" /></td><td><input aria-label="Email tài khoản ${index + 1}" type="email" readonly maxlength="254" value="${esc(user.email)}" /></td><td><input aria-label="Tên tài khoản ${index + 1}" maxlength="100" value="${esc(user.display_name)}" /></td><td>${user.is_admin ? 'Admin · ' : ''}${banned(user) ? 'Đang khóa' : 'Hoạt động'}${user.id === currentUserId ? '<small>Đang đăng nhập</small>' : ''}</td><td><div class="admin-row-actions"><button data-task="profile">Lưu hồ sơ</button><button data-task="update">Đổi email</button><button data-task="role" ${user.id === currentUserId ? 'data-self="true"' : ''}>${user.is_admin ? 'Thu quyền admin' : 'Cấp admin'}</button><button data-task="ban" ${user.id === currentUserId ? 'data-self="true"' : ''}>${banned(user) ? 'Mở khóa' : 'Khóa'}</button><button data-task="recovery">Đặt lại mật khẩu</button><button class="danger" data-task="delete" ${user.id === currentUserId ? 'data-self="true"' : ''}>Xóa tài khoản</button></div></td></tr>`).join('')}</tbody></table>` : '<p>Chưa có tài khoản.</p>';
+      dialog.querySelector('.admin-pagination span').textContent = `Trang ${page}`; status.textContent = ''; return true;
+    } catch (error) { status.textContent = error.message; return false; }
     finally { disabled(false); pagination(); }
   }
   function pagination() {
@@ -39,9 +39,21 @@ export async function showAdmin(client, currentUserId, onUpdated) {
     } else if (action === 'profile') { const [username,,name] = row.querySelectorAll('input'); payload.username = username.value.trim().toLowerCase(); payload.display_name = name.value.trim(); }
     else if (action === 'role') { payload.admin = !user.is_admin; if (!ask(`${payload.admin ? 'Cấp quyền admin cho' : 'Thu hồi quyền admin của'} ${user.email}?`)) return; }
     else if (action === 'ban') { payload.banned = !banned(user); if (!ask(`${payload.banned ? 'Khóa' : 'Mở khóa'} tài khoản ${user.email}?`)) return; }
+    else if (action === 'delete') {
+      if (user.id === currentUserId) return;
+      payload.confirmation = user.email || user.id;
+      if (!globalThis.confirm(`${t('Xóa vĩnh viễn tài khoản:')} ${payload.confirmation}\n\n${t('Tài khoản và dữ liệu trên máy chủ sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.')}\n\n${t('Bạn có chắc chắn muốn xóa?')}`)) return;
+    }
     else if (!ask(`Gửi email đặt lại mật khẩu đến ${user.email}?`)) return;
     disabled(true); status.textContent = 'Đang xử lý…';
-    try { await client.adminAction(payload); await load(); if (action === 'profile') await onUpdated?.(); status.textContent = action === 'recovery' ? 'Đã yêu cầu gửi email đặt lại mật khẩu.' : 'Đã cập nhật tài khoản.'; }
+    try {
+      await client.adminAction(payload);
+      if (action === 'delete') { row.remove(); if (page > 1 && users.length === 1) page--; }
+      const loaded = await load();
+      if (action === 'profile') await onUpdated?.();
+      if (action === 'delete') status.textContent = loaded ? 'Đã xóa tài khoản.' : 'Đã xóa tài khoản nhưng chưa tải lại được danh sách. Hãy thử tải lại.';
+      else status.textContent = action === 'recovery' ? 'Đã yêu cầu gửi email đặt lại mật khẩu.' : 'Đã cập nhật tài khoản.';
+    }
     catch (error) { status.textContent = error.message; }
     finally { disabled(false); pagination(); }
   });

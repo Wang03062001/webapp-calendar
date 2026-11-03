@@ -66,3 +66,8 @@ Kiểm thử trong repository dùng mô phỏng API; kiểm thử SQL thực hi�
 
 
 Hồ sơ tự phục vụ và đổi email hai bước cần triển khai thêm theo [ACCOUNT-SETTINGS.md](ACCOUNT-SETTINGS.md). API `admin-accounts` không còn hỗ trợ đổi email trực tiếp; cần cập nhật bundle admin-accounts cùng bản giao diện mới.
+
+
+## Xóa tài khoản khác
+
+Cập nhật function **admin-accounts** bằng toàn bộ [dashboard/admin-accounts.ts](dashboard/admin-accounts.ts), Deploy và giữ Verify JWT with legacy secret OFF vì function tự xác thực token/quyền admin. Không cần thêm SQL. Trên web, mở **Tài khoản → Quản lý tài khoản → Xóa tài khoản**, đọc email/ID và xác nhận việc xóa vĩnh viễn tài khoản cùng dữ liệu trên máy chủ. Không thể tự xóa tài khoản đang dùng; admin có thể xóa tài khoản khác, kể cả admin khác. Đây là hard delete qua Supabase Auth; các bảng ứng dụng đã có ON DELETE CASCADE. Nếu Supabase từ chối xóa, giao diện báo lỗi và giữ tài khoản trong danh sách để kiểm tra lại. Bản sao lưu đã xuất hoặc bản nháp trên thiết bị khác không thuộc phạm vi xóa từ xa.

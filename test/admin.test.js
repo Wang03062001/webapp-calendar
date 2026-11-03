@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {createAdminHandler} from '../supabase/functions/_shared/admin-handler.js';
 import {createLoginHandler} from '../supabase/functions/_shared/login-handler.js';
 const A='11111111-1111-1111-1111-111111111111', B='22222222-2222-2222-2222-222222222222';
-function fixture({admin=true,banned=false,valid=true}={}){
+function fixture({admin=true,banned=false,valid=true,deleteFailure=false}={}){
  const calls=[];
  const fetcher=async(url,options)=>{
   const u=new URL(url),path=u.pathname;calls.push({url,options});let body;
+  if(options.method==='DELETE' && path===`/auth/v1/admin/users/${B}` && deleteFailure)return new Response('{}',{status:503});
   if(path==='/auth/v1/user')return new Response(JSON.stringify({id:A,user_metadata:{role:'admin'}}),{status:valid?200:401});
   if(path==='/rest/v1/calendar_admins')body=options.method==='POST'||options.method==='DELETE'?null:admin?[{user_id:A}]:[];
   else if(path===`/auth/v1/admin/users/${A}`)body={id:A,email:'admin@example.com',banned_until:banned?'2999-01-01':null};
@@ -69,4 +70,22 @@ test('unknown username does not leak an email or yield a session',async()=>{
  const handler=createLoginHandler({url:'https://example.supabase.co',serviceKey:'server',publicKey:'public',fetcher:async url=>new Response(JSON.stringify(url.includes('calendar_profiles')?[]:{error:'invalid_credentials'}),{status:url.includes('calendar_profiles')?200:400})});
  const response=await handler(new Request('https://example.supabase.co',{method:'POST',body:JSON.stringify({username:'unknown',password:'anything'})}));
  assert.equal(response.status,401);assert.equal((await response.text()).includes('@'),false);
+});
+
+test('only an active server-verified admin can delete other accounts',async()=>{
+ for(const [options,token,status] of [[{},'',401],[{valid:false},'token',401],[{admin:false},'token',403],[{banned:true},'token',403]]){
+  const f=fixture(options);assert.equal((await f.request({action:'delete',user_id:B,confirmation:'b@example.com'},token)).status,status);assert.equal(f.calls.some(c=>c.options.method==='DELETE'),false);
+ }
+ const f=fixture();const response=await f.request({action:'delete',user_id:B,confirmation:'b@example.com'});assert.equal(response.status,200);
+ assert.deepEqual(await response.json(),{ok:true,deleted_user_id:B});
+ const deletions=f.calls.filter(c=>c.options.method==='DELETE');assert.equal(deletions.length,1);assert.equal(new URL(deletions[0].url).pathname,`/auth/v1/admin/users/${B}`);assert.deepEqual(JSON.parse(deletions[0].options.body),{should_soft_delete:false});
+});
+test('delete refuses self, stale or missing confirmation, malformed targets and extra fields',async()=>{
+ const f=fixture();
+ for(const [input,status] of [[{user_id:A,confirmation:'admin@example.com'},400],[{user_id:B},400],[{user_id:B,confirmation:'old@example.com'},409],[{user_id:'../users',confirmation:'b@example.com'},400],[{user_id:B,confirmation:'b@example.com',should_soft_delete:true},400]])assert.equal((await f.request({action:'delete',...input})).status,status);
+ assert.equal(f.calls.some(c=>c.options.method==='DELETE'),false);
+});
+test('failed Auth deletion reports failure without falling through to other mutations',async()=>{
+ const f=fixture({deleteFailure:true});const response=await f.request({action:'delete',user_id:B,confirmation:'b@example.com'});assert.equal(response.status,502);
+ assert.equal(f.calls.filter(c=>c.options.method==='DELETE').length,1);assert.equal(f.calls.some(c=>['PATCH','PUT'].includes(c.options.method)),false);
 });
