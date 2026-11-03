@@ -1,3 +1,4 @@
+import {currentWalletContent,localToday} from './current-wallet.js';
 import {statsDetails} from './stats-model.js';
 import {showStatsDialog} from './stats-ui.js';
 import {downloadFile,showExportDialog} from './export-ui.js';
@@ -47,6 +48,8 @@ let data = emptyData(), savedTimer, debtFilter = 'all', expenseQuery = '', expen
 const newExpense = () => ({ id: crypto.randomUUID(), title: '', amount: 0, status: 'planned', category: 'Khác', paymentMethod: 'bank' });
 let creditRole = { userId: null, allowed: false, checked: false, request: 0, pending: null };
 const root = document.querySelector('#app');
+const walletMedia=matchMedia('(min-width: 1001px)');
+let walletExpanded=walletMedia.matches,ledgerExpanded=false,walletNode=null,walletMarkup='';
 let creditWritePending = false, activeRegion='foreign', regionUser=null;
 const pendingExpenseEdits = new Set();
 const fullDocument=()=>writeBook(cloud.data,activeRegion,data);
@@ -155,17 +158,25 @@ function render() {
       <div class="page">${regionBar(data,activeRegion,readBook(cloud.data,'foreign'))}
         <div class="page-heading"><h2 id="summary-period">${view === 'calendar' ? `Tổng kết tháng ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'year' ? `Tổng kết năm ${year}` : view === 'credit' ? `Thẻ & sao kê · ${String(month + 1).padStart(2, '0')} / ${year}` : 'Khoản vay khác · __CASH__'}</h2>${view === 'debts' ? '' : `<div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div>`}</div>
         ${view==='safety'?safetyPanel(visibleData(),selectedKey()):view === 'debts' ? debtsPanel(visibleData(), debtFilter) : view === 'credit' ? `${monthTabs()}${simpleCards(data)?simpleCreditPanel(data,monthKey(year,month)):creditPanel(data, monthKey(year, month))}` : `
-          ${view === 'calendar' ? `${monthTabs()}<div id=accounts-overview>${accountsPanel(visibleData(),selectedKey(),hasCreditAccess())}</div>${canUseCredit()&&!simpleCards(data) ? `<div id="cashflow-overview">${salaryTimeline(data, monthKey(year, month))}</div>` : ''}` : ''}
+          ${view === 'calendar' ? `${monthTabs()}<details id=ledger-tools class="card ledger-tools" ${ledgerExpanded?'open':''}><summary>Thiết lập / đối chiếu nguồn tiền theo ngày lịch</summary><div id=accounts-overview>${accountsPanel(visibleData(),selectedKey(),hasCreditAccess())}</div></details>${canUseCredit()&&!simpleCards(data) ? `<div id="cashflow-overview">${salaryTimeline(data, monthKey(year, month))}</div>` : ''}` : ''}
           <div class="stats">${statsContent(totals)}</div>${moduleEnabled(data,'safety')?`<div id="budget-warnings">${budgetWarnings(visibleData(),monthKey(year,month))}</div>`:''}
           ${view === 'calendar' ? `<div class="editor-actions">${canUseCredit() ? '<button class="button secondary" data-view="credit">Thẻ & sao kê</button>' : ''}<button class="button save-button" data-action="quick-expense">${icon('plus')} Thêm khoản chi</button>${moduleEnabled(data,'salary')?'<button class="button secondary" data-action="quick-income">Thu nhập</button>':''}${moduleEnabled(data,'savings')?'<button class="button secondary" data-action="quick-savings">Tiết kiệm</button>':''}${moduleEnabled(data,'debts')?'<button class="button secondary" data-view="debts">Nợ phải trả</button>':''}</div>${calendarView()}${expenseBrowser()}${moduleEnabled(data,'receipts')?receiptsPanel(data,monthKey(year,month)):''}${moduleEnabled(data,'receivables')?receivablesPanel(data):''}<div class="finance-panels">${moduleEnabled(data,'salary')?incomePanel():''}${moduleEnabled(data,'savings')?savingsPanel():''}</div>` : `${yearView()}${moduleEnabled(data,'savings')?savingsPanel():''}`}
           <details class="analysis-panel card" ${analysisExpanded ? 'open' : ''}><summary>Biểu đồ phân tích · ${view === 'year' ? year : `tháng ${month + 1} / ${year}`}</summary><div class="dashboard-charts" id="dashboard-charts">${dashboardCharts()}</div></details>`}
         <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Thu chi __CASH__ · Tiết kiệm __SAVINGS__</span></footer>
       </div>
-    </main>`;
+    </main><aside id="current-wallet" class="current-wallet" aria-label="Tài sản hiện tại"></aside>`;
   restoreExpenseInputs();
   renderCloud();
   const tabs = root.querySelector('.month-tabs'), activeTab = tabs?.querySelector('.active');
   if (activeTab) tabs.scrollLeft += activeTab.getBoundingClientRect().left - tabs.getBoundingClientRect().left - (tabs.clientWidth - activeTab.offsetWidth) / 2;
+}
+function renderCurrentWallet() {
+  const node=document.querySelector('#current-wallet');if(!node)return;
+  const markup=currentWalletContent(data,{asOf:localToday(),creditAllowed:hasCreditAccess(),signedIn:canEdit(),draft:cloud.dirty,expanded:walletExpanded});
+  if(node===walletNode&&markup===walletMarkup)return;
+  const active=document.activeElement,restoreFocus=node.contains(active),action=active?.dataset?.action;
+  node.innerHTML=markup;walletNode=node;walletMarkup=markup;
+  if(restoreFocus)(action?node.querySelector(`[data-action="${action}"]`):node.querySelector('summary'))?.focus({preventScroll:true});
 }
 function statsContent(totals) {
   const credit=hasCreditAccess(),details=statsDetails(data,{year,month:view==='year'?null:month,creditAllowed:credit});
@@ -314,6 +325,7 @@ function yearView() {
 }
 function refreshTotals() {
   document.querySelector('#stat-dialog')?.close();
+  renderCurrentWallet();
   const summary = monthSummary(visibleData(), year, month), totals = view === 'year' ? yearSummary(visibleData(), year) : summary;
   const accounts=document.querySelector('#accounts-overview');if(accounts)accounts.innerHTML=accountsPanel(visibleData(),selectedKey(),hasCreditAccess());
   const overview = document.querySelector('#cashflow-overview'); if (overview) overview.innerHTML = salaryTimeline(data, monthKey(year,month));
@@ -332,6 +344,14 @@ function refreshTotals() {
 root.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
+  if(button.dataset.action==='current-paypay'){
+    const context=financeContext();
+    if(!context.canEdit()||!await context.verifyCreditAccess()||!context.canEdit()||!context.canUseCredit()||simpleCards(context.getData()))return;
+    showAvailableCredit(context,localToday());return;
+  }
+  if(button.dataset.action==='current-wallet-settings'){if(canEdit())showBalanceRequest(financeContext(),localToday());return;}
+  if(button.dataset.action==='wallet-manage'){if(!canEdit())return;view='calendar';ledgerExpanded=true;render();focusEditor('#ledger-tools>summary');return;}
+
   if(button.dataset.statDetails){
     if(!canEdit())return;
     const context=financeContext(),period={year,month:view==='year'?null:month},requestedView=view;
@@ -412,8 +432,9 @@ root.addEventListener('click', async event => {
       year = years()[index]; month = targetMonth; day = Math.min(day, daysInMonth(year, month)); render(); break;
     }
     case 'today': {
-      if (!years().includes(now.getFullYear())) { notify('Thêm năm hiện tại để xem hôm nay.'); break; }
-      year = now.getFullYear(); month = now.getMonth(); day = now.getDate(); render(); break;
+      const actual=new Date();
+      if (!years().includes(actual.getFullYear())) { notify('Thêm năm hiện tại để xem hôm nay.'); break; }
+      year = actual.getFullYear(); month = actual.getMonth(); day = actual.getDate(); render(); break;
     }
     case 'export': {
       const context=financeContext();
@@ -510,6 +531,8 @@ root.addEventListener('keydown', event => {
   event.preventDefault(); saveChanges();
 });
 root.addEventListener('toggle', event => {
+  if(event.target.classList.contains('current-wallet-disclosure'))walletExpanded=event.target.open;
+  if(event.target.id==='ledger-tools')ledgerExpanded=event.target.open;
   if (event.target.classList.contains('calendar-disclosure')) calendarExpanded = event.target.open;
   if (event.target.classList.contains('analysis-panel')) analysisExpanded = event.target.open;
   if (event.target.classList.contains('expense-browser')) searchExpanded = event.target.open;
@@ -557,6 +580,7 @@ function syncAccountProfile() {
 }
 
 function renderCloud() {
+  renderCurrentWallet();
   if (!document.querySelector('#account-label')) return;
   const labels = { guest: 'Chưa đăng nhập', loading: 'Đang kết nối…', draft: 'Chưa lưu thay đổi', pending: 'Chờ đồng bộ', saving: 'Đang lưu…', ready: '', error: 'Chưa đồng bộ', conflict: 'Cần xử lý thay đổi' };
   document.querySelector('#account-label').textContent = cloud.user ? 'Tài khoản' : 'Đăng nhập';
@@ -666,7 +690,8 @@ if (authHash.has('access_token') && authHash.has('refresh_token')) {
 render();
 if (authClient.session) cloud.open().then(() => { if (authHash.get('type') === 'recovery' && cloud.user) showPasswordReset(authClient); });
 window.addEventListener('online', () => { cloud.refresh(); void refreshCreditRole(true); });
-window.addEventListener('focus', () => { if (cloud.user) void refreshCreditRole(true); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { cloud.refresh(); if (cloud.user) void refreshCreditRole(true); } });
-setInterval(() => { if (!document.hidden && cloud.user && cloud.status !== 'loading') { if (!cloud.dirty) cloud.refresh(); void refreshCreditRole(true); } }, 30000);
+window.addEventListener('focus', () => { renderCurrentWallet();if (cloud.user) void refreshCreditRole(true); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { renderCurrentWallet();cloud.refresh(); if (cloud.user) void refreshCreditRole(true); } });
+walletMedia.addEventListener('change',event=>{walletExpanded=event.matches;renderCurrentWallet();});
+setInterval(() => { if(!document.hidden)renderCurrentWallet();if (!document.hidden && cloud.user && cloud.status !== 'loading') { if (!cloud.dirty) cloud.refresh(); void refreshCreditRole(true); } }, 30000);
 window.addEventListener('beforeunload', event => { if (cloud.user && cloud.dirty) { event.preventDefault(); event.returnValue = ''; } });

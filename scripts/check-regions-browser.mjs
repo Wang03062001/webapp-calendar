@@ -19,7 +19,7 @@ await page.route('https://**/*',async route=>{const req=route.request(),url=req.
  await route.fulfill({json:body});});
 await page.addInitScript(()=>localStorage.setItem('lich-auth:mjgxzzxmfifhoymvdaoe.supabase.co',JSON.stringify({access_token:'fixture',refresh_token:'fixture',expires_at:Date.now()/1000+3600})));
 await page.goto((process.env.CALENDAR_URL||'http://127.0.0.1:5173/'));await page.locator('nav [data-view=credit]').waitFor();
-async function date(value='2026-01-15'){await page.locator('#day-select').fill(value);await page.locator('#day-select').dispatchEvent('change');}
+async function date(value='2026-01-15'){await page.locator('#day-select').fill(value);await page.locator('#day-select').dispatchEvent('change');await page.locator('#ledger-tools').evaluate(el=>{el.open=true;el.dispatchEvent(new Event('toggle'));});}
 await date();
 await page.locator('.accounts-panel').screenshot({path:'/tmp/calendar-regions-accounts.png'});
 assert.match(await page.locator('[data-balance=assets]').innerText(),/^160,000 /);

@@ -267,7 +267,7 @@ Script trình duyệt dùng Chromium tại `/usr/bin/chromium`, mặc định tr
 
 ## Số dư đầu kỳ và tiền tháng trước
 
-Trong **Số dư theo nguồn tiền → Thiết lập số dư**, có ba lựa chọn:
+Bấm **Thiết lập số dư** trong khu vực **Tài sản hiện tại** (hoặc mở **Thiết lập / đối chiếu nguồn tiền theo ngày lịch → Thiết lập số dư**), có ba lựa chọn:
 
 - **Nhập tiền còn lại cuối tháng trước**: nhập ngân hàng, tiền mặt và tiết kiệm thực có sau mọi giao dịch cuối tháng. Tiền chuyển sang tháng sau, không tạo thu nhập và không trừ lại giao dịch trong ngày chốt.
 - **Sửa ngày bắt đầu / số dư đầu kỳ**: chọn mốc sớm hơn để theo dõi cả tháng trước, hoặc sửa số tiền đầu kỳ. Số đầu ngày được tính trước mọi giao dịch của ngày đó.
@@ -307,3 +307,15 @@ Trả sao kê của tháng trước vẫn tính vào kỳ **ngày thanh toán th
 Popup chỉ xem, không tự lưu hay sửa giao dịch. Xác minh quyền admin lại trước khi mở; tài khoản thường không thấy số liệu thẻ. Đổi tài khoản/khu vực/kỳ hoặc nhận dữ liệu mới sẽ đóng popup cũ. Tổng hợp Excel có cột riêng cho chi phí, tiền trả sao kê, tổng chi & trả thẻ, chênh lệch theo từng cách và tổng dự kiến, khớp các ô thống kê.
 
 Kiểm tra: `node test/stats.test.js`, `npm test`, `npm run build`; tùy chọn `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node scripts/check-stats-browser.mjs` với máy chủ ở cổng 5176 hoặc đặt `CALENDAR_URL`. Chỉ dùng tài khoản/dữ liệu mô phỏng.
+
+## Tài sản hiện tại và ngày nhận lương
+
+**Tài sản hiện tại** nằm ở cột riêng bên phải trên máy tính và khối riêng phía trên nội dung trên điện thoại. Bấm tiêu đề để thu gọn/mở chi tiết. Khu vực này luôn tính đến **hôm nay theo ngày tại thiết bị**, độc lập với tháng, năm, ngày lịch hoặc trang đang xem. Khi qua ngày mới, ứng dụng cập nhật số hiển thị mà không tự tạo giao dịch hay gửi lần lưu mới.
+
+Tài sản gồm **ngân hàng chưa phân bổ + tiền mặt + nguồn tiết kiệm** của khu vực đang chọn. Tiền còn lại tháng trước tiếp tục được mang sang. Lương và thưởng đã nhập cộng vào nguồn nhận (mặc định ngân hàng) đúng ngày thực nhận, mặc định ngày **15 hằng tháng**; không cộng trước ngày đó hoặc cộng lần thứ hai sau khi tải lại. Có thể sửa ngày thực nhận nếu nhận sớm/muộn. App không tự suy ra số lương tháng mới khi bạn chưa nhập. Tiền vào khác cũng tăng đúng nguồn nhận theo ngày đã ghi. Mốc số dư thực tế đã chốt được ưu tiên để không cộng lại lương trước mốc.
+
+**Chênh lệch thu − chi** vẫn là kết quả trong kỳ, không phải số dư tài sản. Trước ngày nhận lương, số này có thể âm trong khi ngân hàng/tiền mặt còn tiền từ tháng trước. **PayPay còn khả dụng** hiển thị riêng cho admin được máy chủ xác minh, không cộng hạn mức vào tài sản; không hiển thị ở sổ dùng thẻ đơn giản. Các sổ và tiền tệ tiếp tục độc lập; lịch sử tiết kiệm/mục tiêu cũ không tự cộng vào nguồn tiền khác đơn vị.
+
+**Thiết lập số dư** và **Cập nhật PayPay hôm nay** thao tác theo hôm nay. **Đối chiếu theo ngày lịch** mở lại các công cụ theo ngày lịch đang chọn, gồm số dư lịch sử, chuyển nguồn và đối chiếu. Số hiển thị theo bản nháp có nhãn **Gồm bản nháp chưa lưu**, vẫn cần Enter hoặc **Lưu thay đổi** để lưu dữ liệu nhập. Xuất Excel tiếp tục ghi rõ số dư tại ngày lịch được chọn trong file.
+
+Kiểm tra: `node test/current-wallet.test.js`, `npm test`, `npm run build` và `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs CALENDAR_URL=http://127.0.0.1:5173 node scripts/check-current-wallet-browser.mjs`. Kịch bản dùng dữ liệu mô phỏng, đóng băng đồng hồ trước/sau ngày 15, kiểm tra đổi ngày/kỳ/trang, hai khu vực, số dư PayPay, thu hồi quyền, đổi tài khoản và bố cục máy tính/điện thoại; không gửi dữ liệu đến tài khoản thật.

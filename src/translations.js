@@ -1,6 +1,23 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Ngân hàng|Bank|銀行|은행|銀行
+Gồm bản nháp chưa lưu|Includes unsaved draft|未保存の下書きを含む|저장되지 않은 초안 포함|包含尚未儲存草稿
+Tài sản hiện tại|Current assets|現在の資産|현재 자산|目前資產
+Đăng nhập để xem số dư tài sản hiện tại.|Sign in to view current asset balances.|現在の資産残高を表示するにはログインしてください。|현재 자산 잔액을 보려면 로그인하세요.|登入以查看目前資產餘額。
+Tính đến hôm nay|As of today|本日時点|오늘 기준|截至今天
+Tiết kiệm nguồn tiền|Savings account|貯蓄資金|저축 자금|儲蓄資金
+PayPay còn khả dụng|PayPay available credit|PayPay利用可能額|PayPay 이용 가능 한도|PayPay 可用額度
+Mốc nguồn tiền nằm sau hôm nay. Hãy kiểm tra ngày bắt đầu theo dõi.|The source opening date is after today. Check the tracking start date.|資金の開始日は本日より後です。追跡開始日を確認してください。|자금 시작일이 오늘 이후입니다. 추적 시작일을 확인하세요.|資金起始日在今天之後，請確認追蹤起始日。
+Thiết lập số dư đầu kỳ để theo dõi tài sản.|Set opening balances to track assets.|資産を追跡するには期首残高を設定してください。|자산을 추적하려면 기초 잔액을 설정하세요.|請設定期初餘額以追蹤資產。
+Thu nhập chờ ngày nhận|Income awaiting receipt|受取予定の収入|수령 예정 수입|待收收入
+Tài sản gồm ngân hàng + tiền mặt + tiết kiệm nguồn tiền.|Assets include bank + cash + savings account.|資産は銀行＋現金＋貯蓄資金の合計です。|자산은 은행 + 현금 + 저축 자금의 합계입니다.|資產包含銀行＋現金＋儲蓄資金。
+Lương cộng vào nguồn nhận từ ngày thực nhận đã nhập, mặc định ngày 15.|Salary enters its receiving account on the recorded receipt date, the 15th by default.|給与は入力された受取日（初期値は15日）に受取先へ加算されます。|급여는 입력된 실제 수령일에 수령 계좌에 더해집니다. 기본값은 15일입니다.|薪資於輸入的實際收款日計入收款來源，預設為每月15日。
+Hạn mức PayPay được theo dõi riêng với tài sản.|PayPay credit is tracked separately from assets.|PayPayの利用可能枠は資産とは別に管理します。|PayPay 신용 한도는 자산과 별도로 추적합니다.|PayPay 額度與資產分開追蹤。
+Cập nhật PayPay hôm nay|Update PayPay today|本日のPayPayを更新|오늘 PayPay 업데이트|更新今天的 PayPay
+Đối chiếu theo ngày lịch|Reconcile by calendar date|カレンダーの日付で照合|달력 날짜별 대조|按日曆日期核對
+Thiết lập / đối chiếu nguồn tiền theo ngày lịch|Set up / reconcile funds by calendar date|カレンダーの日付で資金を設定・照合|달력 날짜별 자금 설정 / 대조|按日曆日期設定／核對資金
+Ngày số dư hiện tại không hợp lệ.|Invalid current balance date.|現在残高の日付が無効です。|현재 잔액 날짜가 유효하지 않습니다.|目前餘額日期無效。
 Chi tiêu & trả thẻ|Spending & card payments|支出・カード支払|지출 및 카드 납부|支出與卡費支付
 Chi tiết thu nhập|Income details|収入の詳細|수입 상세|收入明細
 Chi tiết chi tiêu|Spending details|支出の詳細|지출 상세|支出明細
