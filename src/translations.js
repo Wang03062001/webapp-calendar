@@ -1,6 +1,109 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Nền tảng an toàn|Financial safety|家計の安全基盤|재정 안전 기반|財務安全基礎
+Ngày đánh giá|Assessment date|評価日|평가 기준일|評估日期
+Mỗi khu vực dùng số dư, tiền tệ và kế hoạch riêng.|Each region uses separate balances, currency and plans.|地域ごとに残高・通貨・計画を分けます。|지역마다 잔액, 통화, 계획을 분리합니다.|各地區使用獨立的餘額、幣別與計畫。
+Quỹ & dự phòng|Funds & emergency reserve|目的別資金・緊急予備資金|목적 자금 및 비상금|目標基金與緊急預備金
+Tiền quỹ đã nằm trong nguồn, không cộng thêm vào tài sản.|Earmarked funds are already in your accounts, not additional assets.|取り分けた資金は口座残高に含まれ、資産に二重加算しません。|배정한 자금은 이미 잔액에 포함되며 자산에 추가 합산하지 않습니다.|基金已包含在資金來源中，不另加為資產。
+Tạo quỹ|Create a fund|資金枠を作成|목적 자금 만들기|建立基金
+Thiết lập dự phòng|Set up emergency reserve|緊急予備資金を設定|비상금 설정|設定緊急預備金
+Quỹ dự phòng hiện có|Current emergency reserve|現在の緊急予備資金|현재 비상금|目前緊急預備金
+Chi phí thiết yếu / tháng|Monthly essential costs|毎月の必須生活費|월 필수 생활비|每月必要支出
+Chi phí thiết yếu mỗi tháng|Monthly essential costs|毎月の必須生活費|월 필수 생활비|每月必要支出
+Số tháng được bảo vệ|Months covered|賄える月数|생활비 보장 개월|可支應月數
+Chưa nhập chi phí thiết yếu|Enter essential costs first|必須生活費を入力してください|필수 생활비를 먼저 입력하세요|請先輸入必要支出
+Mục tiêu dự phòng|Emergency reserve target|緊急予備資金の目標|비상금 목표|緊急預備金目標
+Số tháng dự phòng mong muốn|Desired reserve months|目標の予備月数|목표 비상금 개월 수|期望預備月數
+Đã dành:|Earmarked:|取り分け済み：|배정된 금액:|已預留：
+Quỹ dự phòng|Emergency fund|緊急予備資金|비상금|緊急預備金
+Quỹ mục tiêu|Goal fund|目的別資金|목표 자금|目標基金
+Quỹ mục tiêu / dự phòng|Goal / emergency fund|目的別・緊急予備資金|목표 자금 / 비상금|目標／緊急基金
+Tên quỹ|Fund name|資金枠の名前|자금 이름|基金名稱
+Loại quỹ|Fund type|資金の種類|자금 유형|基金類型
+Mục tiêu quỹ (quỹ dự phòng có thể để 0)|Fund target (emergency funds may use 0)|目標額（緊急予備資金は0も可）|목표 금액 (비상금은 0 가능)|基金目標（緊急基金可填 0）
+Quỹ chỉ dành riêng tiền đã có trong nguồn. Không tạo thêm tài sản.|Funds only earmark existing money; they do not create assets.|既存の資金を取り分けるだけで、新たな資産は作りません。|기존 자금을 배정할 뿐 새 자산을 만들지 않습니다.|基金只預留現有款項，不會新增資產。
+Sửa quỹ|Edit fund|資金枠を編集|자금 수정|編輯基金
+Dành thêm tiền|Earmark more|追加で取り分ける|추가 배정|增加預留款項
+Dành tiền cho quỹ|Earmark money for fund|資金を取り分ける|자금 배정|預留基金款項
+Giải phóng tiền|Release earmark|取り分けを解除|배정 해제|解除預留
+Giải phóng tiền quỹ|Release fund earmark|資金の取り分けを解除|자금 배정 해제|解除基金預留
+Đóng quỹ|Close fund|資金枠を閉じる|자금 종료|關閉基金
+Đã đóng|Closed|終了済み|종료됨|已關閉
+Lịch sử quỹ|Fund history|資金の履歴|자금 기록|基金歷史
+Ngày ghi nhận|Record date|記録日|기록일|記錄日期
+Quỹ chi (không bắt buộc)|Fund to spend (optional)|使用する資金枠（任意）|지출 자금 (선택)|支出基金（選填）
+Không dùng quỹ|No fund|資金枠を使わない|자금 사용 안 함|不使用基金
+Quỹ không đủ tiền.|Insufficient fund balance.|資金枠の残高が不足しています。|목적 자금 잔액이 부족합니다.|基金餘額不足。
+Tiền dành cho quỹ vượt số dư nguồn. Hãy giải phóng quỹ hoặc chọn đúng quỹ khi chi.|Earmarks exceed the source balance. Release earmarks or select the right fund when spending.|取り分け額が資金残高を超えています。取り分けを解除するか支出の資金枠を選んでください。|배정액이 원천 잔액을 초과합니다. 배정을 해제하거나 지출 자금을 선택하세요.|預留金額超過來源餘額。請解除預留或選擇正確支出基金。
+Nguồn chi không khớp quỹ.|Expense source does not match the fund.|支出元と資金枠が一致しません。|지출 원천이 목적 자금과 일치하지 않습니다.|支出來源與基金不符。
+Chỉ đóng quỹ khi đã giải phóng hết tiền.|Release all earmarks before closing the fund.|全額の取り分けを解除してから閉じてください。|배정을 모두 해제한 후 종료하세요.|請解除全部預留後再關閉基金。
+Quỹ đã có lịch sử, không đổi nguồn tiền.|A fund with history cannot change source.|履歴のある資金枠の資金元は変更できません。|기록이 있는 자금은 원천을 변경할 수 없습니다.|基金已有歷史，無法變更來源。
+Chỉ ghi tiền quỹ đã có, không ghi ngày tương lai.|Only earmark existing money; no future dates.|現在ある資金のみ取り分けられます。未来日は不可です。|기존 자금만 배정하며 미래 날짜는 사용할 수 없습니다.|只能預留已有款項，不可使用未來日期。
+Ngân sách danh mục|Category budgets|カテゴリ別予算|분류별 예산|分類預算
+Ngân sách|Budget|予算|예산|預算
+Cảnh báo ngân sách|Budget alert|予算の警告|예산 경고|預算警示
+Đã vượt|Over budget by|超過額|초과액|已超支
+Đã chi + dự kiến vượt|Spent + planned exceed budget by|支出済み＋予定の超過額|실제 및 예정 지출 초과액|已支出＋預計超過
+Xem Nền tảng an toàn|View financial safety|家計の安全基盤を見る|재정 안전 기반 보기|查看財務安全基礎
+Chưa có ngân sách tháng này.|No budgets for this month.|今月の予算はまだありません。|이번 달 예산이 없습니다.|本月尚無預算。
+Ngân sách bị trùng hoặc không hợp lệ.|Duplicate or invalid budget.|予算が重複しているか無効です。|중복되거나 유효하지 않은 예산입니다.|預算重複或無效。
+Lịch phải trả|Payment schedule|支払い予定|납부 일정|應付款日程
+Khoản phải trả|Payment obligation|支払い予定額|납부 항목|應付款項
+Theo dõi khoản dự kiến|Track planned expense|支出予定を追跡|예정 지출 추적|追蹤預計支出
+Sửa lịch|Edit schedule|予定を編集|일정 수정|編輯日程
+Bỏ lịch theo dõi|Unlink schedule|予定の追跡を解除|추적 일정 해제|解除日程追蹤
+Lịch sử khoản phải trả|Payment schedule history|支払い予定の履歴|납부 일정 기록|應付款歷史
+Không có khoản phải trả trong phạm vi này.|No obligations in this range.|この期間の支払い予定はありません。|이 기간의 납부 항목이 없습니다.|此範圍內沒有應付款項。
+Đến hạn / quá hạn|Due / overdue|期限到来・期限超過|기한 도래 / 연체|到期／逾期
+Chưa nhập mức phải trả|Amount due not entered|支払額が未入力です|납부 금액 미입력|尚未輸入應付金額
+Chưa chọn nguồn|Source not selected|資金元が未選択です|원천 미선택|尚未選擇來源
+Ghi trả nợ|Record repayment|返済を記録|상환 기록|記錄還款
+Dự báo tiền 30 ngày|30-day cash forecast|30日間の資金予測|30일 자금 예측|30 天資金預測
+Thiết lập số dư đầu ngày để xem dự báo.|Set opening balances to view forecasts.|予測を見るには開始残高を設定してください。|예측을 보려면 시작 잔액을 설정하세요.|請設定日初餘額以查看預測。
+Nguy cơ thiếu tiền hoặc dùng vào tiền quỹ từ|Risk of shortage or using earmarked funds from|資金不足・取り分け資金を使う可能性がある日：|잔액 부족 또는 배정 자금 사용 위험 시작일|可能出現資金不足或動用預留款項，自
+Chưa thấy thiếu tiền trong các khoản đã nhập.|No shortage found in entered items.|入力済みの予定では資金不足は見られません。|입력된 항목에서는 잔액 부족이 없습니다.|依已輸入項目尚未發現資金不足。
+Chưa tính được:|Not yet calculated:|未計算：|아직 계산하지 못한 항목:|尚無法計算：
+Thiếu mức trả hoặc nguồn tiền.|Missing payment amount or source.|支払額または資金元が未入力です。|납부 금액 또는 원천이 없습니다.|缺少付款金額或來源。
+Xem 30 ngày và nguồn thiếu tiền|View 30 days and source shortages|30日間と資金元別の不足を見る|30일 및 원천별 부족액 보기|查看 30 天及來源不足
+Chưa dành quỹ|Not earmarked|未配分|미배정|尚未預留
+Sự kiện|Events|取引予定|이벤트|事件
+Quỹ thiếu|Fund shortage|資金枠不足|목적 자금 부족|基金不足
+Kế hoạch trả nợ|Debt repayment plan|返済計画|부채 상환 계획|還款計畫
+Ngân sách trả nợ|Debt payment budget|返済予算|상환 예산|還款預算
+Ngân sách mỗi tháng:|Monthly budget:|毎月の予算：|월 예산:|每月預算：
+Tổng ngân sách trả nợ mỗi tháng|Total monthly debt budget|毎月の返済予算合計|월 총 상환 예산|每月還款總預算
+Ưu tiên lãi cao|Highest interest first|高金利を優先|고금리 우선|高利率優先
+Ưu tiên dư nợ nhỏ|Smallest balance first|少額残高を優先|소액 잔액 우선|小額餘額優先
+Nhập ngân sách trả nợ mỗi tháng.|Enter a monthly debt budget.|毎月の返済予算を入力してください。|월 상환 예산을 입력하세요.|請輸入每月還款預算。
+Ngân sách không đủ mức tối thiểu:|Budget is below minimum payments:|予算が最低返済額を下回っています：|예산이 최소 납부액보다 적습니다:|預算不足最低還款額：
+Không còn nợ trong dữ liệu lập kế hoạch.|No debt remains in planning data.|計画データ上の債務はありません。|계획 데이터에 남은 부채가 없습니다.|計畫資料中已無欠款。
+Dự kiến hết nợ sau|Estimated debt payoff in|完済までの予想期間：|예상 완납 기간|預計還清所需
+Chưa thể hết nợ với giả thiết này|Debt cannot be paid off under these assumptions|この条件では完済できません|이 가정으로는 완납할 수 없습니다|依此假設尚無法還清
+Lãi dự kiến:|Estimated interest:|予想利息：|예상 이자:|預計利息：
+Tổng trả:|Total paid:|返済総額：|총 납부액:|總還款：
+Khoản trả không đủ làm giảm dư nợ.|Payments do not reduce the balance.|返済額では残高が減少しません。|납부액으로 잔액이 줄지 않습니다.|還款金額不足以減少欠款。
+Chưa hết nợ trong giới hạn mô phỏng 600 tháng.|Not paid off within the 600-month simulation limit.|600か月の試算上限内で完済できません。|600개월 모의 계산 한도 내에 완납되지 않습니다.|在 600 個月模擬上限內尚未還清。
+Lịch trả nợ dự kiến|Estimated repayment schedule|予想返済予定|예상 상환 일정|預計還款日程
+Còn nợ|Remaining debt|残債|남은 부채|剩餘欠款
+Nhập / sửa điều kiện|Enter / edit terms|条件を入力・編集|조건 입력 / 수정|輸入／修改條件
+Điều kiện trả nợ|Repayment terms|返済条件|상환 조건|還款條件
+Chưa có điều kiện trả nợ|No repayment terms entered|返済条件が未入力です|상환 조건 미입력|尚無還款條件
+Chưa biết lãi suất|Unknown interest rate|金利不明|이자율 미상|利率未知
+Chưa biết mức tối thiểu|Unknown minimum payment|最低返済額不明|최소 납부액 미상|最低還款額未知
+Lãi suất năm (APR %)|Annual interest rate (APR %)|年利（APR %）|연 이자율 (APR %)|年利率（APR %）
+Mức phải trả tối thiểu mỗi tháng|Minimum monthly payment|毎月の最低返済額|월 최소 납부액|每月最低還款額
+Ngày phải trả tiếp theo|Next payment due|次の返済日|다음 납부일|下次付款日
+Dư nợ & điều kiện cho kế hoạch|Balance & terms for planning|試算用残高・条件|계획용 잔액 및 조건|計畫用欠款與條件
+Dữ liệu thẻ cho kế hoạch|Card planning data|カード試算データ|카드 계획 데이터|信用卡計畫資料
+Ngày số liệu kế hoạch|Planning data date|試算データの日付|계획 데이터 날짜|計畫資料日期
+Dư nợ dùng lập kế hoạch|Balance used for planning|試算に使う残高|계획용 부채 잔액|用於計畫的欠款
+Đi đến khoản phải thu|Go to receivables|貸付金へ|받을 채권으로 이동|前往應收款
+Gốc đã trả|Principal repaid|返済済み元本|상환한 원금|已償還本金
+Gốc trả kỳ này|Principal paid this time|今回返済する元本|이번 원금 상환액|本次償還本金
+Lãi/phí thực trả|Actual interest/fees paid|実際の利息・手数料|실제 지급 이자/수수료|實付利息／費用
+Lãi/phí:|Interest/fees:|利息・手数料：|이자/수수료:|利息／費用：
+
 Khu vực tài chính|Financial region|家計の地域|재정 지역|財務地區
 Nhật Bản|Japan|日本|일본|日本
 Việt Nam|Vietnam|ベトナム|베트남|越南

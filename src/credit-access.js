@@ -10,6 +10,6 @@ export function financeView(data, allowed) {
 }
 export function creditSnapshot(data) {
   const debts=data.debts.filter(d=>d.type==='Thẻ tín dụng'), ids=new Set(debts.map(d=>d.id));
-  return JSON.stringify({cards:data.cards??null, creditDebt:data.accounts?.creditDebt||0, creditLimit:data.accounts?.creditLimit??null, debts,
+  return JSON.stringify({cards:data.cards??null,cardForecastSource:data.safety?.cardSource||'bank',creditTerms:(data.safety?.debtTerms||[]).filter(t=>ids.has(t.debtId)), creditDebt:data.accounts?.creditDebt||0, creditLimit:data.accounts?.creditLimit??null, debts,
     items:Object.entries(data.days).flatMap(([date,entry])=>entry.items.filter(i=>isCreditItem(i)||ids.has(i.debtId)).map(item=>({date,item}))).sort((a,b)=>a.date.localeCompare(b.date)||a.item.id.localeCompare(b.item.id))});
 }

@@ -39,6 +39,7 @@ export function normalizeCards(raw) {
     if (source.status === 'paid') { statement.paidOn = source.paidOn; if (source.paymentSource !== undefined) { if (!['bank','cash','savings'].includes(source.paymentSource)) throw new Error('Nguồn thanh toán không hợp lệ.'); statement.paymentSource = source.paymentSource; } }
     result.statements.push(statement);
   }
+  if(raw.safetyPlan!==undefined){const p=raw.safetyPlan,apr=Number(p?.apr);if(!p||!cardDate(p.asOf)||!['number','string'].includes(typeof p.apr)||!String(p.apr).trim()||p.principal==null||!String(p.principal).trim()||p.minimum==null||!String(p.minimum).trim()||!Number.isFinite(apr)||apr<0||apr>1000)throw Error('Kế hoạch thẻ không hợp lệ.');result.safetyPlan={asOf:p.asOf,principal:cardMoney(p.principal),apr,minimum:cardMoney(p.minimum)};}
   if(raw.availableCreditHistory!==undefined){
     if(!Array.isArray(raw.availableCreditHistory))throw Error('Lịch sử hạn mức không hợp lệ.');
     result.availableCreditHistory=[];

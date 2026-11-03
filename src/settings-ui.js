@@ -35,6 +35,7 @@ export function showSettings(context, display, onDisplay, onboarding = false) {
       busy = true; dialog.querySelectorAll('input,select,button').forEach(control => control.disabled = true);
       if (user) {
         const currencies = normalizeCurrencies({cash: form.elements.cash.value, savings: form.elements.savings.value});
+        if(context.getData().safety&&currencies.cash!==original.cash)throw Error('Không thể đổi tiền tệ khi sổ đã có dữ liệu.');
         if(context.getData().bookSettings&&currencies.cash!==COUNTRIES[countryOf(context.getData())].currency)throw Error('Chọn quốc gia trong Quốc gia & chức năng để thiết lập tiền tệ.');
         if(context.getData().bookSettings&&bookHasRecords(context.getData())&&JSON.stringify(original)!==JSON.stringify(currencies))throw Error('Không thể đổi tiền tệ khi sổ đã có dữ liệu.');
         if (JSON.stringify(context.getData().currencies) !== JSON.stringify(currencies)) { const next = structuredClone(context.getData()); next.currencies = currencies; context.onChange(next); await context.commit(); }

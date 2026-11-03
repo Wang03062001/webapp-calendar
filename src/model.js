@@ -1,8 +1,9 @@
+import {normalizeSafety,validateFunds} from './safety-model.js';
 import { normalizeBookSettings,COUNTRIES } from './region-model.js';
 import { normalizeCashEntries, normalizeReceivables, receiptTotals } from './receipt-model.js';
 import { normalizeAccounts, validateSavingsLedger, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
 import { normalizeCurrencies } from './preferences.js';
-import { normalizeCards, migrateLegacyPayments, validateCardLinks, validMonth, cardDate } from './card-model.js';
+import { cardMoney, normalizeCards, migrateLegacyPayments, validateCardLinks, validMonth, cardDate } from './card-model.js';
 export const YEARS = Array.from({ length: 8 }, (_, i) => 2026 + i);
 export const MIN_YEAR = 1900, MAX_YEAR = 9999;
 export const validYear = year => Number.isInteger(year) && year >= MIN_YEAR && year <= MAX_YEAR;
@@ -102,6 +103,7 @@ export function removeDebt(data, debtId) {
   if (!debt) throw new Error('Không tìm thấy khoản nợ.');
   if (debt.payments.length) throw new Error('Khoản nợ đã có lịch sử thanh toán nên được giữ lại để đối chiếu.');
   data.debts = data.debts.filter(item => item.id !== debtId);
+  if(data.safety?.debtTerms)data.safety.debtTerms=data.safety.debtTerms.filter(t=>t.debtId!==debtId);
 }
 export function cancelDebtPayment(data, debtId, paymentId) {
   const debt = data.debts.find(item => item.id === debtId), payment = debt?.payments.find(item => item.id === paymentId);
@@ -109,7 +111,7 @@ export function cancelDebtPayment(data, debtId, paymentId) {
   if (payment.expenseId) {
     const entry = data.days[payment.date], index = entry?.items.findIndex(item => item.id === payment.expenseId);
     const item = entry?.items[index];
-    if (!item || item.debtId !== debtId || item.debtPaymentId !== paymentId || item.amount !== payment.amount) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
+    if (!item || item.debtId !== debtId || item.debtPaymentId !== paymentId || item.amount !== roundMoney(payment.amount+(payment.interest||0)) || expenseStatus(item)!=='paid' || (payment.source&&item.paymentMethod!==payment.source)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
     entry.items.splice(index, 1);
   }
   payment.voided = true;
@@ -125,7 +127,9 @@ export function repayDebt(data, debtId, payment, { recordExpense = true } = {}) 
   const debt = data.debts.find(item => item.id === debtId);
   if (!debt) throw new Error('Không tìm thấy khoản nợ.');
   if(payment.source!==undefined && !['bank','cash','savings'].includes(payment.source))throw new Error('Nguồn thanh toán không hợp lệ.');
-  const value = positiveMoney(payment.amount);
+  const interest=payment.interest===undefined?0:cardMoney(payment.interest);
+  const value = interest>0?cardMoney(payment.amount):positiveMoney(payment.amount);
+  const total=roundMoney(value+interest);if(total>MAX_AMOUNT)throw Error('Tổng thanh toán vượt giới hạn.');
   const id = String(payment.id || '');
   if (!id.trim() || debt.payments.some(item => item.id === id)) throw new Error('Lần trả nợ này đã được ghi nhận.');
   if (!validDate(payment.date)) throw new Error('Ngày trả nợ không hợp lệ.');
@@ -135,11 +139,11 @@ export function repayDebt(data, debtId, payment, { recordExpense = true } = {}) 
   if (recordExpense) {
     if (Object.values(data.days).some(day => day.items.some(item => item.id === expenseId))) throw new Error('Khoản chi trả nợ này đã tồn tại.');
     const entry = data.days[payment.date] ||= { note: '', items: [] };
-    entry.items.push({ id: expenseId, title: `Trả nợ: ${debt.title}`.slice(0, 500), amount: value, category: 'Trả nợ', status: 'paid', ...(payment.source?{paymentMethod:payment.source}:{}), debtId, debtPaymentId: id });
+    entry.items.push({ id: expenseId, title: `Trả nợ: ${debt.title}`.slice(0, 500), amount: total, category: 'Trả nợ', status: 'paid', ...(payment.source?{paymentMethod:payment.source}:{}), debtId, debtPaymentId: id });
     const paymentYear = Number(payment.date.slice(0, 4));
     if (!getYears(data).includes(paymentYear)) addYear(data, paymentYear);
   }
-  debt.payments.push({ id, date: payment.date, amount: value, ...(payment.source?{source:payment.source}:{}), ...(expenseId ? { expenseId: String(expenseId) } : {}), ...(voided ? { voided: true } : {}) });
+  debt.payments.push({ id, date: payment.date, amount: value, ...(payment.interest!==undefined?{interest}:{}), ...(payment.source?{source:payment.source}:{}), ...(expenseId ? { expenseId: String(expenseId) } : {}), ...(voided ? { voided: true } : {}) });
   return debtBalance(debt);
 }
 export const emptyData = () => ({ version: 2, years: [...YEARS], days: {}, incomes: {}, savings: {}, goals: {}, debts: [] });
@@ -150,7 +154,7 @@ export function normalizeData(input) {
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
     if (!match || !validYear(+match[1]) || +match[3] > daysInMonth(+match[1], +match[2] - 1) || !day || !Array.isArray(day.items)) continue;
-    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: amount(item.amount), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod: 'card', settlement: ['oneoff', 'ribo', 'fee'].includes(item.settlement) ? item.settlement : 'oneoff', ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
+    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: amount(item.amount), ...(item.fundId?{fundId:String(item.fundId)}:{}),...(item.obligationId?{obligationId:String(item.obligationId)}:{}), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod: 'card', settlement: ['oneoff', 'ribo', 'fee'].includes(item.settlement) ? item.settlement : 'oneoff', ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
   }
   for(const entry of Object.values(result.days))for(const item of entry.items)if(isInternalMovement(item)){
     if(item.cardPaymentMonth||item.cardFeeMonth||item.debtPaymentId)throw Error('Chuyển tiền không được gắn với thanh toán nợ.');
@@ -182,7 +186,7 @@ export function normalizeData(input) {
       const expense = result.days[payment.date]?.items.find(item => item.id === payment.expenseId);
       if (payment.voided) {
         if (expense) throw new Error('Lần trả nợ đã hủy vẫn có khoản chi liên kết.');
-      } else if (!expense || expense.debtId !== debt.id || expense.debtPaymentId !== payment.id || expense.amount !== payment.amount || expenseStatus(expense) !== 'paid' || (payment.source && expense.paymentMethod !== payment.source)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
+      } else if (!expense || expense.debtId !== debt.id || expense.debtPaymentId !== payment.id || expense.amount !== roundMoney(payment.amount+(payment.interest||0)) || expenseStatus(expense) !== 'paid' || (payment.source && expense.paymentMethod !== payment.source)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
       linked.set(payment.expenseId, payment);
     }
     const seen = new Set();
@@ -212,6 +216,8 @@ export function normalizeData(input) {
     if(vn.bookSettings?.country!=='VN'||vn.currencies?.cash!=='VND')throw Error('Sổ Việt Nam phải dùng VND.');
     result.regional={vietnam:vn};
   }
+  if(input.safety!==undefined||Object.values(result.days).some(d=>d.items.some(i=>i.fundId||i.obligationId)))result.safety=normalizeSafety(input.safety||{},result);
   validateSavingsLedger(result);
+  validateFunds(result);
   return result;
 }

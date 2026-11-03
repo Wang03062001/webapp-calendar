@@ -202,3 +202,52 @@ PLAYWRIGHT_MODULE=/tmp/calendar-browser/node_modules/playwright-core/index.mjs \
 ```
 
 Kịch bản chỉ sử dụng dữ liệu mô phỏng và chặn tất cả yêu cầu HTTPS thật; có kiểm tra nguồn tiết kiệm, hai sổ, loại tiền vào, sao kê đơn giản, bảo toàn sổ cũ, tải lại, bật/tắt mục, thu hồi admin, khởi tạo GBP và màn hình điện thoại. Không cần SQL/Edge Function mới: tài liệu vẫn có version 2 ở cấp gốc và dùng RPC/kiểm tra revision hiện có. Push Git không chứng minh trang hosting đã triển khai bản mới.
+
+## F — Nền tảng an toàn
+
+Mục **Nền tảng an toàn** hoạt động độc lập trong từng sổ nước ngoài/Việt Nam, dùng tiền tệ thu chi của sổ. Có thể bật/tắt trong **Quốc gia & chức năng**. Chọn **Ngày đánh giá** để xem số liệu, ngân sách tháng tương ứng và 30 ngày tiếp theo. Tắt mục không xóa các quỹ, lịch hoặc điều kiện đã lưu. Phần đầu tư/tài sản ròng thuộc nhóm G chưa được triển khai.
+
+### F1–F3: Quỹ mục tiêu và quỹ dự phòng
+
+Tạo nhiều quỹ, mỗi quỹ có tên, nguồn thực (ngân hàng/tiền mặt/tiết kiệm), loại mục tiêu hoặc dự phòng, mục tiêu và lịch sử. **Dành thêm tiền** chỉ đánh dấu một phần tiền đang nằm trong nguồn; không tạo chuyển khoản, thu nhập, chi phí hoặc tài sản mới. **Giải phóng tiền** bỏ đánh dấu. Ví dụ nguồn tiết kiệm có 500, dành 200 cho dự phòng thì nguồn và tài sản vẫn giữ 500; quỹ có 200 và phần chưa dành là 300.
+
+Khi nhập chi tiêu có thể chọn **Quỹ chi**; nguồn tự theo quỹ. Khoản Đã chi giảm nguồn và phần tiền dành cho quỹ một lần; khoản Dự kiến chưa trừ nhưng được xét trong dự báo. Sửa/hủy giao dịch cập nhật lại phần quỹ theo chính giao dịch đó. Chặn phân bổ vượt nguồn, chi vượt quỹ, lệch nguồn hoặc dùng phần đã dành cho quỹ như tiền chưa phân bổ. Kiểm tra các mốc lịch sử để sửa ngày/số tiền không làm âm quỹ ở quá khứ. Trước khi trả khoản vay/thẻ từ tiền đã dành, giải phóng khoản cần dùng khỏi quỹ rồi chọn nguồn thanh toán. Không đổi nguồn của quỹ đã có lịch sử; chỉ đóng khi tiền quỹ đã về 0. Nhật ký phân bổ/giải phóng và giao dịch chi được giữ để đối chiếu.
+
+Nhập chi phí thiết yếu mỗi tháng và số tháng dự phòng mong muốn. **Mục tiêu dự phòng = chi phí thiết yếu × số tháng**, **số tháng được bảo vệ = tổng các quỹ dự phòng ÷ chi phí thiết yếu**. Chi phí thiết yếu do bạn xác nhận, không tự suy đoán từ lịch sử. Chưa nhập hoặc bằng 0 thì không hiển thị một số tháng giả. Các quỹ JPY và VND không cộng chung, không tự dùng lịch sử tiết kiệm VND cũ làm tiền dự phòng JPY.
+
+### F4: Ngân sách danh mục
+
+Nhập giới hạn theo tháng và danh mục. Bảng hiển thị Đã chi, Dự kiến, Còn và số vượt; cảnh báo cũng xuất hiện ở trang Thu chi. Đã chi chỉ tính chi phí trong đúng tháng, gồm chi từ quỹ nhưng không gồm việc dành tiền cho quỹ, chuyển nguồn, phí sao kê hay thanh toán thẻ lặp lại. Lãi/phí vay đã ghi cùng lần trả nợ được tính một lần trong khoản chi liên kết. Đã chi vượt ngân sách là cảnh báo thực tế; Đã chi + Dự kiến vượt là cảnh báo kế hoạch. Ngân sách là giới hạn tự đặt, không tự chặn chi và không sửa số dư. Sửa/xóa ngân sách không xóa giao dịch.
+
+### F5: Lịch phải trả
+
+Lịch gom khoản dự kiến, khoản vay đến hạn và sao kê theo đúng phạm vi quyền. **Thêm khoản phải trả** tạo đúng một dòng dự kiến liên kết. Nếu khoản đã có trong chi tiêu, chọn **Theo dõi khoản dự kiến** để liên kết dòng hiện có, không tạo thêm. Có thể gắn quỹ khi tạo/sửa lịch. Xác nhận đã trả nhập ngày thực trả, chuyển dòng liên kết sang ngày đó và đổi thành Đã chi; nguồn và quỹ giảm một lần. Hủy xác nhận đưa về Dự kiến ở ngày đến hạn ban đầu, hoàn ảnh hưởng và giữ lịch sử xác nhận/hủy. Dòng liên kết không được sửa/xóa trực tiếp ở danh sách chi tiêu. Lịch có lịch sử thanh toán được giữ lại; bỏ liên kết một lịch chưa thanh toán không xóa khoản dự kiến gốc.
+
+Với khoản vay, nhập mức phải trả, nguồn và ngày phải trả tiếp theo trong **Điều kiện trả nợ**. Các khoản trả gốc + lãi/phí đã ghi kể từ đầu tháng của ngày đến hạn làm giảm số tối thiểu còn phải trả cho lần đó. Cập nhật ngày tiếp theo khi lịch thực tế thay đổi; không tự tạo khoản trả hàng tháng. Số chưa biết có thể để trống và được báo thiếu, không mặc định là 0. Sao kê dùng tổng đã nhập và nguồn dự báo được chọn trong Ngân sách trả nợ; sao kê Dự kiến được đánh dấu ước tính. Phần khoản vay/thẻ có nút dẫn đến chức năng xác nhận hiện có, không tạo thêm chi phí thứ hai.
+
+### F6: Dự báo tiền 30 ngày
+
+Bắt đầu từ số dư cuối Ngày đánh giá rồi áp dụng mỗi dòng tiền tương lai đúng một lần: lương/tiền nhận có ngày đã nhập, khoản chi thực tế có ngày tương lai, khoản dự kiến, chuyển nguồn, khoản vay phải trả và sao kê. Mua bằng thẻ không tự trừ nguồn tiền ngay và không tự suy ra ngày/số tiền trả khi chưa có sao kê. Khoản quá hạn được giả định trả ngày kế tiếp để làm rõ nhu cầu tiền. Khoản vay đã có trả nợ tương lai không bị dự báo thêm cùng mức tối thiểu; gốc và lãi/phí đã ghi đều được xét.
+
+Bảng tách ngân hàng, tiền mặt, tiết kiệm, phần chưa dành cho quỹ và các sự kiện. Cảnh báo khi một nguồn thiếu tiền, tiền chưa phân bổ bị âm hoặc quỹ dự kiến không đủ, kể cả tổng tài sản vẫn dương. Không cộng quỹ lần nữa vào số dư. Khoản thiếu số phải trả hoặc nguồn được liệt kê là chưa tính được; lương chưa nhập, khoản phải thu chưa có tiền nhận và khoản chi chưa có lịch không được tự dự đoán. Dự báo không tạo giao dịch và không bảo đảm số thực tế tương lai.
+
+### F7: So sánh kế hoạch trả nợ
+
+Nhập ngân sách trả nợ tháng, APR, mức tối thiểu từng khoản. So sánh **ưu tiên lãi cao** và **ưu tiên dư nợ nhỏ**; cả hai trả các mức tối thiểu trước rồi phân bổ phần còn lại theo chiến lược. Mô phỏng tính lãi hàng tháng bằng dư nợ × APR / 12, làm tròn đến ba chữ số thập phân, tái sử dụng ngân sách khi một khoản đã hết nợ. Hiển thị số tháng dự kiến, tổng lãi, tổng trả và lịch từng tháng. Không giả định lãi suất chưa biết bằng 0; báo thiếu dữ liệu, ngân sách thấp hơn tối thiểu, không giảm được nợ hoặc chưa hết trong 600 tháng. Phí mới, thay đổi lãi suất và quy tắc tính lãi hàng ngày của ngân hàng không nằm trong mô phỏng.
+
+Admin có thể nhập riêng dư nợ, APR và mức tối thiểu thẻ cho kế hoạch, kèm ngày số liệu. Đây không phải thao tác sửa dư nợ thực. Chỉ dùng số liệu thẻ đúng Ngày đánh giá; số liệu cũ được yêu cầu cập nhật. Tài khoản thường không thấy hoặc sửa phần thẻ, điều kiện của khoản nợ loại thẻ hay nguồn dự báo sao kê.
+
+Khi **ghi trả nợ thực tế**, nhập **Gốc trả kỳ này** và **Lãi/phí thực trả**. Nguồn tiền giảm bằng tổng hai khoản; chỉ gốc giảm dư nợ. App tạo một khoản chi liên kết tổng thanh toán, không nhập lãi/phí lại thành khoản chi thứ hai. Có thể ghi lần chỉ trả lãi/phí với gốc 0. Hủy lần trả kiểm tra liên kết rồi hoàn đúng tổng tiền, khôi phục gốc và giữ lịch sử. Dữ liệu cũ không có trường lãi/phí giữ nguyên cách tính cũ.
+
+### F8 và kiểm tra
+
+Khoản phải thu/thu hồi gốc/lãi riêng đã có trong A–E; nhóm F bổ sung đường dẫn đến phần đó và không tạo sổ phải thu thứ hai. Toàn bộ cấu hình `safety` lưu trong từng sổ, đi cùng đồng bộ/sao lưu và kiểm tra revision. Các hộp thoại kiểm tra người dùng, khu vực và snapshot trước khi xác nhận. Không cần migration SQL hay triển khai Edge Function mới.
+
+Kiểm thử: `node --test --test-isolation=none`, `npm test`, `npm run build`. Với Chromium/playwright-core chuẩn bị như phần A–E, có thể chạy:
+
+```sh
+PLAYWRIGHT_MODULE=/tmp/calendar-browser/node_modules/playwright-core/index.mjs \
+  CALENDAR_URL=http://127.0.0.1:5173/ node scripts/check-safety-browser.mjs
+```
+
+Kịch bản dùng API mô phỏng, kiểm tra quỹ, dự phòng, ngân sách, xác nhận/hủy, ngày trả thực, chi từ quỹ, khoản không đủ tiền, dự báo, kế hoạch trả nợ, gốc/lãi thực trả, hai sổ, tải lại, phân quyền và màn hình điện thoại. Không sửa dữ liệu tài chính thật.
