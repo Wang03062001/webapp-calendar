@@ -91,7 +91,7 @@ Các trường mới là phần mở rộng của JSON phiên bản 2, dùng Sup
 
 ## Kỳ lương, thẻ tín dụng và sao kê
 
-Trang **Thu chi & kỳ lương** tách chi tiêu phát sinh khỏi dòng tiền qua ngân hàng. Nhập lương ở tháng thực nhận, ghi thêm tháng làm việc và ngày nhận (mặc định ngày 15, lương của tháng trước). Khung dòng tiền hiển thị tiền cần dự phòng cho sao kê và thu nhập sau chi tiền mặt/thanh toán thẻ/dự phòng; chưa phải số dư ví vì không có số dư đầu kỳ và chưa trừ các khoản dự kiến khác. Tiết kiệm VNĐ tiếp tục theo dõi riêng.
+Trang **Thu chi & kỳ lương** tách chi tiêu phát sinh khỏi dòng tiền qua ngân hàng. Nhập lương ở tháng thực nhận, ghi thêm tháng làm việc và ngày nhận (mặc định ngày 15, lương của tháng trước). Khung dòng tiền hiển thị tiền cần dự phòng cho sao kê và thu nhập sau chi tiền mặt/thanh toán thẻ/dự phòng; không phải số dư ví. Số dư có số đầu ngày được hiển thị riêng trong khung Số dư theo nguồn tiền. Tiết kiệm VNĐ tiếp tục theo dõi riêng.
 
 Trong ô chi tiêu, chọn **Thẻ tín dụng** rồi chọn **Một lần tháng sau · 1回** hoặc **Bổ sung vào リボ**. Kỳ trả mặc định là tháng kế tiếp của ngày mua, có thể sửa theo sao kê/độ trễ ghi nhận của ngân hàng. Các giao dịch tiền mặt cũ giữ nguyên cách tính; dữ liệu cũ không tự được chuyển thành giao dịch thẻ.
 
@@ -101,7 +101,7 @@ Nhập riêng **trả một lần, dư nợ リボ đầu kỳ, bổ sung リボ
 
 Trạng thái gồm **Dự kiến → Đã chốt → Đã thanh toán kỳ này**. Chỉ phí/lãi của sao kê đã chốt tạo một khoản chi phí liên kết vào ngày xác nhận; sửa phí cập nhật đúng khoản liên kết, không tạo trùng. Tiền mua hàng vẫn ghi vào ngày mua, gốc cũ không được tạo lại thành chi tiêu. Nếu chỉ nhập tổng sao kê mà chưa có giao dịch mua hàng, ứng dụng không tự tạo chi tiêu tổng để tránh ghi trùng; cần ghi/đối chiếu các giao dịch tương ứng trong lịch.
 
-**Xác nhận đã thanh toán** chỉ ghi trạng thái và ngày thực trích tiền; không tạo lại chi tiêu. Nợ リボ chỉ được giảm phần gốc khi xác nhận đã trả. Có thể hủy xác nhận để sửa nhầm; sao kê đã trả bị khóa sửa cho đến khi hủy xác nhận. Trả đủ sao kê không đồng nghĩa hết nợ リボ. Lịch sử năm chỉ hiển thị các sao kê đã nhập; các số dự kiến chưa chốt được ghi rõ là ước tính.
+**Xác nhận đã thanh toán** ghi ngày thực trả, nguồn ngân hàng/tiền mặt và tạo đúng một dòng thanh toán liên kết trong danh sách chi tiêu. Dòng này là tiền ra, không phải chi phí mua hàng lần hai. Nợ リボ chỉ được giảm phần gốc khi xác nhận đã trả. Có thể hủy xác nhận để sửa nhầm; sao kê đã trả bị khóa sửa cho đến khi hủy xác nhận. Trả đủ sao kê không đồng nghĩa hết nợ リボ. Lịch sử năm chỉ hiển thị các sao kê đã nhập; các số dự kiến chưa chốt được ghi rõ là ước tính.
 
 Dữ liệu thẻ được lưu chung JSON phiên bản 2 trong tài khoản Supabase, dùng kiểm tra revision sẵn có. Không cần SQL/Edge Function mới. Không có dữ liệu sao kê cá nhân được đặt sẵn trong mã nguồn hoặc tự ghi vào tài khoản. Chạy thêm `node test/card.test.js` để kiểm tra kỳ trả, gốc/phí, dòng tiền, đối chiếu và bản sao lưu.
 
@@ -127,3 +127,18 @@ Admin có nút **Xóa tài khoản** trong **Quản lý tài khoản** để xó
 
 
 Khi chọn ngôn ngữ trong **Cài đặt**, cả hai ô tiền tệ tự chọn theo ngôn ngữ: Việt → VND, Anh → USD, Nhật → JPY, Hàn → KRW, Trung Đài Loan → TWD. Có thể chọn lại tiền tệ cho từng nhóm bằng tay trước khi lưu; việc chọn tiền tệ không tự đổi ngôn ngữ. Tài khoản mới chưa có dữ liệu được gợi ý tiền tệ theo ngôn ngữ đang dùng. Mở lại cài đặt hoặc tải lại trang giữ các tiền tệ đã lưu, kể cả lựa chọn thủ công. Dữ liệu cũ không tự bị đổi đơn vị khi chỉ tải trang. Nhóm có tiền vẫn phải xác nhận rõ việc đổi đơn vị giữ nguyên con số, không quy đổi tỷ giá, trước khi lưu; hủy cài đặt không áp dụng thay đổi nào.
+
+
+## Nguồn tiền và thanh toán sao kê liên kết
+
+Mỗi khoản chi có **Mục đích chi tiêu** (nội dung), danh mục và **Nguồn tiền**: tài khoản ngân hàng, tiền mặt, hoặc PayPay/thẻ tín dụng. Khoản mới mặc định ngân hàng, Dự kiến; chuyển sang Đã chi khi phát sinh. Khoản cũ chưa có nguồn vẫn giữ cách tính tiền mặt; có thể sửa nguồn của khoản thường sau khi đối chiếu. Thu nhập có Nơi nhận (ngân hàng/tiền mặt); dữ liệu cũ mặc định vào ngân hàng, ngày nhận dùng ngày đã nhập hoặc 15 của tháng.
+
+**Số dư theo nguồn tiền → Thiết lập số dư** nhập ngày bắt đầu và số dư đầu ngày ngân hàng/tiền mặt. Admin nhập thêm dư nợ toàn bộ PayPay đầu ngày và hạn mức tín dụng (có thể để trống hạn mức nếu chưa biết). Các giao dịch Đã chi/thu nhập có ngày từ ngày bắt đầu đến ngày đang xem được cộng/trừ; giao dịch Dự kiến và giao dịch ngoài khoảng không ảnh hưởng. Dư nợ đầu ngày phải gồm toàn bộ nợ thẻ chưa trả trước ngày bắt đầu: nợ cũ, mua hàng và phí. Không nhập số dư cuối ngày vào số đầu ngày, tránh tính lại giao dịch cùng ngày. Số dư này là sổ do người dùng nhập, không tự lấy từ ngân hàng.
+
+Ngân hàng/tiền mặt = đầu ngày + thu nhập vào nguồn + chuyển vào − chi trực tiếp − trả thẻ − chuyển ra. Dư nợ thẻ = đầu ngày + chi bằng thẻ/phí ghi sau mốc − toàn bộ tiền trả thẻ. Hạn mức khả dụng = hạn mức − dư nợ ghi sổ; đây không phải tiền gửi. Nếu chưa nhập hạn mức hoặc tiền đã trả vượt dư nợ ghi sổ, app yêu cầu nhập/đối chiếu thay vì đoán hạn mức. Số âm không bị tự đưa về 0. **Chuyển ngân hàng ↔ tiền mặt** di chuyển số dư giữa hai nguồn, không tăng thu nhập hay chi phí; có lịch sử và xác nhận xóa để hoàn lại ảnh hưởng. Tiết kiệm/mục tiêu là nhóm riêng, không tự trừ khỏi ngân hàng bằng tỷ giá ngầm.
+
+Đặt ngày đến hạn không tự tạo giao dịch. Khi xác nhận sao kê đã trả, chọn ngày và nguồn ngân hàng/tiền mặt. App tạo một dòng `card-payment-YYYY-MM`, mục đích Thanh toán tên thẻ/kỳ, số tiền tổng sao kê; lưu ngày/nguồn vào sao kê. Dòng liên kết hiển thị trong lịch/ngày/tìm kiếm nhưng bị khóa sửa/xóa trực tiếp. Hủy xác nhận trong Thẻ & sao kê sẽ kiểm tra và gỡ đúng dòng liên kết, hoàn ảnh hưởng số dư. Xác nhận lặp bị từ chối; đổi ngày/nguồn cần hủy rồi xác nhận lại. Bản sao lưu lưu đầy đủ accounts, chuyển tiền, nguồn chi/thu, nguồn trả sao kê và liên kết.
+
+**Chi phí phát sinh** và biểu đồ phân loại vẫn chỉ tính mua hàng/phí (cùng các khoản chi thường); dòng thanh toán không cộng vào chi phí lần hai. **Tiền ra ngân hàng / tiền mặt** trong ngày/tháng tính chi trực tiếp + trả sao kê. Số dư nguồn và tổng tiền ra dùng khoản thanh toán một lần, không cộng cả dòng liên kết lẫn sao kê. Trả khoản vay khác cũng chọn ngân hàng/tiền mặt và vẫn giữ một khoản chi liên kết như trước.
+
+Sao kê đã trả trong dữ liệu cũ chưa có nguồn sẽ được nâng cấp thành nguồn ngân hàng và thêm một dòng liên kết đúng ngày, không đổi tổng chi phí cũ. Nếu từng tự nhập thanh toán thẻ thành khoản chi thường, cần tự đối chiếu và gỡ khoản nhập tay trùng; ứng dụng không xóa dữ liệu nhập tay dựa vào tên/số tiền. Việc thiết lập số dư và dòng liên kết dùng JSON hiện có, không cần SQL/Edge Function mới. Chạy `node test/ledger.test.js` cùng các bộ kiểm tra hiện có.

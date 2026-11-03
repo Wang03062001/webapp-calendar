@@ -36,7 +36,7 @@ export function normalizeCards(raw) {
     const statement = { month: source.month, dueDate: source.dueDate, confirmedOn: source.confirmedOn || '', status: source.status, note: String(source.note || '').slice(0, 2000) };
     for (const field of ['priorBalance', 'newRibo', 'principal', 'fees', 'oneOff']) statement[field] = cardMoney(source[field]);
     if (statementNumbers(statement).carry < 0) throw new Error('Gốc trả vượt tổng dư nợ リボ.');
-    if (source.status === 'paid') statement.paidOn = source.paidOn;
+    if (source.status === 'paid') { statement.paidOn = source.paidOn; if (source.paymentSource !== undefined) { if (!['bank','cash'].includes(source.paymentSource)) throw new Error('Nguồn thanh toán không hợp lệ.'); statement.paymentSource = source.paymentSource; } }
     result.statements.push(statement);
   }
   return result;
@@ -62,27 +62,50 @@ export function saveStatement(data, source) {
   data.cards ||= defaultCards(); data.cards.statements = data.cards.statements.filter(item => item.month !== next.month); data.cards.statements.push(next);
   for (const date of [next.confirmedOn, next.dueDate]) if (date && !data.years.includes(Number(date.slice(0, 4)))) data.years.push(Number(date.slice(0, 4)));
 }
-export function settleStatement(data, month, paidOn) {
+function paymentId(month) { return `card-payment-${month}`; }
+function addPaymentRow(data, statement) {
+  if(Object.values(data.days).some(entry=>entry.items.some(item=>item.id===paymentId(statement.month)||item.cardPaymentMonth===statement.month)))throw new Error('Thanh toán sao kê đã tồn tại.');
+  const entry=data.days[statement.paidOn] ||= {note:'',items:[]};
+  entry.items.push({id:paymentId(statement.month),title:`Thanh toán ${data.cards?.name||'PayPay Card'} · ${statement.month}`,amount:statementNumbers(statement).total,category:'Thanh toán thẻ',status:'paid',paymentMethod:statement.paymentSource,cardPaymentMonth:statement.month});
+}
+export function migrateLegacyPayments(data) {
+  for(const statement of data.cards?.statements||[])if(statement.status==='paid' && statement.paymentSource===undefined){
+    statement.paymentSource='bank';addPaymentRow(data,statement);
+  }
+}
+export function settleStatement(data, month, paidOn, paymentSource = 'bank') {
   const statement = data.cards?.statements.find(item => item.month === month);
   if (statement?.status !== 'confirmed' || !cardDate(paidOn)) throw new Error('Cần sao kê đã chốt và ngày thanh toán hợp lệ.');
-  statement.status = 'paid'; statement.paidOn = paidOn;
+  if(!['bank','cash'].includes(paymentSource))throw new Error('Nguồn thanh toán không hợp lệ.');
+  const next={...statement,status:'paid',paidOn,paymentSource};addPaymentRow(data,next);
+  Object.assign(statement,next);
   if (!data.years.includes(Number(paidOn.slice(0, 4)))) data.years.push(Number(paidOn.slice(0, 4)));
 }
 export function undoSettlement(data, month) {
   const statement = data.cards?.statements.find(item => item.month === month);
   if (statement?.status !== 'paid') throw new Error('Sao kê chưa được xác nhận thanh toán.');
-  statement.status = 'confirmed'; delete statement.paidOn;
+  const matches=Object.entries(data.days).flatMap(([date,entry])=>entry.items.filter(i=>i.cardPaymentMonth===month).map(item=>({date,entry,item})));
+  if(matches.length!==1 || matches[0].date!==statement.paidOn || matches[0].item.id!==paymentId(month) || matches[0].item.amount!==statementNumbers(statement).total || matches[0].item.paymentMethod!==statement.paymentSource)throw new Error('Thanh toán liên kết không khớp sao kê.');
+  matches[0].entry.items=matches[0].entry.items.filter(i=>i!==matches[0].item);
+  statement.status = 'confirmed'; delete statement.paidOn; delete statement.paymentSource;
 }
 export function cardCashflow(data, month) {
   const cards = data.cards || defaultCards(), statement = cards.statements.find(item => item.month === month), estimate = statement || projectedStatement(data, month);
   const income = data.incomes[month] || {}, earned = Number(income.salary || 0) + Number(income.bonus || 0);
-  const direct = roundCard(Object.entries(data.days).filter(([date]) => date.startsWith(`${month}-`)).reduce((sum, [, entry]) => sum + entry.items.filter(item => item.status !== 'planned' && item.paymentMethod !== 'card').reduce((total, item) => total + item.amount, 0), 0));
+  const direct = roundCard(Object.entries(data.days).filter(([date]) => date.startsWith(`${month}-`)).reduce((sum, [, entry]) => sum + entry.items.filter(item => item.status !== 'planned' && item.paymentMethod !== 'card' && !item.cardPaymentMonth).reduce((total, item) => total + item.amount, 0), 0));
   const paid = roundCard(cards.statements.filter(item => item.status === 'paid' && item.paidOn.startsWith(`${month}-`)).reduce((sum, item) => sum + statementNumbers(item).total, 0));
   const reserved = roundCard(cards.statements.filter(item => item.status === 'confirmed' && item.dueDate.startsWith(`${month}-`)).reduce((sum, item) => sum + statementNumbers(item).total, 0));
   const estimatedReserve = (!statement || statement.status === 'draft') && estimate.dueDate.startsWith(`${month}-`) ? statementNumbers(estimate).total : 0;
   return { estimatedReserve, statement, estimate, income: earned, direct, paid, reserved, afterReserve: roundCard(earned - direct - paid - reserved - estimatedReserve), nextPurchases: roundCard((shiftMonth(month, 1) ? cardPurchases(data, shiftMonth(month, 1)) : []).reduce((sum, item) => sum + item.amount, 0)) };
 }
 export function validateCardLinks(data) {
+  const payments = new Set();
+  for(const [date,entry] of Object.entries(data.days))for(const item of entry.items)if(item.cardPaymentMonth){
+    const statement=data.cards?.statements.find(s=>s.month===item.cardPaymentMonth);
+    if(!statement || statement.status!=='paid' || date!==statement.paidOn || item.id!==paymentId(statement.month) || item.amount!==statementNumbers(statement).total || item.paymentMethod!==statement.paymentSource || item.status!=='paid' || item.cardFeeMonth || item.debtPaymentId || payments.has(statement.month))throw new Error('Thanh toán liên kết không khớp sao kê.');
+    payments.add(statement.month);
+  }
+  for(const statement of data.cards?.statements||[])if(statement.status==='paid'&&!payments.has(statement.month))throw new Error('Thiếu thanh toán liên kết sao kê.');
   const seen = new Set();
   for (const [date, entry] of Object.entries(data.days)) for (const item of entry.items) if (item.cardFeeMonth) {
     const statement = data.cards?.statements.find(record => record.month === item.cardFeeMonth);

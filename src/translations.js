@@ -1,6 +1,51 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Thu nhập sau chi trực tiếp & dự phòng thẻ|Income after direct spending & card reserve|直接支出とカード確保額を引いた収入|직접 지출 및 카드 준비금 차감 후 수입|扣除直接支出與信用卡預留金後的收入
+Số tiền thanh toán|Payment amount|支払額|결제 금액|付款金額
+
+Số dư theo nguồn tiền|Balances by source|資金源別残高|자금별 잔액|各資金來源餘額
+Tính đến cuối ngày|As of end of day|日終了時点|해당 일 마감 기준|截至當日結束
+Số dư đầu ngày|Opening balance on|開始日の期首残高|시작일 기초 잔액|起始日的期初餘額
+Chưa thiết lập số dư đầu ngày|Opening balances not set|期首残高が未設定|기초 잔액 미설정|尚未設定期初餘額
+Thiết lập số dư|Set opening balances|期首残高を設定|기초 잔액 설정|設定期初餘額
+Chưa thiết lập|Not set|未設定|미설정|尚未設定
+Tài khoản ngân hàng|Bank account|銀行口座|은행 계좌|銀行帳戶
+Tiền mặt|Cash|現金|현금|現金
+Nguồn tiền|Funding source|資金源|자금 출처|資金來源
+Nguồn thanh toán|Payment source|支払元|결제 자금 출처|付款來源
+Nơi nhận thu nhập|Income destination|収入の受取先|수입 입금처|收入入帳來源
+Mục đích chi tiêu|Spending purpose|支出目的|지출 목적|支出用途
+Hạn mức khả dụng PayPay|Available PayPay credit|PayPay利用可能額|PayPay 사용 가능 한도|PayPay 可用額度
+Cần nhập / đối chiếu hạn mức|Enter / reconcile credit limit|利用枠の入力・照合が必要|한도 입력 / 대조 필요|請輸入／核對信用額度
+Dư nợ ghi sổ:|Recorded debt:|記録上の債務：|기록된 부채:|帳面債務：
+Số dư dựa trên các giao dịch đã ghi; không kết nối trực tiếp với ngân hàng. Khoản cũ chưa có nguồn được tính là tiền mặt. Thu nhập chưa chọn nơi nhận được tính vào ngân hàng.|Balances use recorded transactions, without a live bank connection. Old expenses without a source use cash. Income without a destination uses bank.|記録した取引に基づき計算します。銀行とは接続していません。資金源のない過去の支出は現金、受取先のない収入は銀行扱いです。|기록한 거래로 계산하며 은행과 직접 연결되지 않습니다. 출처 없는 기존 지출은 현금, 입금처 없는 수입은 은행으로 처리합니다.|餘額依已記錄交易計算，未直接連線銀行。舊支出未指定來源時視為現金，收入未指定入帳來源時視為銀行。
+Cần đối chiếu dư nợ đầu kỳ và giao dịch thẻ: tiền đã trả vượt dư nợ ghi sổ.|Reconcile opening debt and purchases: repayments exceed recorded debt.|期首債務と取引の照合が必要です。返済額が記録上の債務を超えています。|기초 부채와 카드 거래를 대조하세요. 상환액이 기록된 부채를 초과합니다.|請核對期初債務及信用卡交易：還款超過帳面債務。
+Tiền ra ngân hàng / tiền mặt trong tháng|Bank / cash outflow this month|今月の銀行・現金支出|이번 달 은행 / 현금 유출|本月銀行／現金支出
+Tiền ra ngân hàng / tiền mặt trong ngày|Bank / cash outflow today|当日の銀行・現金支出|해당 일 은행 / 현금 유출|當日銀行／現金支出
+Gồm trả sao kê; chi phí mua bằng thẻ không bị cộng hai lần.|Includes statement payments; card purchases are not counted twice.|明細の支払を含みます。カード購入を二重計上しません。|명세서 결제를 포함하며 카드 구매를 중복 계산하지 않습니다.|包含帳單付款；信用卡消費不重複計算。
+Chuyển ngân hàng ↔ tiền mặt|Transfer bank ↔ cash|銀行 ↔ 現金の振替|은행 ↔ 현금 이체|銀行 ↔ 現金轉帳
+Lịch sử chuyển tiền|Transfer history|振替履歴|이체 내역|轉帳紀錄
+Chưa có chuyển tiền.|No transfers yet.|振替はまだありません。|이체 내역이 없습니다.|尚無轉帳。
+Chuyển tiền nội bộ|Internal transfer|口座間振替|내 계좌 간 이체|內部轉帳
+Xóa chuyển tiền|Delete transfer|振替を削除|이체 삭제|刪除轉帳
+Ngày bắt đầu theo dõi|Tracking start date|記録開始日|추적 시작일|追蹤起始日期
+Ngân hàng đầu ngày|Opening bank balance|銀行期首残高|은행 기초 잔액|銀行期初餘額
+Tiền mặt đầu ngày|Opening cash balance|現金期首残高|현금 기초 잔액|現金期初餘額
+Dư nợ PayPay đầu ngày|Opening PayPay debt|PayPay期首債務|PayPay 기초 부채|PayPay 期初債務
+Hạn mức PayPay (không bắt buộc)|PayPay credit limit (optional)|PayPay利用枠（任意）|PayPay 한도 (선택)|PayPay 信用額度（選填）
+Nhập số dư trước mọi giao dịch trong ngày bắt đầu. Dư nợ đầu ngày gồm cả nợ cũ, mua hàng và phí chưa trả trước ngày đó. Giao dịch từ ngày bắt đầu trở đi sẽ được cộng/trừ; không nhập lại số dư cuối ngày vào đây.|Enter balances before all transactions on the start date. Opening card debt includes earlier unpaid debt, purchases and fees. Transactions from the start date are then applied; do not enter end-of-day balances here.|開始日の取引前の残高を入力します。期首債務には前日までの未払債務・購入・手数料を含めます。開始日以降の取引を加減するため、終日の残高は入力しないでください。|시작일의 모든 거래 전 잔액을 입력하세요. 기초 부채는 이전 미납 부채, 구매와 수수료를 포함합니다. 시작일 이후 거래가 반영되므로 마감 잔액을 입력하지 마세요.|請輸入起始日所有交易前的餘額。期初債務包含此前尚未償還的舊債、消費及費用。系統會計入起始日後的交易，請勿在此輸入期末餘額。
+Ngày chuyển|Transfer date|振替日|이체일|轉帳日期
+Nơi nhận|Destination|振替先|입금처|收款來源
+Chuyển giữa hai nguồn của bạn không tạo thêm thu nhập hoặc chi phí.|Transfers between your own sources do not create income or expenses.|自分の口座間の振替は収入・費用に計上しません。|자신의 자금 간 이체는 수입이나 비용을 만들지 않습니다.|自己的資金來源之間轉帳不產生額外收入或費用。
+Xóa giao dịch chuyển tiền này sẽ hoàn lại số dư của cả hai nguồn.|Deleting this transfer reverses its effect on both balances.|削除すると両方の残高への影響を元に戻します。|이체를 삭제하면 양쪽 잔액에 대한 영향이 취소됩니다.|刪除此轉帳將復原兩個來源的餘額變動。
+Chi phí phát sinh|Incurred costs|発生費用|발생 비용|已發生費用
+Thanh toán thẻ|Card payment|カード支払|카드 결제|信用卡付款
+Thanh toán liên kết sao kê|Linked statement payment|明細連動の支払|명세서 연결 결제|連結帳單付款
+Hủy thanh toán trong Thẻ & sao kê|Undo payment in Card & statements|カード・明細で支払を取消|카드 및 명세서에서 결제 취소|在信用卡與帳單中取消付款
+Thanh toán sao kê · không cộng lại chi phí. Sửa/hủy trong Thẻ & sao kê.|Statement payment · not a second expense. Edit/undo in Card & statements.|明細支払・費用の二重計上はしません。カード・明細で編集・取消。|명세서 결제 · 비용 중복 계산 없음. 카드 및 명세서에서 수정/취소.|帳單付款・不重複計入費用。請在信用卡與帳單中修改／取消。
+Tạo một dòng thanh toán liên kết trong mục chi tiêu vào ngày trả. Dòng này giảm nguồn tiền và không cộng lại chi phí mua hàng.|Adds a linked payment to the daily expense list on the payment date. It reduces the funding source without counting purchases twice.|支払日に支出一覧へ連動行を追加します。資金源を減額し、購入費用を二重計上しません。|결제일의 지출 목록에 연결된 결제를 추가합니다. 자금 잔액은 줄지만 구매 비용을 중복 계산하지 않습니다.|付款日會在支出清單新增連結付款，扣減付款來源但不重複計入消費費用。
+
 Đổi ngôn ngữ sẽ chọn tiền tệ tương ứng cho cả hai nhóm. Bạn vẫn có thể chọn tiền tệ khác thủ công trước khi lưu.|Changing language selects the matching currency for both groups. You can still choose different currencies manually before saving.|言語を変更すると両グループの通貨を選択します。保存前に通貨を手動で変更できます。|언어를 변경하면 두 그룹의 통화가 함께 선택됩니다. 저장 전에 통화를 직접 변경할 수 있습니다.|變更語言會為兩個群組選擇對應幣別，儲存前仍可手動選擇其他幣別。
 
 Xóa tài khoản|Delete account|アカウントを削除|계정 삭제|刪除帳戶
