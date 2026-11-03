@@ -74,6 +74,10 @@ Thay đổi chưa lưu được giữ khi chuyển ngày/tháng và khi mở l�
 
 Trang tháng đặt ô nhập chi tiêu và lịch lên trước, có bộ chọn ngày để nhập nhanh trên điện thoại. Header và nút **Lưu thay đổi** được ghim khi cuộn. Banner chào mừng đã được thay bằng tiêu đề kỳ và nút thao tác gọn; biểu đồ nằm trong vùng có thể thu gọn. Thu nhập và tiết kiệm có khung nhập riêng, không lặp lại số tiết kiệm ở nhiều thẻ/biểu đồ. Chữ dùng bộ cỡ chung 12–32 px và màu tương phản cao hơn trên nền pastel.
 
+**Chi tiêu trong ngày** chỉ nhập khoản mới. Nhấn Enter hoặc **Lưu thay đổi** để gửi; chỉ khoản được máy chủ xác nhận mới rời ô nhập. Giao dịch vẫn có trong **Khoản chi trong tháng**, lịch, biểu đồ và các phép tính. Lỗi/xung đột giữ bản nháp; nội dung nhập tiếp trong lúc lưu cũng được giữ để lưu lần sau.
+
+Để sửa khoản đã lưu, mở **Khoản chi trong tháng** và bấm **Sửa nội dung**. Popup cho sửa nội dung, số tiền, danh mục, trạng thái, nguồn/quỹ và thông tin thẻ theo quyền hiện có. Enter hoặc **Lưu** xác nhận gửi, **Hủy** bỏ chỉnh sửa. **Xóa khoản chi** yêu cầu xác nhận trước khi gửi. Bấm ngày hoặc nội dung chỉ xem ngày. Khoản liên kết trả nợ, sao kê, phí thẻ và lịch phải trả vẫn sửa/hủy ở chức năng gốc; đổi tài khoản/khu vực hoặc thu hồi quyền admin sẽ chặn popup cũ ghi dữ liệu.
+
 Mỗi khoản chi có **danh mục** và trạng thái **Dự kiến / Đã chi**. Khoản mới mặc định Dự kiến; chỉ khoản Đã chi mới được trừ khỏi thu nhập. Dữ liệu cũ chưa có trạng thái được hiểu là Đã chi để giữ nguyên tổng tiền. Các thẻ phân biệt Thu nhập, Đã chi, Dự kiến chi và Chênh lệch thu − chi. Chênh lệch là thu nhập trừ số đã chi trong kỳ, chưa phải số dư ví vì chưa tính tiền đầu kỳ; VNĐ tiết kiệm vẫn theo dõi riêng với JPY.
 
 Trang Tổng kết năm chỉ hiển thị số liệu tổng năm; chọn một tháng để xem riêng tổng tháng. Vùng **Tìm kiếm khoản chi trong tháng** hỗ trợ tìm tiếng Việt có/không dấu và kết hợp lọc danh mục, trạng thái. Nhấn kết quả để mở đúng ngày nhập. Biểu đồ thu/chi/dự kiến và phân bổ đã chi theo danh mục chỉ dùng dữ liệu của kỳ đang chọn.
@@ -251,3 +255,12 @@ PLAYWRIGHT_MODULE=/tmp/calendar-browser/node_modules/playwright-core/index.mjs \
 ```
 
 Kịch bản dùng API mô phỏng, kiểm tra quỹ, dự phòng, ngân sách, xác nhận/hủy, ngày trả thực, chi từ quỹ, khoản không đủ tiền, dự báo, kế hoạch trả nợ, gốc/lãi thực trả, hai sổ, tải lại, phân quyền và màn hình điện thoại. Không sửa dữ liệu tài chính thật.
+
+Kiểm thử luồng nhập/sửa khoản chi (API và tài khoản mô phỏng hoàn toàn):
+
+```sh
+node test/expense-entry.test.js
+PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node scripts/check-expenses-browser.mjs
+```
+
+Script trình duyệt dùng Chromium tại `/usr/bin/chromium`, mặc định truy cập `http://127.0.0.1:5173` (có thể đặt `CALENDAR_URL`). Kiểm tra lưu chậm/nhập tiếp, lỗi/xung đột, popup sửa/hủy/xóa, số dư/quỹ, hai khu vực, đổi tài khoản, thu hồi quyền và giao diện máy tính/điện thoại. Ảnh mô phỏng được ghi vào `/tmp`, không đưa vào repository.

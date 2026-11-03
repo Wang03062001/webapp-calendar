@@ -1,17 +1,18 @@
 import { emptyData, normalizeData } from './model.js';
+import { confirmedExpenses } from './expense-model.js';
 
 export const LOCAL_KEY = 'lich-cua-toi.v1';
 export const hasData = data => Object.keys(data.days).length + Object.keys(data.incomes).length + Object.keys(data.savings).length + Object.keys(data.goals).length + (data.debts?.length || 0) + (data.cards?.statements.length || 0) + (data.cards?.availableCreditHistory?.length || 0) + (data.accounts ? 1 : 0) + (data.receipts?.length||0) + (data.receivables?.length||0) + (data.safety?1:0) + (data.regional?.vietnam&&hasData(data.regional.vietnam)?1:0) > 0;
 
 export class SyncController {
-  constructor(client, storage, { onData, onStatus }) {
-    this.client = client; this.storage = storage; this.onData = onData; this.onStatus = onStatus;
+  constructor(client, storage, { onData, onStatus, onConfirmed = () => {} }) {
+    this.client = client; this.storage = storage; this.onData = onData; this.onStatus = onStatus; this.onConfirmed = onConfirmed; this.confirmedExpenses = null; this.expenseInputs = {};
     this.user = null; this.revision = 0; this.dirty = false; this.counter = 0; this.epoch = 0; this.queued = null;
     this.status = 'guest'; this.message = ''; this.data = emptyData();
   }
   get cacheKey() { return `lich-cloud:${new URL(this.client.url).hostname}:${this.user.id}`; }
   statusChanged(status, message = '') { this.status = status; this.message = message; this.onStatus(); }
-  cache() { this.storage.setItem(this.cacheKey, JSON.stringify({ data: this.data, revision: this.revision, dirty: this.dirty, counter: this.counter, queued: this.queued })); }
+  cache() { this.storage.setItem(this.cacheKey, JSON.stringify({ data: this.data, revision: this.revision, dirty: this.dirty, counter: this.counter, queued: this.queued, confirmedExpenses: this.confirmedExpenses, expenseInputs: this.expenseInputs })); }
   async open() {
     this.statusChanged('loading'); let cacheLoaded = false;
     try {
@@ -21,13 +22,25 @@ export class SyncController {
       try { draft = cached ? JSON.parse(cached) : null; }
       catch { throw new Error('Không đọc được bản nháp tài khoản. Dữ liệu gốc vẫn được giữ; hãy khôi phục từ bản sao lưu.'); }
       this.data = draft ? normalizeData(draft.data) : emptyData();
+      this.expenseInputs = draft?.expenseInputs || {};
+      this.confirmedExpenses = draft?.confirmedExpenses ?? (!draft?.dirty ? confirmedExpenses(this.data) : null);
       this.revision = draft?.revision || 0; this.dirty = Boolean(draft?.dirty); this.counter = draft?.counter || 0;
       // Older dirty caches were already submitted by the former autosave workflow.
       this.queued = draft && Object.hasOwn(draft, 'queued') ? draft.queued : this.dirty ? { data: structuredClone(this.data), counter: this.counter } : null;
       if (this.queued) this.queued = { data: normalizeData(this.queued.data), counter: this.queued.counter };
-      cacheLoaded = true; this.onData(this.data); await this.refresh();
+      cacheLoaded = true; this.onData(this.data);
+      // Migrate old dirty caches from a server read without changing their draft
+      // or revision. A failed read leaves all unacknowledged entries intact.
+      if (this.dirty && !this.confirmedExpenses) {
+        const epoch = this.epoch;
+        const row = await this.client.load(this.user.id);
+        if (epoch !== this.epoch) return;
+        this.confirmedExpenses = confirmedExpenses(row ? normalizeData(row.data) : emptyData());
+        this.cache(); this.onConfirmed();
+      }
+      await this.refresh();
     } catch (error) {
-      if (!cacheLoaded) { this.user = null; this.data = emptyData(); this.dirty = false; this.queued = null; this.revision = 0; this.onData(this.data); }
+      if (!cacheLoaded) { this.user = null; this.confirmedExpenses = null; this.expenseInputs = {}; this.data = emptyData(); this.dirty = false; this.queued = null; this.revision = 0; this.onData(this.data); }
       this.statusChanged('error', error.message);
     }
   }
@@ -43,7 +56,7 @@ export class SyncController {
       const row = await this.client.load(this.user.id);
       if (epoch !== this.epoch || counter !== this.counter || this.dirty || readId !== this.readId) return;
       const revision = row?.revision || 0, changed = revision !== this.revision || this.status === 'loading';
-      this.data = row ? normalizeData(row.data) : emptyData(); this.revision = revision; this.cache();
+      this.data = row ? normalizeData(row.data) : emptyData(); this.revision = revision; this.confirmedExpenses = confirmedExpenses(this.data); this.cache();
       if (changed) this.onData(this.data); this.statusChanged('ready');
     } catch (error) { if (epoch === this.epoch && counter === this.counter && readId === this.readId) this.statusChanged('error', error.message); }
   }
@@ -58,7 +71,7 @@ export class SyncController {
     this.queued = { data: structuredClone(this.data), counter: this.counter }; this.cache();
     return this.flush();
   }
-  // Explicit balance confirmations become visible/countable only after the
+  // Explicit financial edits become visible/countable only after the
   // optimistic server write succeeds. Failed attempts never enter the cache.
   async commitConfirmed(next) {
     if (!this.user) throw new Error('Hãy đăng nhập trước khi lưu dữ liệu.');
@@ -76,7 +89,7 @@ export class SyncController {
         const row = await this.client.save(snapshot, this.revision);
         if (epoch !== this.epoch) throw new Error('Phiên đăng nhập đã thay đổi.');
         this.revision = row.revision;
-        this.data = snapshot; this.counter++; this.dirty = false; this.queued = null;
+        this.data = snapshot; this.confirmedExpenses = confirmedExpenses(snapshot); this.counter++; this.dirty = false; this.queued = null;
         this.cache(); this.onData(this.data); this.statusChanged('ready');
       } catch (error) {
         if (epoch === this.epoch) this.statusChanged(error.code === '40001' ? 'conflict' : 'error', error.message);
@@ -96,7 +109,8 @@ export class SyncController {
         if (epoch !== this.epoch) return;
         this.revision = row.revision;
         if (this.queued?.counter <= submission.counter) this.queued = null;
-        this.dirty = submission.counter !== this.counter; this.cache();
+        this.dirty = submission.counter !== this.counter;
+        this.confirmedExpenses = confirmedExpenses(submission.data); this.cache(); this.onConfirmed();
         this.statusChanged(this.dirty ? this.queued ? 'pending' : 'draft' : 'ready');
       } catch (error) { if (epoch === this.epoch) this.statusChanged(error.code === '40001' ? 'conflict' : 'error', error.message); }
       finally { this.inFlight = null; }
@@ -110,12 +124,12 @@ export class SyncController {
     try {
       const row = await this.client.load(this.user.id);
       this.data = row ? normalizeData(row.data) : emptyData(); this.revision = row?.revision || 0;
-      this.dirty = false; this.queued = null; this.counter++; this.cache(); this.onData(this.data); this.statusChanged('ready');
+      this.dirty = false; this.queued = null; this.counter++; this.expenseInputs = {}; this.confirmedExpenses = confirmedExpenses(this.data); this.cache(); this.onData(this.data); this.statusChanged('ready');
     } catch (error) { this.statusChanged('error', error.message); throw error; }
   }
   async logout() {
     if (this.inFlight) await this.inFlight;
-    this.epoch++; this.user = null; this.dirty = false; this.revision = 0; this.queued = null;
+    this.epoch++; this.confirmedExpenses = null; this.expenseInputs = {}; this.user = null; this.dirty = false; this.revision = 0; this.queued = null;
     this.data = emptyData(); this.onData(this.data); this.statusChanged('guest');
     await this.client.signOut();
   }

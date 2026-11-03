@@ -1,6 +1,13 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Nhập khoản mới|Enter a new expense|新しい支出を入力|새 지출 입력|輸入新支出
+Khoản chi trong tháng|Monthly expenses|今月の支出|월 지출|本月支出
+Sửa nội dung|Edit expense|支出を編集|지출 수정|編輯支出
+Xóa khoản chi|Delete expense|支出を削除|지출 삭제|刪除支出
+Xóa khoản chi đã lưu này?|Delete this saved expense?|保存済みの支出を削除しますか？|저장된 지출을 삭제할까요?|要刪除此已儲存支出嗎？
+Bản nháp chưa được xác nhận lưu.|Draft has not been acknowledged by the server.|下書きはまだサーバーで保存確認されていません。|서버에서 아직 저장을 확인하지 않은 초안입니다.|伺服器尚未確認儲存此草稿。
+Dữ liệu, khu vực hoặc tài khoản đã thay đổi. Đóng và mở lại để kiểm tra.|Data, region or account changed. Close and reopen to review.|データ、地域またはアカウントが変更されました。閉じて再度開き、確認してください。|데이터, 지역 또는 계정이 변경되었습니다. 닫았다가 다시 열어 확인하세요.|資料、地區或帳號已變更。請關閉後重新開啟確認。
 Nền tảng an toàn|Financial safety|家計の安全基盤|재정 안전 기반|財務安全基礎
 Ngày đánh giá|Assessment date|評価日|평가 기준일|評估日期
 Mỗi khu vực dùng số dư, tiền tệ và kế hoạch riêng.|Each region uses separate balances, currency and plans.|地域ごとに残高・通貨・計画を分けます。|지역마다 잔액, 통화, 계획을 분리합니다.|各地區使用獨立的餘額、幣別與計畫。
