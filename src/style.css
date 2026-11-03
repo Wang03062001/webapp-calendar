@@ -154,3 +154,5 @@ html[data-theme=dark]{--money-payment:#ff9ca9;--money-income:#8be0ad;--money-ban
 .balance-setup-options{display:grid;gap:12px;margin-top:20px}.balance-setup-options .button{white-space:normal}#opening-dialog table{width:100%;border-collapse:collapse;font-size:var(--text-sm)}#opening-dialog td,#opening-dialog th{padding:10px 5px;text-align:right;overflow-wrap:anywhere}#opening-dialog th:first-child{text-align:left}#opening-dialog .opening-preview{border-top:1px solid #ded4eb;margin-top:20px;padding-top:16px}#opening-dialog .opening-preview h3{margin:12px 0}
 
 #opening-dialog .opening-cancel{width:100%;margin-top:12px}
+
+.export-backup{margin-top:24px}.export-backup .button{white-space:normal}#export-dialog summary{font-size:var(--text-base)}

@@ -1,6 +1,16 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Sao lưu bản nháp JSON|Back up draft as JSON|下書きをJSONでバックアップ|초안을 JSON으로 백업|將草稿備份為 JSON
+Xuất Excel|Export Excel|Excel出力|Excel 내보내기|匯出 Excel
+Xuất dữ liệu Excel|Export data to Excel|データをExcelに出力|데이터를 Excel로 내보내기|匯出資料為 Excel
+Tải Excel (.xlsx)|Download Excel (.xlsx)|Excelをダウンロード (.xlsx)|Excel 다운로드 (.xlsx)|下載 Excel (.xlsx)
+Sao lưu JSON|JSON backup|JSONバックアップ|JSON 백업|JSON 備份
+Sao lưu và khôi phục|Backup and restore|バックアップと復元|백업 및 복원|備份與還原
+Đang tạo file…|Creating file…|ファイルを作成中…|파일 생성 중…|正在建立檔案…
+File .xlsx gồm tổng hợp tháng và các trang giao dịch, thu nhập, số dư, quỹ, khoản vay và lịch sử. Xuất tất cả các năm và khu vực có dữ liệu, ghi riêng tiền tệ.|The .xlsx file includes monthly summaries, transactions, income, balances, funds, loans and history. It covers every recorded year and region, with separate currency labels.|.xlsxには月次集計、取引、収入、残高、目的別資金、借入、履歴を含みます。記録のある全年度・地域を通貨別に出力します。|.xlsx 파일에는 월별 요약, 거래, 수입, 잔액, 목적 자금, 대출 및 기록이 포함됩니다. 데이터가 있는 모든 연도와 지역을 통화별로 내보냅니다.|.xlsx 包含月度摘要、交易、收入、餘額、基金、借款及紀錄，涵蓋所有有資料的年份及地區，並分別標示幣別。
+Dữ liệu thẻ chỉ có khi quyền admin được máy chủ xác minh lúc xuất. Bản nháp chưa lưu cũng được ghi vào báo cáo và đánh dấu trong trang Hướng dẫn.|Card data is included only after server verification of admin access at export time. Unsaved drafts are included and marked on the Instructions sheet.|カード情報は出力時にサーバーで管理者権限を確認した場合のみ含みます。未保存の下書きも含み、案内シートに明記します。|카드 데이터는 내보낼 때 서버에서 관리자 권한을 확인한 경우에만 포함됩니다. 저장되지 않은 초안도 포함되며 안내 시트에 표시됩니다.|卡片資料僅在匯出時由伺服器確認管理員權限後才會包含。尚未儲存的草稿也會匯出，並在說明工作表標示。
+Excel dùng để xem và tính toán. Để khôi phục đầy đủ vào ứng dụng, giữ bản sao lưu JSON gồm toàn bộ dữ liệu của tài khoản.|Use Excel to view and calculate. Keep a JSON backup of the account's complete data to restore it in the app.|Excelは閲覧・計算用です。アプリに全データを復元するには、アカウントの完全なJSONバックアップを保管してください。|Excel은 조회 및 계산용입니다. 앱에서 전체 자료를 복원하려면 계정 전체 데이터의 JSON 백업을 보관하세요.|Excel 用於檢視及計算。如需完整還原至應用程式，請保留包含帳號全部資料的 JSON 備份。
 Số dư đầu kỳ / tiền tháng trước|Opening balance / prior-month funds|開始残高・前月の繰越金|기초 잔액 / 전월 이월금|期初餘額／上月結餘
 Sửa ngày bắt đầu / số dư đầu kỳ|Edit start date / opening balance|開始日・開始残高を編集|시작일 / 기초 잔액 수정|修改起始日／期初餘額
 Nhập tiền còn lại cuối tháng trước|Enter the previous month's closing funds|前月末の繰越残高を入力|지난달 말 잔액 입력|輸入上月底結餘
