@@ -1,6 +1,6 @@
 # Lịch của tôi
 
-Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập với các năm mặc định 2026–2033 và khả năng thêm/xóa năm. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.
+Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập với các năm và khả năng thêm/xóa năm. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.
 
 ## Chạy ứng dụng
 
