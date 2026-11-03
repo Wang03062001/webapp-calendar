@@ -1,6 +1,8 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Đổi ngôn ngữ sẽ chọn tiền tệ tương ứng cho cả hai nhóm. Bạn vẫn có thể chọn tiền tệ khác thủ công trước khi lưu.|Changing language selects the matching currency for both groups. You can still choose different currencies manually before saving.|言語を変更すると両グループの通貨を選択します。保存前に通貨を手動で変更できます。|언어를 변경하면 두 그룹의 통화가 함께 선택됩니다. 저장 전에 통화를 직접 변경할 수 있습니다.|變更語言會為兩個群組選擇對應幣別，儲存前仍可手動選擇其他幣別。
+
 Xóa tài khoản|Delete account|アカウントを削除|계정 삭제|刪除帳戶
 Xóa vĩnh viễn tài khoản:|Permanently delete account:|アカウントを完全に削除：|계정 영구 삭제:|永久刪除帳戶：
 Tài khoản và dữ liệu trên máy chủ sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.|The account and its server data will be permanently deleted. This cannot be undone.|アカウントとサーバー上のデータを完全に削除します。元に戻せません。|계정과 서버의 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.|帳戶及其伺服器資料將永久刪除，此操作無法復原。

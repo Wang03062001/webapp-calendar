@@ -38,3 +38,6 @@ Account profile/email changes: own profile for ordinary users; other accounts re
 
 
 Admin account deletion uses authenticated admin-accounts action delete with user_id and confirmation (current target email, or UUID if there is no email). Deny self-deletion on both UI and server and reject stale confirmation; never infer permission from metadata. Warn in-app before hard-deleting another account and its server data via Auth DELETE with should_soft_delete:false. Preserve existing FK cascades. Do not delete real accounts when testing this feature; use mocked API/browser fixtures. Regenerate the Dashboard bundle after handler changes; deployment requires updating admin-accounts, no new SQL.
+
+
+Language selection in Settings suggests both currency groups (vi=VND, en=USD, ja=JPY, ko=KRW, zh-TW=TWD). Keep both selects manually editable and never change language in response to currency selection. Empty-account onboarding defaults to the current display language; legacy data without currencies retains JPY/VND until an explicit change. Reopening Settings/reloading must preserve saved manual overrides. Language-triggered currency edits use the same in-app nonempty-group acknowledgement, explicit save and no-FX rules as manual currency edits.

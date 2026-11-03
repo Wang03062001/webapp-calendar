@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyData,normalizeData,monthSummary,formatAmount} from '../src/model.js';
-import {normalizeCurrencies,setCurrencies,currencyLabel,groupMoneyInput,finishMoneyInput} from '../src/preferences.js';
+import {currenciesForLanguage,normalizeCurrencies,setCurrencies,currencyLabel,groupMoneyInput,finishMoneyInput} from '../src/preferences.js';
 import {translations} from '../src/translations.js';
 import {t,setLanguage} from '../src/i18n.js';
 test('currency groups survive normalization without converting monetary records',()=>{
@@ -25,4 +25,13 @@ test('all money dialogs strip trailing zero decimals without changing fractional
  const input={value:'1,234.000',validity:{valid:true}};finishMoneyInput(input);assert.equal(input.value,'1,234');
  input.value='1,234.050';finishMoneyInput(input);assert.equal(input.value,'1,234.05');
  input.value='wrong';input.validity.valid=false;finishMoneyInput(input);assert.equal(input.value,'wrong');
+});
+
+test('language defaults cover all supported locales without changing legacy or saved currencies',()=>{
+ const expected={vi:'VND',en:'USD',ja:'JPY',ko:'KRW','zh-TW':'TWD'};
+ for(const [language,currency] of Object.entries(expected))assert.deepEqual(currenciesForLanguage(language),{cash:currency,savings:currency});
+ const suggested=currenciesForLanguage('ja');suggested.cash='EUR';assert.deepEqual(currenciesForLanguage('ja'),{cash:'JPY',savings:'JPY'});
+ assert.deepEqual(normalizeCurrencies(),{cash:'JPY',savings:'VND'});
+ assert.deepEqual(normalizeCurrencies({cash:'EUR',savings:'CNY'}),{cash:'EUR',savings:'CNY'});
+ assert.deepEqual(currenciesForLanguage('__proto__'),{cash:'USD',savings:'USD'});
 });
