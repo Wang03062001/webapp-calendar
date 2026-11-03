@@ -91,7 +91,7 @@ async function refreshCreditRole(force = false) {
     if (cloud.user?.id !== userId || creditRole.request !== request) return false;
     const changed = creditRole.allowed !== allowed;
     creditRole.allowed = allowed; creditRole.checked = true;
-    if (!allowed) { document.querySelector('#safety-dialog[data-credit-guard]')?.close(); if(changed)document.querySelector('#expense-dialog')?.close(); document.querySelectorAll('#credit-dialog,#credit-limit-dialog,#debt-dialog,#reconcile-dialog,#ledger-dialog').forEach(d=>d.close()); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
+    if (!allowed) { document.querySelector('#safety-dialog[data-credit-guard]')?.close(); if(changed)document.querySelectorAll('#expense-dialog,#opening-dialog').forEach(d=>d.close()); document.querySelectorAll('#credit-dialog,#credit-limit-dialog,#debt-dialog,#reconcile-dialog,#ledger-dialog').forEach(d=>d.close()); document.querySelector('#ledger-dialog [name=creditDebt]')?.closest('dialog')?.close(); }
     if (changed) render();
     return allowed;
   })();
@@ -522,7 +522,7 @@ async function refreshAccountIdentity() {
 function syncAccountProfile() {
   const id = cloud.user?.id || null;
   if (profileUserId === id) return;
-  if (profileUserId && profileUserId !== id) document.querySelectorAll('#profile-dialog,#admin-dialog,#settings-dialog,#credit-dialog,#credit-limit-dialog,#debt-dialog,#ledger-dialog,#reconcile-dialog,#region-dialog,#cash-entry-dialog,#savings-opening-dialog,#safety-dialog,#expense-dialog').forEach(dialog => dialog.close());
+  if (profileUserId && profileUserId !== id) document.querySelectorAll('#profile-dialog,#admin-dialog,#settings-dialog,#credit-dialog,#credit-limit-dialog,#debt-dialog,#ledger-dialog,#reconcile-dialog,#region-dialog,#cash-entry-dialog,#savings-opening-dialog,#safety-dialog,#expense-dialog,#opening-dialog').forEach(dialog => dialog.close());
   profileUserId = id; accountProfile = null;
   if (!id) currencyPromptUser = null;
   if (!id) return;
@@ -565,6 +565,7 @@ function financeContext() {
   const region=activeRegion, actor=cloud.user?.id, epoch=cloud.epoch;
   const check=()=>{if(region!==activeRegion||actor!==cloud.user?.id||epoch!==cloud.epoch)throw Error('Khu vực hoặc tài khoản đã thay đổi.');};
   return {getData:()=>{check();return data;},getFinanceData:()=>{check();return visibleData();},getDocument:()=>{check();return cloud.data;},getUserId:()=>cloud.user?.id,canEdit:()=>region===activeRegion&&actor===cloud.user?.id&&epoch===cloud.epoch&&canEdit(),canUseCredit,hasCreditAccess,isExpenseConfirmed:(date,item)=>{check();return !isExpenseDraft(date,item);},verifyCreditAccess:()=>refreshCreditRole(true),
+    openIncomeMonth:date=>{check();if(!moduleEnabled(data,'salary'))return;const [y,m]=date.split('-').map(Number);if(!years().includes(y)){addYear(data,y);persist();}year=y;month=m-1;day=1;view='calendar';render();focusEditor('[data-income="salary"]');},
     onChange:next=>{check();const previous=data;data=next;if(!persist()){data=previous;throw Error('Chưa lưu được thay đổi.');}render();},
     commitConfirmed:async next=>{check();const combined=writeBook(cloud.data,region,next);if(!hasCreditAccess()&&creditDocument(combined)!==creditDocument(cloud.data))throw Error('Chức năng Thẻ & sao kê chỉ dành cho admin.');await cloud.commitConfirmed(combined);},
     commit:()=>{check();return cloud.commit();},getStatus:()=>cloud.status};

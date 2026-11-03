@@ -1,6 +1,43 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Số dư đầu kỳ / tiền tháng trước|Opening balance / prior-month funds|開始残高・前月の繰越金|기초 잔액 / 전월 이월금|期初餘額／上月結餘
+Sửa ngày bắt đầu / số dư đầu kỳ|Edit start date / opening balance|開始日・開始残高を編集|시작일 / 기초 잔액 수정|修改起始日／期初餘額
+Nhập tiền còn lại cuối tháng trước|Enter the previous month's closing funds|前月末の繰越残高を入力|지난달 말 잔액 입력|輸入上月底結餘
+Nhập số dư cuối tháng đang chọn|Enter the selected month's closing balance|選択月の月末残高を入力|선택한 월의 마감 잔액 입력|輸入所選月份的月底餘額
+Nhập thu nhập tháng trước|Enter previous month's income|前月の収入を入力|지난달 수입 입력|輸入上月收入
+Lịch sử số dư đầu kỳ|Opening balance history|開始残高の履歴|기초 잔액 기록|期初餘額紀錄
+Mốc số dư cuối tháng|Month-end balance baseline|月末残高の基準|월말 잔액 기준|月底餘額基準
+Mốc số dư đầu ngày|Start-of-day balance baseline|開始時点残高の基準|일 시작 잔액 기준|日初餘額基準
+Ngày số dư|Balance date|残高の日付|잔액 기준일|餘額日期
+Thời điểm số dư|Balance timing|残高の時点|잔액 시점|餘額時點
+Đầu ngày · trước mọi giao dịch|Start of day · before transactions|一日の開始時点・取引前|하루 시작 · 모든 거래 전|日初・所有交易前
+Cuối tháng · sau mọi giao dịch|Month end · after transactions|月末・すべての取引後|월말 · 모든 거래 후|月底・所有交易後
+Đầu ngày|Start of day|一日の開始時点|하루 시작|日初
+Cuối tháng|Month end|月末|월말|月底
+Xem trước số dư|Preview balances|残高をプレビュー|잔액 미리 보기|預覽餘額
+Xác nhận mốc nguồn tiền|Confirm balance baseline|残高基準を確認|잔액 기준 확인|確認餘額基準
+Xác nhận lưu mốc số dư|Confirm and save balance baseline|残高基準を確認して保存|잔액 기준 확인 및 저장|確認儲存餘額基準
+Nguồn tiền|Source|資金源|자금 출처|資金來源
+Trước|Before|変更前|변경 전|變更前
+Sau|After|変更後|변경 후|變更後
+Chưa có số dư tại ngày này|No balance established for this date|この日の残高は未設定です|이 날짜의 잔액이 설정되지 않았습니다|此日期尚未設定餘額
+Nhập tiền thực có của từng nguồn tại mốc đã chọn. Tiền có sẵn không phải thu nhập mới và không cộng thêm vào số dư đang có.|Enter each source's actual funds at the selected time. Existing funds are not new income and are not added to the current balance.|選択した時点の各資金源の実際の残高を入力します。既存の資金を新たな収入として計上したり現在残高に加算したりしません。|선택한 시점의 자금 출처별 실제 잔액을 입력하세요. 기존 자금은 새 수입이 아니며 현재 잔액에 추가되지 않습니다.|輸入所選時點各資金來源的實際餘額。原有資金不算新收入，也不會加到目前餘額上。
+Thay đổi mốc nguồn tiền dùng chung giới hạn 3 cập nhật thành công trong tháng; hủy hoặc lưu lỗi không tính lượt. Đối chiếu tháng đã theo dõi không tính lượt.|Baseline edits share the monthly limit of 3 successful updates; cancellation or failure uses no slot. Tracked month-end reconciliations use no slot.|資金基準の変更は月3回の更新枠を共有します。取消・保存失敗・記録済み期間の月末照合は回数に含めません。|잔액 기준 변경은 월 3회 성공한 갱신 한도를 공유합니다. 취소, 저장 실패 및 추적 중인 월의 마감 대조는 횟수에 포함되지 않습니다.|餘額基準變更共用每月3次成功更新的額度；取消、儲存失敗及已追蹤月份的月底核對不計次。
+Ngân hàng không gồm tiền đã ghi ở ô Tiết kiệm. Sau mốc này, các giao dịch đã lưu sẽ được cộng/trừ đúng nguồn. Dư nợ và hạn mức thẻ giữ nguyên mốc cũ.|Bank funds exclude amounts in Savings. Saved transactions after this baseline adjust their source once. Card debt and credit limit keep their original baseline.|銀行残高には貯蓄欄の金額を含めません。基準以後の保存済み取引は各資金源に一度だけ反映します。カード債務と限度額の元の基準は維持します。|은행 잔액에 저축 금액을 중복 입력하지 마세요. 기준 이후 저장된 거래는 해당 출처에 한 번 반영됩니다. 카드 채무와 한도는 기존 기준을 유지합니다.|銀行餘額不包含已填於儲蓄欄的款項。基準後的交易依來源計算一次，卡片負債及額度保留原基準。
+Tiền này chuyển sang tháng sau; giao dịch cùng ngày không bị trừ lại.|These funds carry into the next month; same-day transactions are not deducted again.|この残高を翌月へ繰り越し、当日の取引を再度差し引きません。|이 잔액은 다음 달로 이월되며 같은 날 거래가 다시 차감되지 않습니다.|此餘額結轉下月，同日交易不會再扣一次。
+Các giao dịch trong ngày này sẽ được cộng/trừ.|Transactions on this date will be included.|この日付の取引を加減算します。|이 날짜의 거래가 가감됩니다.|此日期的交易將計入加減。
+Số dư tính đến cuối ngày|Balances at the end of|一日の終了時点の残高|해당 일자 마감 잔액|截至當日結束的餘額
+Số liệu chi tiêu và thu nhập không thay đổi. Các mốc đối chiếu đã xác nhận sau ngày này vẫn được ưu tiên.|Spending and income records stay unchanged. Later confirmed reconciliations still take precedence.|支出・収入の記録は変更しません。後の日付の確認済み照合残高を優先します。|지출 및 수입 기록은 유지됩니다. 이후 확정된 대조 잔액이 우선 적용됩니다.|支出及收入紀錄保持不變，之後已確認的核對餘額仍優先適用。
+Ngày đang xem nằm trước mốc số dư hiện tại. Chọn thiết lập mốc sớm hơn để theo dõi tháng này.|This date precedes the current balance baseline. Set an earlier baseline to track this month.|表示日は現在の残高基準より前です。この月を記録するには以前の基準を設定してください。|선택한 날짜가 현재 잔액 기준보다 이전입니다. 이달을 추적하려면 더 이른 기준을 설정하세요.|所選日期早於目前餘額基準，請設定較早基準以追蹤此月份。
+Chọn cập nhật số dư cuối ngày hoặc sửa mốc đầu kỳ. Tiền mang sang không phải thu nhập mới.|Choose an end-of-day update or edit the opening baseline. Carried funds are not new income.|日末残高の更新または開始基準の編集を選択します。繰越金は新たな収入ではありません。|일 마감 잔액 갱신 또는 기초 기준 수정을 선택하세요. 이월금은 새 수입이 아닙니다.|請選擇更新日終餘額或修改期初基準，結轉資金不算新收入。
+Bật Lương & thưởng trong Quốc gia & chức năng để nhập thu nhập tháng trước.|Enable Salary & bonus in Country & modules to enter last month's income.|前月収入を入力するには国・機能設定で給与・賞与を有効にしてください。|지난달 수입을 입력하려면 국가 및 기능에서 급여 및 상여금을 켜세요.|請在國家與功能設定啟用薪資與獎金，以輸入上月收入。
+Ví dụ: số dư thực tế cuối tháng trước|Example: actual balance at the end of last month|例：前月末の実際の残高|예: 지난달 말 실제 잔액|例如：上月底實際餘額
+Mốc mới phải ở trước hoặc cùng ngày đối chiếu đầu tiên để giữ lịch sử.|The new baseline must be on or before the first reconciliation to preserve history.|履歴を保持するため、新しい基準は最初の照合日以前にしてください。|기록을 유지하려면 새 기준은 최초 대조일 또는 그 이전이어야 합니다.|為保留紀錄，新基準日期必須早於或等於首次核對日。
+Số dư cuối tháng cần chọn ngày cuối cùng của tháng.|Select the last day of the month for a closing balance.|月末残高には月の最終日を選択してください。|월말 잔액은 해당 월의 마지막 날을 선택하세요.|月底餘額請選擇該月最後一天。
+Không thể thiết lập số dư cho ngày tương lai.|Cannot set a balance for a future date.|未来の日付の残高は設定できません。|미래 날짜의 잔액은 설정할 수 없습니다.|無法設定未來日期的餘額。
+Mốc số dư đầu kỳ không hợp lệ.|Invalid opening balance baseline.|開始残高の基準が無効です。|기초 잔액 기준이 유효하지 않습니다.|期初餘額基準無效。
+Lịch sử số dư đầu kỳ không hợp lệ.|Invalid opening balance history.|開始残高の履歴が無効です。|기초 잔액 기록이 유효하지 않습니다.|期初餘額紀錄無效。
 Nhập khoản mới|Enter a new expense|新しい支出を入力|새 지출 입력|輸入新支出
 Khoản chi trong tháng|Monthly expenses|今月の支出|월 지출|本月支出
 Sửa nội dung|Edit expense|支出を編集|지출 수정|編輯支出

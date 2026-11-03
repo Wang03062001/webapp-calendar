@@ -264,3 +264,19 @@ PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node scripts/check-expenses
 ```
 
 Script trình duyệt dùng Chromium tại `/usr/bin/chromium`, mặc định truy cập `http://127.0.0.1:5173` (có thể đặt `CALENDAR_URL`). Kiểm tra lưu chậm/nhập tiếp, lỗi/xung đột, popup sửa/hủy/xóa, số dư/quỹ, hai khu vực, đổi tài khoản, thu hồi quyền và giao diện máy tính/điện thoại. Ảnh mô phỏng được ghi vào `/tmp`, không đưa vào repository.
+
+## Số dư đầu kỳ và tiền tháng trước
+
+Trong **Số dư theo nguồn tiền → Thiết lập số dư**, có ba lựa chọn:
+
+- **Nhập tiền còn lại cuối tháng trước**: nhập ngân hàng, tiền mặt và tiết kiệm thực có sau mọi giao dịch cuối tháng. Tiền chuyển sang tháng sau, không tạo thu nhập và không trừ lại giao dịch trong ngày chốt.
+- **Sửa ngày bắt đầu / số dư đầu kỳ**: chọn mốc sớm hơn để theo dõi cả tháng trước, hoặc sửa số tiền đầu kỳ. Số đầu ngày được tính trước mọi giao dịch của ngày đó.
+- **Nhập thu nhập tháng trước**: mở đúng tháng và ô lương; nhập ngày thực nhận và nguồn nhận như bình thường. Nếu đã chốt số dư cuối tháng, thu nhập trước mốc chốt không được cộng lại vào tiền mang sang. Sổ tắt Lương & thưởng cần bật chức năng này trước.
+
+Mọi thay đổi nguồn tiền có **Xem trước số dư**, rồi **Xác nhận lưu mốc số dư**. Số mới chỉ áp dụng sau khi máy chủ lưu thành công. Hủy/lỗi/xung đột giữ nguyên số đã lưu; có thể sửa lại các ô trước khi xác nhận. Mốc mới không được nằm sau một lần đối chiếu cũ vì phải giữ lịch sử đó. Các lần đối chiếu sau mốc mới vẫn được ưu tiên.
+
+Điều chỉnh đầu kỳ lưu thêm `accounts.openingHistory`, giữ các lần trước và các giao dịch/ghi chú. Mốc ngân hàng/tiền mặt/tiết kiệm được tách khỏi ngày bắt đầu dư nợ thẻ cũ; không đặt lại dư nợ, hạn mức hoặc sao kê để sửa tiền có sẵn. Trước mốc thẻ, dư nợ ghi sổ hiển thị chưa có số liệu thay vì đoán là 0. Sổ khu vực còn lại được giữ nguyên.
+
+Điều chỉnh mốc đầu kỳ dùng chung giới hạn 3 cập nhật thành công/tháng với sửa số dư ngày thường, tính riêng từng sổ. Chốt cuối tháng đã có mốc theo dõi dùng cơ chế đối chiếu hiện có và không tính lượt. Nếu tháng trước chưa được theo dõi, nhập số cuối tháng sẽ tạo mốc nguồn tiền mới và dùng một lượt khi lưu thành công.
+
+Kiểm tra: `node test/opening.test.js`, `npm test`, `npm run build` và `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node scripts/check-opening-browser.mjs` (API/tài khoản mô phỏng, mặc định cổng 5174; đặt `CALENDAR_URL` nếu dùng cổng khác).

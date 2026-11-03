@@ -150,3 +150,7 @@ html[data-theme=dark]{--money-payment:#ff9ca9;--money-income:#8be0ad;--money-ban
 .expense-result{min-width:0;padding-bottom:12px;border-top:1px solid #e9e2f0}.expense-result>button[data-open-day]{width:100%;border-top:0}.expense-result .edit-expense{display:block;margin-left:auto;padding:8px 12px;min-height:40px}.expense-result .linked-note{padding:0 0 0 8px}.expense-dialog-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.expense-dialog-actions .account-submit{width:auto;flex:1}.expense-dialog-fields .expense-entry{margin:0 0 16px}.expense-result strong{overflow-wrap:anywhere}.expense-dialog-fields label{display:block}html[data-theme=dark] .expense-result{border-color:#453b55}
 
 #expense-dialog .expense-entry label{margin:10px 0}#expense-dialog .expense-entry-meta{margin-top:0}#expense-dialog .expense-dialog-actions{position:sticky;bottom:0;padding:12px 0;background:#fff;z-index:1}html[data-theme=dark] #expense-dialog .expense-dialog-actions{background:#211d2b}
+
+.balance-setup-options{display:grid;gap:12px;margin-top:20px}.balance-setup-options .button{white-space:normal}#opening-dialog table{width:100%;border-collapse:collapse;font-size:var(--text-sm)}#opening-dialog td,#opening-dialog th{padding:10px 5px;text-align:right;overflow-wrap:anywhere}#opening-dialog th:first-child{text-align:left}#opening-dialog .opening-preview{border-top:1px solid #ded4eb;margin-top:20px;padding-top:16px}#opening-dialog .opening-preview h3{margin:12px 0}
+
+#opening-dialog .opening-cancel{width:100%;margin-top:12px}
