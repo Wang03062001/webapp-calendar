@@ -1,7 +1,8 @@
+import {isCardPaymentCategory} from './credit-types.js';
 import {wholeCurrencyMoney} from './money.js';
 import {statementProgress} from './card-ledger.js';
 import {shiftMonth} from './card-model.js';
-const moneyFields=new Set(['amount','salary','bonus','bank','cash','savings','creditDebt','creditLimit','oneOff','priorBalance','newRibo','principal','fees','interest','target','essentialMonthly','monthlyDebtBudget','minimum','expectedBank','expectedCash','expectedSavings','deltaBank','deltaCash','deltaSavings','statementAmount','estimatedPrincipal','estimatedFees']);
+const moneyFields=new Set(['amount','salary','bonus','bank','cash','savings','creditDebt','creditLimit','oneOff','priorBalance','newRibo','principal','fees','interest','target','essentialMonthly','monthlyDebtBudget','minimum','expectedBank','expectedCash','expectedSavings','deltaBank','deltaCash','deltaSavings','statementAmount','estimatedPrincipal','estimatedFees','monthlyPrincipal']);
 export function validateMoneyChanges(before,next){
  const compatible=new Set();for(const bill of next.cards?.statements||[]){const prior=before?.cards?.statements?.find(s=>s.month===bill.month);if(!prior)continue;const remaining=statementProgress(prior).remaining;if(Number.isInteger(remaining))continue;for(const p of bill.payments||[])if(!prior.payments?.some(old=>old.id===p.id)&&p.amount===remaining){compatible.add(p.id);compatible.add(p.expenseId);}}
  const currency=next.currencies?.cash||'JPY',legacyCurrency=next.currencies?.savings||'VND';
@@ -14,9 +15,10 @@ export function validateMoneyChanges(before,next){
  visit(next,before);for(const key of ['savings','goals'])visit(next[key],before?.[key],key,true);
 }
 export function validateCreditEdits(before,next){
+ for(const [date,entry]of Object.entries(next.days))for(const item of entry.items)if(isCardPaymentCategory(item.category)&&(item.paymentMethod==='card'||item.movement||item.debtPaymentId||item.obligationId)){const old=before.days[date]?.items.find(i=>i.id===item.id);if(!old||JSON.stringify(old)!==JSON.stringify(item))throw Error('Thanh toán thẻ phải dùng ngân hàng, tiền mặt hoặc tiết kiệm; không dùng nguồn tín dụng.');}
  for(const [date,entry]of Object.entries(before.days))for(const item of entry.items)if(item.paymentMethod==='card'&&!item.cardFeeMonth&&!['planned','draft','cancelled'].includes(item.status)){
   const bill=before.cards?.statements.find(s=>s.month===(item.billingMonth||shiftMonth(date.slice(0,7),1))),adjusted=before.cards?.adjustments?.some(r=>r.purchaseDate===date&&r.purchaseId===item.id);
-  if(!adjusted&&(!bill||bill.status==='draft'))continue;
+  if(!adjusted&&(item.creditTracking||!bill||bill.status==='draft'))continue;
   const candidate=next.days[date]?.items.find(i=>i.id===item.id),fields=['amount','paymentMethod','status','settlement','billingMonth'];
   if(!candidate||fields.some(k=>candidate[k]!==item[k]))throw Error('Giao dịch đã liên kết sao kê hoặc hoàn tiền. Dùng điều chỉnh / hoàn tiền trong Thẻ & sao kê.');
  }

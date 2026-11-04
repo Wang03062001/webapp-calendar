@@ -1,5 +1,6 @@
+import {isTrackingCardPayment} from './credit-types.js';
 // A display/calculation view only. Never persist this projection over the document.
-export const isCreditItem = item => item.paymentMethod === 'card' || Boolean(item.cardFeeMonth || item.cardPaymentMonth);
+export const isCreditItem = item => item.paymentMethod === 'card' || isTrackingCardPayment(item) || Boolean(item.cardFeeMonth || item.cardPaymentMonth);
 export function financeView(data, allowed) {
   if (allowed === true) return data;
   const creditDebts = new Set(data.debts.filter(d => d.type === 'Thẻ tín dụng').map(d => d.id));

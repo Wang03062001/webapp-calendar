@@ -1,7 +1,7 @@
+import {isCardPaymentCategory} from './credit-types.js';
 import {amount, MAX_AMOUNT} from './model.js';
 import {isCreditItem} from './credit-access.js';
 import {isInternalMovement} from './account-model.js';
-import {shiftMonth} from './card-model.js';
 import {protectedExpense} from './expense-model.js';
 import {t} from './i18n.js';
 
@@ -40,22 +40,23 @@ export function showExpenseDialog(context, date, id, editor) {
     if (field === 'fundId') {
       const fund = context.getData().safety?.funds.find(f => f.id === target.value && (!f.archived || f.id === original.fundId));
       if (target.value && !fund) return;
-      if (fund) { draft.fundId = fund.id; draft.paymentMethod = fund.source; delete draft.movement; delete draft.settlement; delete draft.billingMonth; }
+      if (fund) { draft.fundId = fund.id; draft.paymentMethod = fund.source;delete draft.creditTracking;delete draft.creditPeriod; delete draft.movement; delete draft.settlement; delete draft.billingMonth; }
       else delete draft.fundId;
     } else if (field === 'movement') {
       if (draft.fundId && target.value) { status.textContent = t('Bỏ quỹ trước khi chuyển nguồn nội bộ.'); renderFields(); return; }
       if (target.value) {
-        draft.movement = target.value; draft.paymentMethod = target.value === 'withdraw' ? 'bank' : 'cash'; draft.status = 'paid'; draft.category = 'Chuyển tiền nội bộ';
+        delete draft.creditTracking;delete draft.creditPeriod;draft.movement = target.value; draft.paymentMethod = target.value === 'withdraw' ? 'bank' : 'cash'; draft.status = 'paid'; draft.category = 'Chuyển tiền nội bộ';
         if (!draft.title || ['Rút tiền mặt', 'Nạp tiền vào ngân hàng'].includes(draft.title)) draft.title = target.value === 'withdraw' ? 'Rút tiền mặt' : 'Nạp tiền vào ngân hàng';
         delete draft.settlement; delete draft.billingMonth;
       } else { delete draft.movement; draft.category = 'Khác'; }
     } else if (field === 'paymentMethod') {
       if (isInternalMovement(draft) || draft.fundId || target.value === 'card' && !context.canUseCredit() || target.value === 'savings' && context.getData().accounts?.savings === undefined) return;
       draft.paymentMethod = target.value;
-      if (target.value === 'card') { draft.settlement = 'oneoff'; draft.billingMonth = shiftMonth(date.slice(0,7),1); }
-      else { delete draft.settlement; delete draft.billingMonth; }
-    } else if (['title', 'category', 'status', 'settlement', 'billingMonth'].includes(field)) draft[field] = target.value;
-    if (['fundId', 'movement', 'paymentMethod'].includes(field)) renderFields();
+      if (target.value === 'card') { draft.creditTracking=true;delete draft.settlement;delete draft.billingMonth;delete draft.creditPeriod; }
+      else { delete draft.creditTracking;delete draft.settlement; delete draft.billingMonth; }
+    } else if (['title', 'category', 'status', 'settlement', 'billingMonth','creditPeriod'].includes(field)) draft[field] = target.value;
+    if(field==='category'&&!isCardPaymentCategory(target.value))delete draft.creditPeriod;
+    if (['fundId', 'movement', 'paymentMethod','category'].includes(field)) renderFields();
   });
   const check = () => {
     if (!dialog.open || !context.canEdit() || context.getUserId() !== actor || JSON.stringify(context.getDocument()) !== before) throw Error('Dữ liệu, khu vực hoặc tài khoản đã thay đổi. Đóng và mở lại để kiểm tra.');

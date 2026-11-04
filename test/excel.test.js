@@ -76,3 +76,13 @@ test('legacy repayment source is derived from its linked expense, and stays blan
  assert.equal(rows.find(r=>r['ID lần trả']==='payment')['Nguồn'],'Ngân hàng');
  assert.equal(rows.find(r=>r['ID lần trả']==='legacy-no-link')['Nguồn'],'');
 });
+
+test('monthly tracking and daily card-payment category export numeric observations without forecasts or duplicate cash',async()=>{
+ const {saveTrackingMonth,saveTrackingBalances}=await import('../src/credit-tracking.js');
+ const data=excelFixture(),day=data.days['2026-10-27']||={items:[],note:''};day.items.push({id:'daily-card-payment',title:'Pay September bill',category:'Thanh toán thẻ',paymentMethod:'bank',status:'paid',creditPeriod:'2026-09',amount:31320});day.items.push({id:'tracking-purchase',title:'Buy with credit',paymentMethod:'card',creditTracking:true,status:'paid',amount:10000});saveTrackingMonth(data,{month:'2026-10',fees:3000,monthlyPrincipal:20000,note:'Monthly note'});saveTrackingBalances(data,{id:'manual-credit',date:'2026-11-04',available:42153,ribo:245832});
+ const sheets=reportSheets(data,options),row=records(sheets,'Theo dõi tín dụng tháng').find(r=>r['Khu vực']==='Sổ nước ngoài'&&r['Tháng']==='2026-10');assert.equal(row['Phí tín dụng đã nhập'],3000);assert.equal(row['Tiền リボ trả hằng tháng đã nhập'],20000);assert.equal(row['Thanh toán thẻ thực tế trong tháng'],31351.5);assert.equal(row['Ghi chú'],'Monthly note');
+ assert.equal(records(sheets,'Lịch sử dư nợ リボ')[0]['Dư nợ リボ đã nhập'],245832);assert.equal(records(sheets,'Số dư nguồn tiền')[0]['Hạn mức khả dụng đang hiển thị'],42153);
+ const payment=records(sheets,'Giao dịch').find(r=>r.ID==='daily-card-payment');assert.equal(payment['Tiền thực chi'],31320);assert.equal(payment['Kỳ sao kê gốc (tham chiếu)'],'2026-09');assert.equal(payment['Loại giao dịch'],'Thanh toán thẻ');assert.equal(records(sheets,'Thanh toán thẻ').find(r=>r.ID==='daily-card-payment')['Số thực trả'],31320);
+ const purchase=records(sheets,'Giao dịch').find(r=>r.ID==='tracking-purchase');assert.equal(purchase['Kỳ sao kê'],'');assert.equal(purchase['Tiền thực chi'],0);
+ const ordinary=reportSheets(data,{...options,creditAllowed:false});assert(!ordinary.some(s=>s.name==='Theo dõi tín dụng tháng'||s.name==='Lịch sử dư nợ リボ'));assert(!records(ordinary,'Giao dịch').some(r=>r.ID==='daily-card-payment'||r.ID==='tracking-purchase'));
+});

@@ -1,3 +1,4 @@
+import {isTrackingCardPayment} from './credit-types.js';
 import {cardPayments} from './card-ledger.js';
 import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {validateFunds} from './safety-model.js';
@@ -7,7 +8,7 @@ export const accountSource = item => item.paymentMethod === 'card' ? 'card' : it
 export const isInternalMovement = item => ['withdraw','deposit'].includes(item.movement);
 export const monthEnd = month => { if(!validMonth(month))throw Error('Tháng không hợp lệ.'); const [year,m]=month.split('-').map(Number); return `${month}-${String(new Date(Date.UTC(year,m,0)).getUTCDate()).padStart(2,'0')}`; };
 const signedMoney=value=>{const n=Number(value);if(!Number.isFinite(n)||roundCard(n)!==n)throw Error('Số tiền đối chiếu không hợp lệ.');return n;};
-export const moneyKind = item => item.cardPaymentMonth ? 'payment' : accountSource(item);
+export const moneyKind = item => item.cardPaymentMonth||isTrackingCardPayment(item) ? 'payment' : accountSource(item);
 export const isCardPayment = item => Boolean(item.cardPaymentMonth);
 // A source-opening correction never changes the original credit baseline.
 // The last confirmed entry is active; earlier entries remain an audit trail.

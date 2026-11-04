@@ -1,3 +1,4 @@
+import {isTrackingCardPayment,CARD_PAYMENT_CATEGORY} from './credit-types.js';
 import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {normalizeSafety,validateFunds} from './safety-model.js';
 import { normalizeBookSettings,COUNTRIES } from './region-model.js';
@@ -29,11 +30,11 @@ export const amount = value => {
 export const dayKey = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 export const monthKey = (year, month) => `${year}-${String(month + 1).padStart(2, '0')}`;
 export const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-export const CATEGORIES = ['Ăn uống', 'Nhà ở', 'Đi lại', 'Mua sắm', 'Sức khỏe', 'Giải trí', 'Trả nợ', 'Khác'];
+export const CATEGORIES = ['Ăn uống', 'Nhà ở', 'Đi lại', 'Mua sắm', 'Sức khỏe', 'Giải trí', 'Trả nợ', CARD_PAYMENT_CATEGORY, 'Khác'];
 // Records created before status was introduced remain paid, preserving old totals.
 export const categoryOf = item => item.category || (item.debtPaymentId ? 'Trả nợ' : 'Khác');
 export const expenseStatus = item => ['planned','cancelled','draft'].includes(item.status)?item.status:'paid';
-export const dayTotal = (day,status='all')=>sumMoney((day?.items||[]).filter(item=>!item.cardFeeMonth&&!isCardPayment(item)&&!isInternalMovement(item)&&!['cancelled','draft'].includes(expenseStatus(item))&&(status==='all'||expenseStatus(item)===status)).map(item=>amount(item.amount)));
+export const dayTotal = (day,status='all')=>sumMoney((day?.items||[]).filter(item=>!item.cardFeeMonth&&!isCardPayment(item)&&!isTrackingCardPayment(item)&&!isInternalMovement(item)&&!['cancelled','draft'].includes(expenseStatus(item))&&(status==='all'||expenseStatus(item)===status)).map(item=>amount(item.amount)));
 export function expenseRows(data, year, month = null, { query = '', category = '', status = '' } = {}) {
   const prefix = month === null ? `${year}-` : `${monthKey(year, month)}-`;
   const fold = value => String(value).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
@@ -50,8 +51,8 @@ export function monthSummary(data, year, month) {
   const salary = amount(income.salary), bonus = amount(income.bonus);
   const savings = amount(data.savings?.[prefix]);
   const other=receiptTotals(data,prefix);
-  const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
-  const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
+  const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isTrackingCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
+  const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isTrackingCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
   return { salary, bonus, expense, planned, savings, balance: subtractMoney(addMoney(salary,bonus,other.income),expense), count, plannedCount, ...(data.receipts?{otherIncome:other.income,otherReceipts:other.nonIncome}:{}) };
 }
 export function yearSummary(data, year) {
@@ -155,7 +156,7 @@ export function normalizeData(input) {
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
     if (!match || !validYear(+match[1]) || +match[3] > daysInMonth(+match[1], +match[2] - 1) || !day || !Array.isArray(day.items)) continue;
-    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: cardMoney(item.amount??0), ...(item.fundId?{fundId:String(item.fundId)}:{}),...(item.obligationId?{obligationId:String(item.obligationId)}:{}), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth,...(item.cardPaymentId?{cardPaymentId:String(item.cardPaymentId)}:{})} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod: 'card', settlement: ['oneoff', 'ribo', 'fee'].includes(item.settlement) ? item.settlement : 'oneoff', ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
+    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: cardMoney(item.amount??0), ...(item.creditTracking===true?{creditTracking:true}:{}),...(item.creditPeriod&&validMonth(item.creditPeriod)?{creditPeriod:item.creditPeriod}:{}),...(item.fundId?{fundId:String(item.fundId)}:{}),...(item.obligationId?{obligationId:String(item.obligationId)}:{}), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth,...(item.cardPaymentId?{cardPaymentId:String(item.cardPaymentId)}:{})} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod:'card',...(item.creditTracking===true&&item.settlement===undefined?{}:{settlement:['oneoff','ribo','fee'].includes(item.settlement)?item.settlement:'oneoff'}), ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
   }
   for(const entry of Object.values(result.days)){const ids=new Set();for(const item of entry.items){if(ids.has(item.id))throw Error('Mã giao dịch trong ngày bị trùng.');ids.add(item.id);}}
   for(const entry of Object.values(result.days))for(const item of entry.items)if(isInternalMovement(item)){

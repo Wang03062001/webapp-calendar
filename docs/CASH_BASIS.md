@@ -2,6 +2,17 @@
 
 Đây là quy tắc hiện hành, thay cho KPI thu nhập trừ chi phát sinh / chênh lệch kỳ lương trước đây.
 
+## Tín dụng chỉ để theo dõi
+
+- Bỏ KPI **Thẻ sắp thanh toán** và số **Tổng nghĩa vụ thẻ** ở khung bên phải. Bấm tiêu đề thông tin tín dụng để ẩn/hiện, chỉ lưu tùy chọn giao diện trên thiết bị.
+- Số dư khả dụng PayPay và dư nợ リボ nhập tay, có ngày/lịch sử. Giá trị đã nhập được giữ đến lần cập nhật tiếp theo; mua hàng, phí hoặc trả thẻ không tự điều chỉnh số quan sát này. Không cộng tín dụng vào tài sản. Nếu chưa có quan sát, giữ cách đọc số liệu cũ để không mất thông tin.
+- Mua thẻ nhập tại chi tiêu ngày, chọn **Thẻ tín dụng**, đánh dấu **Đã phát sinh** khi giao dịch đã xảy ra. Giao dịch mới không cần loại trả thẻ/kỳ sao kê. Tổng tháng theo ngày mua từ ngày 1 đến cuối tháng, chỉ tính đến hôm nay; dự kiến/hủy/nháp không vào tổng thực tế và không trừ tiền ngân hàng/tiền mặt.
+- Bảng tháng lưu riêng **phí tín dụng**, **tiền リボ trả hằng tháng** và ghi chú. Để trống nghĩa là chưa biết; 0 là đã nhập 0. Không có số tiền cố định mặc định, không cộng các trường này với mua thẻ để đoán số phải trả, không tạo giao dịch tài chính.
+- Thực trả thẻ nhập như khoản chi ngày bình thường bằng ngân hàng/tiền mặt/nguồn tiết kiệm, chọn danh mục **Thanh toán thẻ** và trạng thái **Đã thanh toán**. Số đó trừ nguồn một lần, vào tổng tiền thực chi và bảng tín dụng theo **tháng thực trả**. Ví dụ 31.320 JPY thực trả 27/10 cho sao kê tháng 9 được tính vào tháng 10; trường **Kỳ sao kê gốc** tùy chọn chỉ để đối chiếu. Sửa/hủy/xóa qua popup chi tiêu cập nhật lại cả hai tổng.
+- Cả hai sổ dùng phân loại mua thẻ/trả thẻ này; sổ ngoài Nhật không hiện PayPay/リボ. Các trường tín dụng và xuất Excel vẫn cần quyền admin do máy chủ xác minh. Excel có bảng theo dõi tháng, lịch sử quan sát dư nợ và tham chiếu kỳ gốc, không xuất dự đoán hóa đơn từ các trường theo dõi mới.
+- Không đổi dữ liệu lịch sử sang cách lưu mới. Sao kê, phí liên kết, thanh toán từng phần, hoàn tiền và audit cũ được giữ nguyên. Mục **Lịch sử sao kê đã lưu** cho sửa/hủy liên kết qua công cụ gốc. Phần mô tả sao kê/liên kết dưới đây áp dụng cho dữ liệu cũ, không phải luồng nhập thanh toán mới.
+- Kiểm thử bổ sung: `test/credit-tracking.test.js` và `scripts/check-cash-browser.mjs` dùng dữ liệu giả lập cho hai sổ, nhập tay, tổng tháng/ngày, bản nháp, popup cũ, phân quyền và giao diện sáng/tối. Không thử trên dữ liệu tài chính thật.
+
 ## Công thức và thời gian
 
 - Tài sản tiền = ngân hàng + tiền mặt + nguồn tiết kiệm thực có trong cùng sổ/đồng tiền.

@@ -1,6 +1,39 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Cách trả (liên kết cũ)|Payment type (legacy link)|支払種別（従来の関連情報）|결제 방식 (기존 연결)|付款方式（舊連結）
+Giao dịch tín dụng trong tháng|Credit purchases this month|当月のカード利用|이번 달 신용 거래|本月信用交易
+Phí tín dụng|Credit fees|カード手数料|신용 수수료|信用費用
+Thanh toán liên kết đã lưu; hủy qua lịch sử cũ bên dưới.|Saved linked payment; void through legacy history below.|保存済みの関連支払。下の履歴から取り消してください。|저장된 연결 납부입니다. 아래 기존 내역에서 취소하세요.|已儲存連結付款，請由下方舊紀錄撤銷。
+Giữ nguyên dữ liệu cũ để đối chiếu; không dùng để dự đoán khoản thanh toán mới.|Legacy records are kept for reference, not for predicting new payments.|従来の記録は照合用に保持し、新しい支払額の予測には使いません。|기존 기록은 대조용으로 보존하며 새 납부액 예측에 사용하지 않습니다.|舊紀錄保留供核對，不用於預測新付款。
+Nhập phí tháng|Enter monthly fees|月の手数料を入力|월 수수료 입력|輸入每月費用
+Hủy điều chỉnh cũ|Void legacy adjustment|従来の調整を取消|기존 조정 취소|撤銷舊調整
+Thông tin tín dụng · bấm để ẩn / hiện|Credit information · click to hide / show|カード情報・クリックで表示切替|신용 정보 · 클릭하여 숨기기 / 표시|信用資訊・點擊隱藏／顯示
+Nhập số dư tín dụng|Enter credit balances|カード残高を入力|신용 잔액 입력|輸入信用餘額
+Số dư PayPay khả dụng|Available PayPay balance|PayPay利用可能額|PayPay 이용 가능 잔액|PayPay 可用餘額
+Nhập phí / tiền リボ tháng|Enter monthly fees / revolving payment|月の手数料・リボ支払額を入力|월 수수료 / 리볼빙 납부액 입력|輸入每月費用／循環付款
+Theo dõi tín dụng tháng|Monthly credit tracking|月別カード記録|월별 신용 추적|每月信用追蹤
+Tín dụng ·|Credit ·|カード利用・|신용 ·|信用・
+Chi tiêu tín dụng trong tháng|Credit purchases this month|当月カード利用額|이번 달 신용 지출|本月信用消費
+Phí tín dụng đã nhập|Recorded credit fees|入力済みカード手数料|입력한 신용 수수료|已輸入信用費用
+Tiền リボ trả hằng tháng đã nhập|Recorded monthly revolving payment|入力済み月々のリボ支払額|입력한 월 리볼빙 납부액|已輸入每月循環付款
+Tiền リボ trả hằng tháng|Monthly revolving payment|月々のリボ支払額|월 리볼빙 납부액|每月循環付款
+Số tiền thanh toán thẻ đã nhập trong tháng|Recorded card payments this month|当月に記録したカード支払額|이번 달 입력한 카드 납부액|本月已輸入卡費付款
+Từ ngày 1 đến cuối tháng, theo ngày mua|From the first to the last day, by purchase date|購入日基準、月初から月末まで|구매일 기준 매월 1일부터 말일까지|按購買日期，月初至月底
+Kỳ sao kê gốc (không bắt buộc)|Original statement month (optional)|元の請求月（任意）|원래 명세서 월 (선택)|原始帳單月份（選填）
+Kỳ sao kê gốc:|Original statement month:|元の請求月：|원래 명세서 월:|原始帳單月份：
+Chưa có giao dịch tín dụng trong tháng.|No credit purchases this month.|当月のカード利用はありません。|이번 달 신용 거래가 없습니다.|本月尚無信用交易。
+Khoản chi thanh toán thẻ trong tháng|Card payment expenses this month|当月のカード支払支出|이번 달 카드 납부 지출|本月卡費付款支出
+Chưa nhập khoản chi danh mục Thanh toán thẻ trong tháng.|No Card payment expense recorded this month.|当月の「カード支払」支出は未入力です。|이번 달 카드 납부 항목 지출이 없습니다.|本月尚未輸入卡費付款分類支出。
+Lịch sử sao kê đã lưu|Saved statement history|保存済み請求履歴|저장된 명세서 내역|已儲存帳單紀錄
+Sửa sao kê đã lưu|Edit saved statement|保存済み請求を編集|저장된 명세서 수정|編輯已儲存帳單
+Hủy lần thanh toán cũ|Void a legacy payment|従来の支払記録を取消|기존 납부 취소|撤銷舊付款
+Hoàn tiền / điều chỉnh cũ|Legacy refund / adjustment|従来の返金・調整|기존 환불 / 조정|舊退款／調整
+Chỉ theo dõi. Giao dịch tín dụng và thanh toán thẻ được nhập trong chi tiêu hằng ngày.|Tracking only. Enter credit purchases and card payments in daily expenses.|記録用です。カード利用とカード支払は日々の支出で入力します。|추적용입니다. 신용 거래와 카드 납부는 일일 지출에 입력합니다.|僅供追蹤。信用交易與卡費付款請在每日支出輸入。
+Theo khoản chi danh mục Thanh toán thẻ và ngày thực trả. Phí, tiền リボ và tiền mua thẻ không được cộng để đoán số phải trả.|Uses Card payment expenses and actual payment dates. Fees, revolving payments and purchases are not summed to predict a bill.|「カード支払」分類と実際の支払日で集計。手数料・リボ支払・利用額から請求額を推測しません。|카드 납부 분류와 실제 납부일로 집계합니다. 수수료, 리볼빙 및 구매액으로 청구액을 예측하지 않습니다.|按卡費付款分類與實付日期彙總，不加總費用、循環付款與消費來預測帳單。
+Chỉ theo dõi số dư đã nhập, không cộng vào tài sản.|Tracks entered balances only; excluded from assets.|入力した残高の記録のみ。資産に含みません。|입력한 잔액만 추적하며 자산에 포함하지 않습니다.|僅追蹤輸入餘額，不計入資產。
+Giữ trống nếu chưa biết. Đây là thông tin theo dõi, không tạo khoản chi hoặc thay đổi ngân hàng / tiền mặt.|Leave blank if unknown. Tracking information does not create expenses or change bank / cash balances.|不明なら空欄。記録情報は支出を作成せず、銀行・現金残高を変更しません。|모르면 비워 두세요. 추적 정보는 지출을 만들거나 은행 / 현금 잔액을 바꾸지 않습니다.|未知請留空。追蹤資訊不建立支出，也不更改銀行／現金餘額。
+Giao dịch tín dụng được cộng riêng theo ngày mua, không tính vào tiền thực chi.|Credit purchases are totaled separately by purchase date, outside actual cash outflow.|カード利用は購入日別に別集計し、実際の現金支出には含めません。|신용 거래는 구매일 기준 별도 합산하며 실제 현금 지출에서 제외합니다.|信用交易按購買日期獨立彙總，不計入實際現金支出。
 Dự kiến chưa nhận|Expected, not received|受取予定・未受取|수령 예정, 미수령|預計收入，尚未收到
 Đã thực nhận|Actually received|実際に受取済み|실제 수령 완료|實際已收到
 Trạng thái nhận tiền|Receipt status|受取状況|수령 상태|收款狀態

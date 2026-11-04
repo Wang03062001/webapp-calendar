@@ -1,3 +1,4 @@
+import {normalizeTrackingMonths,normalizeRiboHistory} from './credit-tracking.js';
 import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {statementParts,statementProgress,cardPayments,normalizePaymentRecords,normalizeBillAdjustments,normalizeCardAdjustments,validatePaymentLinks,recordCardPayment,voidCardPayment} from './card-ledger.js';
 // Card principal is a liability; settling a statement is a bank movement, not a second purchase.
@@ -46,6 +47,8 @@ export function normalizeCards(raw) {
     if (source.status === 'paid') { statement.paidOn = source.paidOn; if (source.paymentSource !== undefined) { if (!['bank','cash','savings'].includes(source.paymentSource)) throw new Error('Nguồn thanh toán không hợp lệ.'); statement.paymentSource = source.paymentSource; } }
     result.statements.push(statement);
   }
+  if(raw.trackingMonths!==undefined)result.trackingMonths=normalizeTrackingMonths(raw.trackingMonths);
+  if(raw.riboBalanceHistory!==undefined)result.riboBalanceHistory=normalizeRiboHistory(raw.riboBalanceHistory);
   if(raw.adjustments!==undefined)result.adjustments=normalizeCardAdjustments(raw.adjustments);
   if(raw.safetyPlan!==undefined){const p=raw.safetyPlan,apr=Number(p?.apr);if(!p||!cardDate(p.asOf)||!['number','string'].includes(typeof p.apr)||!String(p.apr).trim()||p.principal==null||!String(p.principal).trim()||p.minimum==null||!String(p.minimum).trim()||!Number.isFinite(apr)||apr<0||apr>1000)throw Error('Kế hoạch thẻ không hợp lệ.');result.safetyPlan={asOf:p.asOf,principal:cardMoney(p.principal),apr,minimum:cardMoney(p.minimum)};}
   if(raw.availableCreditHistory!==undefined){
@@ -59,7 +62,7 @@ export function normalizeCards(raw) {
   return result;
 }
 export function cardPurchases(data, month, settlement = 'oneoff') {
-  return Object.entries(data.days).flatMap(([date, entry]) => entry.items.map(item => ({ ...item, date }))).filter(item => item.paymentMethod === 'card' && !item.movement && !['planned','cancelled','draft'].includes(item.status) && (item.settlement || 'oneoff') === settlement && (item.billingMonth || shiftMonth(item.date.slice(0, 7), 1)) === month);
+  return Object.entries(data.days).flatMap(([date, entry]) => entry.items.map(item => ({ ...item, date }))).filter(item => item.paymentMethod === 'card' && !item.creditTracking && !item.movement && !['planned','cancelled','draft'].includes(item.status) && (item.settlement || 'oneoff') === settlement && (item.billingMonth || shiftMonth(item.date.slice(0, 7), 1)) === month);
 }
 export function projectedStatement(data, month) {
   const cards = data.cards || defaultCards(), previous = cards.statements.filter(item => item.month < month && item.status !== 'draft').sort((a, b) => b.month.localeCompare(a.month))[0];

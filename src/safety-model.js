@@ -1,3 +1,4 @@
+import {isTrackingCardPayment} from './credit-types.js';
 import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {cardPayments,statementProgress} from './card-ledger.js';
 import {cardMoney,cardDate,validMonth,roundCard,statementNumbers} from './card-model.js';
@@ -64,7 +65,7 @@ export function validateFunds(data){
 export function emergencySummary(data,date){const saved=sumMoney((data.safety?.funds||[]).filter(f=>f.kind==='emergency').map(f=>fundBalance(data,f.id,date)));const essential=data.safety?.essentialMonthly||0,months=data.safety?.reserveMonths||3;return {saved,essential,target:roundCard(essential*months),monthsCovered:essential>0?saved/essential:null,targetMonths:months};}
 export function budgetRows(data,month){return (data.safety?.budgets||[]).filter(b=>b.month===month).map(b=>{
  let spent=0,planned=0;
- for(const [date,day]of Object.entries(data.days))if(date.startsWith(month+'-'))for(const item of day.items)if((item.category||(item.debtPaymentId?'Trả nợ':'Khác'))===b.category&&!item.cardFeeMonth&&!item.cardPaymentMonth&&!isInternalMovement(item)&&!['cancelled','draft'].includes(item.status)){if(item.status==='planned')planned=addMoney(planned,item.amount);else spent=addMoney(spent,item.amount);}
+ for(const [date,day]of Object.entries(data.days))if(date.startsWith(month+'-'))for(const item of day.items)if((item.category||(item.debtPaymentId?'Trả nợ':'Khác'))===b.category&&!item.cardFeeMonth&&!item.cardPaymentMonth&&!isTrackingCardPayment(item)&&!isInternalMovement(item)&&!['cancelled','draft'].includes(item.status)){if(item.status==='planned')planned=addMoney(planned,item.amount);else spent=addMoney(spent,item.amount);}
  return {...b,spent:roundCard(spent),planned:roundCard(planned),remaining:subtractMoney(b.amount,spent),over:Math.max(0,subtractMoney(spent,b.amount))};
 });}
 export function upcomingObligations(data,asOf){

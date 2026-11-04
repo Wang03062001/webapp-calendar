@@ -12,11 +12,13 @@ import {normalizeCurrencies} from './preferences.js';
 import {receivableRemaining,RECEIPT_TYPES} from './receipt-model.js';
 import {fundBalance,budgetRows} from './safety-model.js';
 import {writeXlsx} from './xlsx.js';
+import {trackingMonth,trackingBalances} from './credit-tracking.js';
+import {isTrackingCardPayment} from './credit-types.js';
 const source=value=>({bank:'Ngân hàng',cash:'Tiền mặt',savings:'Tiết kiệm',card:'Thẻ tín dụng'}[value]||value||'');
 const status=item=>item.status==='cancelled'?'Đã hủy':expenseStatus(item)==='paid'?(item.paymentMethod==='card'?'Đã phát sinh tín dụng':'Đã thanh toán'):'Dự kiến';
 const paymentSource=(book,payment)=>{if(payment.source)return source(payment.source);const item=book.days[payment.date]?.items.find(i=>i.id===payment.expenseId);return item?source(accountSource(item)):'';};
 const entries=object=>Object.entries(object||{}).sort(([a],[b])=>a.localeCompare(b));
-const kind=item=>item.cardFeeMonth?'Phí sao kê':isCardPayment(item)?'Thanh toán sao kê':isInternalMovement(item)?'Chuyển nội bộ':item.debtPaymentId?'Trả nợ':item.obligationId?'Khoản phải trả':'Chi tiêu';
+const kind=item=>item.cardFeeMonth?'Phí sao kê':isCardPayment(item)?'Thanh toán sao kê':isTrackingCardPayment(item)?'Thanh toán thẻ':isInternalMovement(item)?'Chuyển nội bộ':item.debtPaymentId?'Trả nợ':item.obligationId?'Khoản phải trả':'Chi tiêu';
 
 // This is a report, never a replacement financial document. Each region and
 // currency stays on its own rows; archived years are included from records.
@@ -31,7 +33,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
   const summary=table('Tổng hợp tháng',['Khu vực','Tiền tệ','Tháng','Tài sản đầu kỳ','Tiền vào thực tế','Thu nhập thực nhận','Tiền vào không tạo thu nhập','Chi trực tiếp','Trả nợ khác',...(allowed?['Đã thanh toán thẻ']:[]),'Tổng tiền thực chi','Tài sản cuối kỳ','Biến động tài sản','Tỷ lệ nguồn tiền đã dùng %','Điều chỉnh số dư',...(allowed?['Phát sinh tín dụng']:[]),'Dự kiến thanh toán đã biết','Tính đến']);
   const flows=table('Dòng tiền thực tế',['Khu vực','Tiền tệ','ID','Ngày','Chiều','Loại','Nguồn','Số tiền','Tạo thu nhập','Nội dung','Ghi chú']);
   const cycles=table('Kế hoạch kỳ lương',['Khu vực','Tiền tệ','Đầu kỳ dự kiến','Cuối kỳ dự kiến','Ngày lương kế tiếp dự kiến','Đã xác minh ngày nghỉ lễ','Tiền vào thực tế đến ngày xem','Tiền ra thực tế đến ngày xem']);
-  const expenses=table('Giao dịch',['Khu vực','Tiền tệ','Ngày','ID','Nội dung','Danh mục','Trạng thái','Nguồn tiền','Loại giao dịch','Số tiền giao dịch','Tiền thực chi','Dự kiến thanh toán','ID quỹ','ID lịch phải trả','ID khoản vay','ID lần trả nợ',...(allowed?['Cách trả thẻ','Kỳ sao kê','Kỳ thanh toán sao kê']:[])]);
+  const expenses=table('Giao dịch',['Khu vực','Tiền tệ','Ngày','ID','Nội dung','Danh mục','Trạng thái','Nguồn tiền','Loại giao dịch','Số tiền giao dịch','Tiền thực chi','Dự kiến thanh toán','ID quỹ','ID lịch phải trả','ID khoản vay','ID lần trả nợ',...(allowed?['Cách trả thẻ','Kỳ sao kê','Kỳ thanh toán sao kê','Kỳ sao kê gốc (tham chiếu)']:[])]);
   const notes=table('Ghi chú ngày',['Khu vực','Ngày','Ghi chú']);
   const income=table('Thu nhập',['Khu vực','Tiền tệ','Tháng nhận','Tháng làm việc','Ngày nhận','Nguồn nhận','Lương','Thưởng','Trạng thái nhận','Ghi chú']);
   const receipts=table('Tiền vào khác',['Khu vực','Tiền tệ','ID','Ngày','Loại','Nguồn','Số tiền','ID khoản phải thu','Ghi chú']);
@@ -53,6 +55,8 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
   const cardPaymentHistory=allowed?table('Thanh toán thẻ',['Khu vực','Tiền tệ','Kỳ','ID','Ngày thực trả','Nguồn','Số thực trả','Mua một lần','Gốc リボ','Phí','ID giao dịch ngân hàng','Mã tham chiếu','Đã hủy','Ghi chú']):null;
   const cardAdjustments=allowed?table('Điều chỉnh thẻ',['Khu vực','Tiền tệ','ID','Ngày','Loại','Số tiền','Nguồn nhận tiền','Ngày mua','ID giao dịch mua','Kỳ sao kê','Đã hủy','Giải thích']):null;
   const creditHistory=allowed?table('Lịch sử hạn mức',['Khu vực','Tiền tệ','ID','Ngày','Hạn mức khả dụng']):null;
+  const riboHistory=allowed?table('Lịch sử dư nợ リボ',['Khu vực','Tiền tệ','ID','Ngày','Dư nợ リボ đã nhập']):null;
+  const tracking=allowed?table('Theo dõi tín dụng tháng',['Khu vực','Tiền tệ','Tháng','Chi tiêu tín dụng theo ngày mua','Phí tín dụng đã nhập','Tiền リボ trả hằng tháng đã nhập','Thanh toán thẻ thực tế trong tháng','Nguồn số theo dõi','Ghi chú']):null;
   const regions=['foreign',...(document.regional?.vietnam?['vietnam']:[])];
   for(const region of regions){
     const book=financeView(readBook(document,region),allowed),label=region==='foreign'?(countryOf(book)==='VN'?'Sổ gốc (Việt Nam)':'Sổ nước ngoài'):'Sổ Việt Nam',currencies=normalizeCurrencies(book.currencies),unit=currencies.cash,prefix=[label,unit];
@@ -66,17 +70,19 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
     }
     for(const row of cashEvents(book))if(row.date<=cutoff)flows.push([...prefix,row.id,row.date,row.direction==='in'?'Vào':'Ra',row.type,source(row.source),row.amount,row.economicIncome?'Có':'Không',row.title,row.note||'']);
     if(allowed){for(const s of book.cards?.statements||[])for(const p of s.payments||statementPayments(s))cardPaymentHistory.push([...prefix,s.month,p.id,p.date,source(p.source),p.amount,p.allocations.oneOff,p.allocations.principal,p.allocations.fees,p.expenseId,p.reference||'',p.voided?'Có':'Không',p.note||'']);for(const r of book.cards?.adjustments||[])cardAdjustments.push([...prefix,r.id,r.date,r.type,r.amount,source(r.source),r.purchaseDate||'',r.purchaseId||'',r.month||'',r.voided?'Có':'Không',r.note]);}
-    const months=new Set([...Object.keys(book.days),...Object.keys(book.incomes),...Object.values(book.incomes).map(i=>i.receivedOn).filter(Boolean),...(book.cards?.adjustments||[]).map(r=>r.date),...Object.keys(book.savings),...(book.receipts||[]).map(r=>r.date),...book.debts.flatMap(d=>d.payments.map(p=>p.date)),...(book.cards?.statements||[]).flatMap(s=>[s.month,s.paidOn,s.dueDate].filter(Boolean))].map(date=>date.slice(0,7)));
+    const months=new Set([...Object.keys(book.days),...Object.keys(book.incomes),...Object.values(book.incomes).map(i=>i.receivedOn).filter(Boolean),...(book.cards?.adjustments||[]).map(r=>r.date),...(book.cards?.trackingMonths||[]).map(r=>r.month),...(book.cards?.riboBalanceHistory||[]).map(r=>r.date),...Object.keys(book.savings),...(book.receipts||[]).map(r=>r.date),...book.debts.flatMap(d=>d.payments.map(p=>p.date)),...(book.cards?.statements||[]).flatMap(s=>[s.month,s.paidOn,s.dueDate].filter(Boolean))].map(date=>date.slice(0,7)));
     for(const month of [...months].sort()){
       const [y,m]=month.split('-').map(Number),d=cashPeriodDetails(book,{year:y,month:m-1,asOf:cutoff,creditAllowed:allowed});
+      if(allowed){const t=trackingMonth(book,month,{asOf:cutoff});tracking.push([...prefix,month,t.purchaseTotal,t.fees,t.monthlyPrincipal,t.paymentTotal,t.fromLegacy?'Sao kê cũ':'Nhập theo dõi',t.note]);}
       summary.push([...prefix,month,d.openingCash,d.actualCashIn,d.economicIncome,d.nonIncomeIn,d.directTotal,d.debtTotal,...(allowed?[d.cardPaid]:[]),d.actualCashOut,d.closingCash,d.cashChange,d.usageRatio,d.adjustment,...(allowed?[d.creditTotal]:[]),d.plannedTotal,d.asOf]);
     }
     for(const [date,entry]of entries(book.days)){
       if(entry.note)notes.push([label,date,entry.note]);
       for(const item of entry.items){
         if(item.cardFeeMonth)continue;
+        if(allowed&&isTrackingCardPayment(item))cardPaymentHistory.push([...prefix,item.creditPeriod||'',item.id,date,source(accountSource(item)),actualItem(item)&&date<=cutoff?item.amount:0,null,null,null,item.id,'',item.status==='cancelled'?'Có':'Không',item.title]);
         const cost=item.paymentMethod!=='card'&&!isInternalMovement(item)&&!item.cardFeeMonth;
-        expenses.push([...prefix,date,item.id,item.title,categoryOf(item),status(item),source(accountSource(item)),kind(item),item.amount,cost&&expenseStatus(item)==='paid'&&date<=cutoff?item.amount:0,cost&&expenseStatus(item)==='planned'?item.amount:0,item.fundId||'',item.obligationId||'',item.debtId||'',item.debtPaymentId||'',...(allowed?[item.paymentMethod==='card'?item.settlement||'oneoff':'',item.paymentMethod==='card'?item.billingMonth||shiftMonth(date.slice(0,7),1):'',item.cardPaymentMonth||'']:[])]);
+        expenses.push([...prefix,date,item.id,item.title,categoryOf(item),status(item),source(accountSource(item)),kind(item),item.amount,cost&&expenseStatus(item)==='paid'&&date<=cutoff?item.amount:0,cost&&expenseStatus(item)==='planned'?item.amount:0,item.fundId||'',item.obligationId||'',item.debtId||'',item.debtPaymentId||'',...(allowed?[item.paymentMethod==='card'&&!item.creditTracking?item.settlement||'oneoff':'',item.paymentMethod==='card'&&!item.creditTracking?item.billingMonth||shiftMonth(date.slice(0,7),1):'',item.cardPaymentMonth||'',item.creditPeriod||'']:[])]);
         if(isInternalMovement(item))transfers.push([...prefix,item.id,date,source(item.movement==='withdraw'?'bank':'cash'),source(item.movement==='withdraw'?'cash':'bank'),item.amount,'Giao dịch nội bộ']);
       }
     }
@@ -85,7 +91,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
     for(const r of book.receivables||[])receivables.push([...prefix,r.id,r.title,r.amount,receivableRemaining(book,r.id)]);
     if(book.accounts){
       const a=book.accounts,opening=sourceOpening(a),b=accountBalances(book,cutoff);
-      balances.push([...prefix,asOf,opening.date,opening.timing==='end'?'Cuối tháng':'Đầu ngày',b?.bank,b?.cash,b?.savings,b?roundCard(b.bank+b.cash+(b.savings||0)):null,...(allowed?[a.openedOn,b?.creditDebt,a.creditLimit,b?.available,availableCredit(book,cutoff,b?.available??null)]:[])]);
+      balances.push([...prefix,asOf,opening.date,opening.timing==='end'?'Cuối tháng':'Đầu ngày',b?.bank,b?.cash,b?.savings,b?roundCard(b.bank+b.cash+(b.savings||0)):null,...(allowed?[a.openedOn,b?.creditDebt,a.creditLimit,b?.available,trackingBalances(book,cutoff).available?.amount??availableCredit(book,cutoff,b?.available??null)]:[])]);
       openings.push([...prefix,'Gốc',a.openedOn,'Đầu ngày',a.bank,a.cash,a.savingsOpenedOn&&a.savingsOpenedOn!==a.openedOn?null:a.savings,'','Mốc ban đầu được giữ nguyên; mốc cập nhật cuối cùng có hiệu lực cho nguồn tiền.']);
       if(a.savingsOpenedOn&&a.savingsOpenedOn!==a.openedOn)openings.push([...prefix,'Tiết kiệm gốc',a.savingsOpenedOn,'Đầu ngày',null,null,a.savings,'','']);
       for(const row of a.openingHistory||[])openings.push([...prefix,row.id,row.date,row.timing==='end'?'Cuối tháng':'Đầu ngày',row.bank,row.cash,row.savings,row.confirmedOn,row.note]);
@@ -117,6 +123,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
       settings.push([label,'','','','', 'Tên thẻ',book.cards.name],[label,'','','','','Ngày trả thẻ',book.cards.paymentDay],[label,'','','','','Quy tắc cuối tuần',book.cards.weekend]);
       for(const s of book.cards.statements){const n=statementNumbers(s),p=statementProgress(s,cutoff);statements.push([...prefix,s.month,s.status,s.confirmedOn||'',s.dueDate,s.paidOn||'',s.status==='paid'?source(s.paymentSource||'bank'):'',s.priorBalance??null,s.newRibo??null,s.principal??null,s.fees??null,s.oneOff??null,n.total,n.carry,s.note||'',p.paidParts.principal,p.paidParts.fees,p.paid,s.status==='draft'||s.confirmedOn>cutoff?null:p.remaining,s.estimatedPrincipal??null,s.estimatedFees??null,subtractMoney(addMoney(s.priorBalance,s.newRibo),p.paidParts.principal)]);}
       for(const h of book.cards.availableCreditHistory||[])creditHistory.push([...prefix,h.id,h.date,h.amount]);
+      for(const h of book.cards.riboBalanceHistory||[])riboHistory.push([...prefix,h.id,h.date,h.amount]);
       const p=book.cards.safetyPlan;if(p)plans.push([...prefix,'Kế hoạch thẻ','',p.apr,p.minimum,'','',p.principal,p.asOf]);
     }
   }

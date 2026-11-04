@@ -1,5 +1,7 @@
 > **Cách tính hiện hành:** Dashboard, lịch và Excel quản lý theo **dòng tiền thực tế và tài sản tiền**. Giao dịch mua thẻ được hiển thị riêng, chỉ ghi tiền ra khi thực trả. Kỳ lương chỉ còn là kế hoạch bổ sung. Xem [quy tắc, dữ liệu, kiểm thử và hướng dẫn kiểm tra](docs/CASH_BASIS.md). Các phần mô tả KPI cũ phía dưới không còn áp dụng cho Dashboard mới.
 
+> **Tín dụng chỉ để theo dõi:** Nhập mua thẻ ở chi tiêu ngày, chọn nguồn **Thẻ tín dụng**; tổng tín dụng tính theo ngày mua trong tháng, tách khỏi tiền thực chi. Khi thực trả, nhập khoản chi bằng ngân hàng/tiền mặt/tiết kiệm với danh mục **Thanh toán thẻ**; số đó vào tiền thực chi và bảng tín dụng của tháng trả. Phí và tiền リボ tháng nhập tay, không dùng để đoán hóa đơn. Khung tín dụng có thể thu gọn, cho nhập số dư PayPay khả dụng và dư nợ リボ; không hiện tổng nghĩa vụ hoặc thẻ sắp thanh toán. Dữ liệu sao kê/liên kết cũ vẫn được giữ trong lịch sử.
+
 # Lịch của tôi
 
 Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập với các năm và khả năng thêm/xóa năm. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.

@@ -1,3 +1,4 @@
+import {isTrackingCardPayment} from './credit-types.js';
 import {financeView} from './credit-access.js';
 import {accountBalances,accountSource,isInternalMovement,isCardPayment,sourceOpening,monthEnd} from './account-model.js';
 import {cardPayments,statementProgress} from './card-ledger.js';
@@ -12,7 +13,7 @@ export function cashEvents(book){
   const rows=[];
   for(const [month,income]of Object.entries(book.incomes))for(const type of ['salary','bonus'])if(income[type]&&income.status!=='planned')rows.push({id:`${type}:${month}`,date:income.receivedOn||month+'-15',direction:'in',type,amount:income[type],source:income.account||'bank',title:type==='salary'?'Lương':'Thưởng',note:income.note||'',economicIncome:true});
   for(const r of book.receipts||[])rows.push({...r,direction:'in',title:RECEIPT_TYPES[r.type],economicIncome:!['own','repayment','borrow','refund'].includes(r.type)});
-  for(const [date,entry]of Object.entries(book.days))for(const item of entry.items)if(actualItem(item)&&item.paymentMethod!=='card'&&!item.cardFeeMonth&&!isCardPayment(item)&&!isInternalMovement(item))rows.push({...item,date,direction:'out',type:item.debtPaymentId?'debt':'direct',source:accountSource(item)});
+  for(const [date,entry]of Object.entries(book.days))for(const item of entry.items)if(actualItem(item)&&item.paymentMethod!=='card'&&!item.cardFeeMonth&&!isCardPayment(item)&&!isInternalMovement(item))rows.push({...item,date,direction:'out',type:item.debtPaymentId?'debt':isTrackingCardPayment(item)?'card-payment':'direct',source:accountSource(item)});
   for(const p of cardPayments(book))rows.push({...p,direction:'out',type:'card-payment',title:`Thanh toán thẻ · ${p.month}`});
   for(const r of book.cards?.adjustments||[])if(!r.voided&&r.type==='bank-refund')rows.push({...r,direction:'in',title:'Hoàn tiền về tài khoản',economicIncome:false});
   return rows.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));

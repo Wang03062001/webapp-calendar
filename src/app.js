@@ -1,3 +1,4 @@
+import {isCardPaymentCategory,isTrackingCardPayment} from './credit-types.js';
 import {validateMoneyChanges,validateCreditEdits,validateActualDates} from './finance-validation.js';
 import {cashPeriodDetails,cashDayDetails,cashEvents,actualItem} from './cash-model.js';
 import {addMoney,sumMoney,wholeCurrencyMoney} from './money.js';
@@ -10,7 +11,7 @@ import {showExpenseDialog} from './expense-ui.js';
 import {safetyPanel,showSafetyDialog,budgetWarnings} from './safety-ui.js';
 import {COUNTRIES,countryOf,moduleEnabled,simpleCards,readBook,writeBook} from './region-model.js';
 import {regionBar,showRegionSettings,receiptsPanel,receivablesPanel,showCashEntry} from './region-ui.js';
-import {simpleCreditPanel,showSimpleCard} from './simple-card-ui.js';
+import {showSimpleCard} from './simple-card-ui.js';
 import { financeView, isCreditItem, creditSnapshot } from './credit-access.js';
 import { accountsPanel, showAccountLedger, showMonthReconciliation, showBalanceRequest, showAvailableCredit, showSavingsOpening, sourceName } from './accounts-ui.js';
 import { accountSource, moneyKind, moneyOut, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
@@ -18,13 +19,13 @@ import { setCurrencies, currencyLabel, readDisplay, saveDisplay, installMoneyFor
 import { startTranslations, setLanguage, t } from './i18n.js';
 import { showSettings, needsCurrencySetup } from './settings-ui.js';
 import { showProfile } from './profile-ui.js';
-import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, dayTotal, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, CATEGORIES, categoryOf, expenseStatus, expenseRows } from './model.js';
+import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, CATEGORIES, categoryOf, expenseStatus, expenseRows } from './model.js';
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
 import { SyncController } from './sync.js';
 import { showAdmin, showPasswordReset, showRecovery } from './admin.js';
 import { debtsPanel, showDebtDialog } from './debts.js';
-import { creditPanel, salaryTimeline, showCreditDialog,creditPurchaseStatus } from './credit-ui.js';
+import { creditPanel, salaryTimeline, showCreditDialog } from './credit-ui.js';
 import { shiftMonth,expectedPaymentDate,defaultCards } from './card-model.js';
 
 const ask = message => globalThis.confirm(t(message));
@@ -52,8 +53,9 @@ const newExpense = () => ({ id: crypto.randomUUID(), title: '', amount: 0, statu
 let creditRole = { userId: null, allowed: false, checked: false, request: 0, pending: null };
 const root = document.querySelector('#app');
 const walletMedia=matchMedia('(min-width: 1001px)');
-let walletExpanded=walletMedia.matches,ledgerExpanded=false,walletNode=null,walletMarkup='',reportDay=localToday();
-let creditWritePending = false, activeRegion='foreign', regionUser=null,creditFilters={},regionEpoch=0;
+let walletExpanded=walletMedia.matches,ledgerExpanded=false,walletNode=null,walletMarkup='',reportDay=localToday(),creditExpanded=true;
+try{creditExpanded=localStorage.getItem('calendar-credit-expanded')!=='false';}catch{}
+let creditWritePending = false, activeRegion='foreign', regionUser=null,regionEpoch=0;
 const pendingExpenseEdits = new Set();
 const fullDocument=()=>writeBook(cloud.data,activeRegion,data);
 const storedBook=()=>readBook(cloud.data,activeRegion);
@@ -162,7 +164,7 @@ function render() {
       <div id="cloud-notice" aria-live="polite"></div>
       <div class="page">${regionBar(data,activeRegion,readBook(cloud.data,'foreign'))}
         <div class="page-heading"><h2 id="summary-period">${view === 'calendar' ? `Tổng kết tháng ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'year' ? `Tổng kết năm ${year}` : view === 'credit' ? `Thẻ & sao kê · ${String(month + 1).padStart(2, '0')} / ${year}` : 'Khoản vay khác · __CASH__'}</h2>${view === 'debts' ? '' : `<div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div>`}</div>
-        ${view==='safety'?safetyPanel(actualView(),selectedKey()):view === 'debts' ? debtsPanel(visibleData(), debtFilter) : view === 'credit' ? `${monthTabs()}${simpleCards(data)?simpleCreditPanel(data,monthKey(year,month)):creditPanel(actualData(), monthKey(year, month),creditFilters)}` : `
+        ${view==='safety'?safetyPanel(actualView(),selectedKey()):view === 'debts' ? debtsPanel(visibleData(), debtFilter) : view === 'credit' ? `${monthTabs()}${creditPanel(actualData(),monthKey(year,month))}` : `
           ${view === 'calendar' ? `${monthTabs()}<details id=ledger-tools class="card ledger-tools" ${ledgerExpanded?'open':''}><summary>Thiết lập / đối chiếu nguồn tiền theo ngày lịch</summary><div id=accounts-overview>${accountsPanel(actualView(),selectedKey(),hasCreditAccess())}</div></details>${canUseCredit()&&!simpleCards(data) ? `<div id="cashflow-overview">${salaryTimeline(actualData(), monthKey(year, month))}</div>` : ''}` : ''}
           <div class="stats">${statsContent(totals)}</div>${moduleEnabled(data,'safety')?`<div id="budget-warnings">${budgetWarnings(actualView(),monthKey(year,month))}</div>`:''}
           ${view === 'calendar' ? `<div class="editor-actions">${canUseCredit() ? '<button class="button secondary" data-view="credit">Thẻ & sao kê</button>' : ''}<button class="button save-button" data-action="quick-expense">${icon('plus')} Thêm khoản chi</button>${moduleEnabled(data,'salary')?'<button class="button secondary" data-action="quick-income">Thu nhập</button>':''}${moduleEnabled(data,'savings')?'<button class="button secondary" data-action="quick-savings">Tiết kiệm</button>':''}${moduleEnabled(data,'debts')?'<button class="button secondary" data-view="debts">Nợ phải trả</button>':''}</div>${calendarView()}${expenseBrowser()}${moduleEnabled(data,'receipts')?receiptsPanel(data,monthKey(year,month)):''}${moduleEnabled(data,'receivables')?receivablesPanel(data):''}<div class="finance-panels">${moduleEnabled(data,'salary')?incomePanel():''}${moduleEnabled(data,'savings')?savingsPanel():''}</div>` : `${yearView()}${moduleEnabled(data,'savings')?savingsPanel():''}`}
@@ -178,7 +180,7 @@ function render() {
 function refreshActualDay(){const current=localToday();if(current!==reportDay){reportDay=current;if(['calendar','year'].includes(view)&&root.querySelector('.stats'))refreshTotals();}}
 function renderCurrentWallet() {
   const node=document.querySelector('#current-wallet');if(!node)return;
-  const markup=currentWalletContent(actualData(),{asOf:localToday(),creditAllowed:hasCreditAccess(),signedIn:canEdit(),draft:cloud.dirty,expanded:walletExpanded,updatedAt:cloud.confirmedAt});
+  const markup=currentWalletContent(actualData(),{asOf:localToday(),creditAllowed:hasCreditAccess(),signedIn:canEdit(),draft:cloud.dirty,expanded:walletExpanded,updatedAt:cloud.confirmedAt,creditExpanded});
   if(node===walletNode&&markup===walletMarkup)return;
   const active=document.activeElement,restoreFocus=node.contains(active),action=active?.dataset?.action;
   node.innerHTML=markup;walletNode=node;walletMarkup=markup;
@@ -190,7 +192,7 @@ function statsContent() {
  return stat('wallet','Tiền vào thực tế',d.actualCashIn,'Theo ngày tiền thực nhận · __CASH__','purple')
  +stat('down','Tổng tiền thực chi',d.actualCashOut,`${d.outflows.length} dòng tiền ra · gồm trả thẻ và trả nợ thực tế`,'orange')
  +stat('chart','Biến động tài sản',d.cashChange,`Đầu kỳ ${d.openingCash===null?'N/A':money(d.openingCash)} · Cuối kỳ ${d.closingCash===null?'N/A':money(d.closingCash)} · Đã sử dụng ${d.usageRatio===null?'N/A':d.usageRatio+'%'}`,'blue')
- +(credit?stat('credit','Phát sinh tín dụng',d.creditTotal,'Theo ngày mua · không trừ tài sản tiền','purple')+stat('upcoming','Thẻ sắp thanh toán',d.credit.next?.remaining??null,d.credit.next?`${d.credit.next.month} · Hạn ${d.credit.next.dueDate}`:'Chưa có sao kê đã xác nhận còn phải trả','pink'):stat('note','Dự kiến thanh toán',d.plannedTotal,'Chưa trừ tài sản tiền','pink'));
+ +(credit?stat('credit','Phát sinh tín dụng',d.creditTotal,'Theo ngày mua · không trừ tài sản tiền','purple'):stat('note','Dự kiến thanh toán',d.plannedTotal,'Chưa trừ tài sản tiền','pink'));
 }
 function dashboardCharts() {
  const d=periodCash(),values=[['Tiền vào thực tế',d.actualCashIn,'income'],['Chi trực tiếp từ ngân hàng',sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source==='bank').map(r=>r.amount)),'bank'],['Chi tiền mặt',sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source==='cash').map(r=>r.amount)),'cash'],['Chi từ tiết kiệm',sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source==='savings').map(r=>r.amount)),'savings'],...(hasCreditAccess()?[['Thanh toán thẻ',d.cardPaid,'payment']]:[]),['Trả nợ khác',d.debtTotal,'payment'],['Tài sản cuối kỳ',d.closingCash,'']];
@@ -269,14 +271,14 @@ function incomePanel() {
 }
 function categoryOptions(value, any = '') {
   const categories = [...new Set([...CATEGORIES, ...Object.values(visibleData().days).flatMap(entry => entry.items.filter(item=>!item.cardFeeMonth).map(item => categoryOf(item)))])];
-  return `${any ? `<option value="">${any}</option>` : ''}${categories.map(category => `<option value="${escape(category)}" ${category === value ? 'selected' : ''}>${escape(category)}</option>`).join('')}`;
+  return `${any ? `<option value="">${any}</option>` : ''}${categories.filter(category=>hasCreditAccess()||!isCardPaymentCategory(category)).map(category => `<option value="${escape(category)}" ${category === value ? 'selected' : ''}>${escape(category)}</option>`).join('')}`;
 }
 function expenseEditor(item, index, date) {
   return `<article class="expense-entry" data-item="${index}"><div class="expense-entry-title"><input aria-label="Mục đích chi tiêu ${index + 1}" placeholder="Mục đích chi tiêu" maxlength="500" data-field="title" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? `readonly title="${item.cardPaymentMonth ? 'Thanh toán liên kết sao kê' : item.cardFeeMonth ? 'Phí liên kết sao kê' : item.obligationId?'Khoản phải trả liên kết': 'Khoản chi liên kết trả nợ'}"` : ''} value="${escape(item.title)}" /><button class="delete-button" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? `data-debt-linked disabled title="${item.cardPaymentMonth ? 'Hủy thanh toán trong Thẻ & sao kê' : item.cardFeeMonth ? 'Sửa phí trong Thẻ & sao kê' : item.obligationId?'Sửa hoặc hủy trong Nền tảng an toàn': 'Hủy lần trả trong Khoản vay khác'}"` : ''} data-delete="${index}" aria-label="Xóa khoản chi ${index + 1}">${icon('trash')}</button></div>
       <label>Loại giao dịch<select data-field="movement" ${(item.debtPaymentId||item.cardFeeMonth||item.cardPaymentMonth||item.obligationId)?'disabled data-debt-linked':''}><option value="" ${!item.movement?'selected':''}>Chi tiêu</option><option value="withdraw" ${item.movement==='withdraw'?'selected':''}>Rút tiền mặt</option><option value="deposit" ${item.movement==='deposit'?'selected':''}>Nạp tiền vào ngân hàng</option></select></label><label>Số tiền · __CASH__<input aria-label="Số tiền khoản chi ${index + 1}" type="text" data-money data-money-kind="${moneyKind(item)}" maxlength="32" inputmode="decimal" placeholder="0" data-field="amount" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? 'readonly' : ''} value="${item.amount ? formatAmount(item.amount) : ''}" /></label>
       <div class="expense-entry-meta"><label>Danh mục<select aria-label="Danh mục khoản chi ${index + 1}" data-field="category" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? 'data-debt-linked disabled' : ''}>${categoryOptions(categoryOf(item))}</select></label><label>Trạng thái<select aria-label="Trạng thái khoản chi ${index + 1}" data-field="status" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? 'data-debt-linked disabled' : ''}><option value="planned" ${expenseStatus(item) === 'planned' ? 'selected' : ''}>Dự kiến</option><option value="paid" ${expenseStatus(item) === 'paid' ? 'selected' : ''}>${item.paymentMethod==='card'?'Đã phát sinh':'Đã thanh toán'}</option><option value="cancelled" ${item.status==='cancelled'?'selected':''}>Đã hủy</option></select></label></div>
-      <div class="expense-entry-meta">${data.safety?.funds.length?`<label>Quỹ chi (không bắt buộc)<select data-field="fundId" ${item.obligationId||item.debtPaymentId||item.cardFeeMonth||item.cardPaymentMonth?'disabled data-debt-linked':''}><option value="">Không dùng quỹ</option>${data.safety.funds.filter(f=>!f.archived||f.id===item.fundId).map(f=>`<option value="${escape(f.id)}" ${item.fundId===f.id?'selected':''}>${escape(f.name)}</option>`).join('')}</select></label>`:''}<label>Phương thức thanh toán<select aria-label="Phương thức khoản chi ${index+1}" data-field="paymentMethod" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? 'disabled data-debt-linked' : isInternalMovement(item)?'disabled data-movement-source':item.fundId?'disabled data-fund-source':''}><option value="bank" ${item.paymentMethod === 'bank' ? 'selected' : ''}>Tài khoản ngân hàng</option><option value="cash" ${!['bank','card','savings'].includes(item.paymentMethod) ? 'selected' : ''}>Tiền mặt</option>${data.accounts?.savings!==undefined?`<option value="savings" ${item.paymentMethod==='savings'?'selected':''}>Tiết kiệm</option>`:''}${canUseCredit()?`<option value="card" ${item.paymentMethod === 'card' ? 'selected' : ''}>Thẻ tín dụng</option>`:''}</select></label>${item.paymentMethod === 'card' && !simpleCards(data) ? `<label>Cách trả<select data-field="settlement" aria-label="Cách trả thẻ khoản chi ${index+1}" ${item.cardFeeMonth ? 'disabled data-debt-linked' : ''}><option value="oneoff" ${item.settlement === 'oneoff' ? 'selected' : ''}>Một lần tháng sau · 1回</option><option value="ribo" ${item.settlement === 'ribo' ? 'selected' : ''}>Bổ sung vào リボ</option>${item.cardFeeMonth ? '<option value="fee" selected>Phí sao kê</option>' : ''}</select></label><label>Kỳ sao kê trả tiền<input aria-label="Kỳ sao kê khoản chi ${index+1}" data-field="billingMonth" type="month" required value="${item.billingMonth || shiftMonth(date.slice(0,7),1)}" ${item.cardFeeMonth ? 'readonly' : ''} /></label>` : ''}</div>
-      ${item.paymentMethod==='card'?`<small class="linked-note">Trạng thái tín dụng: ${creditPurchaseStatus(data,item,date)} · Ngày thanh toán dự kiến ${data.cards?.statements.find(s=>s.month===(item.billingMonth||shiftMonth(date.slice(0,7),1)))?.dueDate||expectedPaymentDate(item.billingMonth||shiftMonth(date.slice(0,7),1),data.cards||defaultCards())}. Ngày thực trả được ghi riêng trong Thẻ & sao kê.</small>`:''}${isInternalMovement(item)?'<small class=linked-note>Chuyển giữa ngân hàng và tiền mặt; tổng tài sản không đổi.</small>':''}${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? `<small class="linked-note">${item.cardPaymentMonth ? 'Thanh toán sao kê · không cộng lại chi phí. Sửa/hủy trong Thẻ & sao kê.' : item.cardFeeMonth ? 'Phí liên kết sao kê · sửa trong Thẻ & sao kê.' : item.obligationId?'Khoản phải trả · Sửa/hủy trong Nền tảng an toàn.': 'Liên kết trả nợ · Sửa/hủy trong Khoản vay khác.'}</small>` : ''}</article>`;
+      <div class="expense-entry-meta">${data.safety?.funds.length?`<label>Quỹ chi (không bắt buộc)<select data-field="fundId" ${item.obligationId||item.debtPaymentId||item.cardFeeMonth||item.cardPaymentMonth?'disabled data-debt-linked':''}><option value="">Không dùng quỹ</option>${data.safety.funds.filter(f=>!f.archived||f.id===item.fundId).map(f=>`<option value="${escape(f.id)}" ${item.fundId===f.id?'selected':''}>${escape(f.name)}</option>`).join('')}</select></label>`:''}<label>Phương thức thanh toán<select aria-label="Phương thức khoản chi ${index+1}" data-field="paymentMethod" ${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? 'disabled data-debt-linked' : isInternalMovement(item)?'disabled data-movement-source':item.fundId?'disabled data-fund-source':''}><option value="bank" ${item.paymentMethod === 'bank' ? 'selected' : ''}>Tài khoản ngân hàng</option><option value="cash" ${!['bank','card','savings'].includes(item.paymentMethod) ? 'selected' : ''}>Tiền mặt</option>${data.accounts?.savings!==undefined?`<option value="savings" ${item.paymentMethod==='savings'?'selected':''}>Tiết kiệm</option>`:''}${canUseCredit()?`<option value="card" ${item.paymentMethod === 'card' ? 'selected' : ''}>Thẻ tín dụng</option>`:''}</select></label>${isTrackingCardPayment(item)?`<label>Kỳ sao kê gốc (không bắt buộc)<input type="month" data-field="creditPeriod" value="${item.creditPeriod||''}"></label>`:''}${item.paymentMethod==='card'&&!item.creditTracking&&!simpleCards(data)?`<label>Cách trả (liên kết cũ)<select data-field="settlement"><option value="oneoff" ${item.settlement==='oneoff'?'selected':''}>Một lần tháng sau · 1回</option><option value="ribo" ${item.settlement==='ribo'?'selected':''}>Bổ sung vào リボ</option></select></label><label>Kỳ sao kê trả tiền<input type="month" data-field="billingMonth" required value="${item.billingMonth||shiftMonth(date.slice(0,7),1)}"></label>`:''}</div>
+      ${item.paymentMethod==='card'?'<small class="linked-note">Giao dịch tín dụng được cộng riêng theo ngày mua, không tính vào tiền thực chi.</small>':''}${isInternalMovement(item)?'<small class=linked-note>Chuyển giữa ngân hàng và tiền mặt; tổng tài sản không đổi.</small>':''}${(item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) ? `<small class="linked-note">${item.cardPaymentMonth ? 'Thanh toán sao kê · không cộng lại chi phí. Sửa/hủy trong Thẻ & sao kê.' : item.cardFeeMonth ? 'Phí liên kết sao kê · sửa trong Thẻ & sao kê.' : item.obligationId?'Khoản phải trả · Sửa/hủy trong Nền tảng an toàn.': 'Liên kết trả nợ · Sửa/hủy trong Khoản vay khác.'}</small>` : ''}</article>`;
 }
 const expenseInputKey = (date,item) => JSON.stringify([activeRegion,date,item.id]);
 const isExpenseDraft = (date,item) => !protectedExpense(item) && (Boolean(cloud.expenseInputs[expenseInputKey(date,item)]) || !expenseConfirmed(cloud.confirmedExpenses,activeRegion,date,item));
@@ -310,7 +312,7 @@ function dayPanel() {
     <div class="expense-heading"><h3>Nhập khoản mới</h3><span>__CASH__</span></div>
     <div class="expense-list">${entry.items.map((item, index) => !isExpenseDraft(selectedKey(),item)||!visibleData().days[selectedKey()]?.items.some(i=>i===item)?'':expenseEditor(item,index,selectedKey())).join('')}</div>
     <button class="add-expense" data-action="add">${icon('plus')} Thêm khoản chi</button>
-    <div class="day-total"><span>Tổng tiền thực chi</span><strong id="day-total">${money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut)}</strong></div><div class="account-period"><span>Tiền ra các nguồn trong ngày</span><strong id="day-money-out">${money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut)}</strong></div><div class="planned-total"><span>Dự kiến</span><strong id="day-planned-total">${money(dayTotal(visibleData().days[selectedKey()], 'planned'))}</strong></div>
+    <div class="day-total"><span>Tổng tiền thực chi</span><strong id="day-total">${money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut)}</strong></div><div class="account-period"><span>Tiền ra các nguồn trong ngày</span><strong id="day-money-out">${money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut)}</strong></div><div class="planned-total"><span>Dự kiến</span><strong id="day-planned-total">${money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).plannedTotal)}</strong></div>
     <div class="note-section"><label for="day-note">${icon('note')} Ghi chú</label><textarea id="day-note" maxlength="20000" placeholder="Ghi chú trong ngày" rows="2">${escape(entry.note)}</textarea></div>`;
 }
 function expenseBrowser() {
@@ -336,7 +338,7 @@ function refreshTotals() {
   if (view === 'year') return;
   document.querySelector('#day-money-out').textContent=money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut);
   document.querySelector('#day-total').textContent = money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut);
-  document.querySelector('#day-planned-total').textContent = money(dayTotal(visibleData().days[selectedKey()], 'planned'));
+  document.querySelector('#day-planned-total').textContent = money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).plannedTotal);
   if(document.querySelector('#income-total'))document.querySelector('#income-total').textContent = money(summary.salary + summary.bonus);
   document.querySelector('.calendar-panel').outerHTML = calendarPanel();
   document.querySelector('#expense-results').innerHTML = expenseResults();
@@ -347,7 +349,7 @@ root.addEventListener('click', async event => {
   if(button.dataset.action==='current-paypay'){
     const context=financeContext();
     if(!context.canEdit()||!await context.verifyCreditAccess()||!context.canEdit()||!context.canUseCredit()||simpleCards(context.getData()))return;
-    showAvailableCredit(context,localToday());return;
+    showCreditDialog(context,'balances',monthKey(year,month));return;
   }
   if(button.dataset.action==='current-wallet-settings'){if(canEdit())showBalanceRequest(financeContext(),localToday());return;}
   if(button.dataset.action==='wallet-manage'){if(!canEdit())return;view='calendar';ledgerExpanded=true;render();focusEditor('#ledger-tools>summary');return;}
@@ -358,7 +360,7 @@ root.addEventListener('click', async event => {
     period.selectedDate=selectedKey();
     await context.verifyCreditAccess();
     if(!context.canEdit()||view!==requestedView||year!==period.year||period.month!==null&&month!==period.month||selectedKey()!==period.selectedDate)return;
-    if(['credit','upcoming'].includes(button.dataset.statDetails)){if(context.canUseCredit()){view='credit';render();}return;}
+    if(button.dataset.statDetails==='credit'){if(context.canUseCredit()){view='credit';render();}return;}
     showStatsDialog(context,button.dataset.statDetails,period);return;
   }
   if(button.dataset.editExpense){if(canEdit())showExpenseDialog(financeContext(),button.dataset.expenseDate,button.dataset.editExpense,expenseEditor);return;}
@@ -372,7 +374,7 @@ root.addEventListener('click', async event => {
   if ((button.dataset.delete !== undefined || ['add-debt', 'add', 'quick-expense', 'quick-income', 'quick-savings', 'add-year', 'remove-year', 'import', 'export', 'backup', 'save', 'cloud-remote', 'cloud-retry'].includes(button.dataset.action)) && !canEdit()) return;
   if ((button.dataset.action==='paypay-available' || button.dataset.view === 'credit' || button.dataset.creditAction || button.dataset.creditMonth) && (!canEdit() || !await refreshCreditRole(true))) { notify('Chức năng Thẻ & sao kê chỉ dành cho admin.'); return; }
   if(button.dataset.removeTransfer){showAccountLedger(financeContext(),'delete',decodeURIComponent(button.dataset.removeTransfer));return;}
-  if (button.dataset.creditAction) { if(simpleCards(data))return; showCreditDialog(financeContext(), button.dataset.creditAction, monthKey(year,month)); return; }
+  if (button.dataset.creditAction) { const action=button.dataset.creditAction;if(simpleCards(data)&&['legacy-statement','legacy-undo'].includes(action))showSimpleCard(financeContext(),monthKey(year,month),action.slice(7));else showCreditDialog(financeContext(),action,monthKey(year,month));return; }
   if (button.dataset.creditMonth) { [year, month] = button.dataset.creditMonth.split('-').map(Number); month--; day = Math.min(day, daysInMonth(year,month)); view = 'credit'; render(); return; }
   if (button.dataset.debtFilter) { debtFilter = button.dataset.debtFilter; render(); return; }
   if (button.dataset.editDebt) { openDebtDialog(button.dataset.editDebt, 'edit'); return; }
@@ -453,7 +455,6 @@ root.addEventListener('click', async event => {
   }
 });
 root.addEventListener('input', event => {
-  if(event.target.dataset.creditFilter){creditFilters[event.target.dataset.creditFilter]=event.target.value;render();return;}
   const pending=handleInput(event);pendingExpenseEdits.add(pending);
   pending.catch(error=>notify(error.message)).finally(()=>pendingExpenseEdits.delete(pending));
 });
@@ -482,9 +483,9 @@ async function handleInput(event) {
     if (!item || !isExpenseDraft(selectedKey(),item) || !visibleData().days[selectedKey()]?.items.includes(item) || (!canUseCredit() && isCreditItem(item)) || item.debtPaymentId || item.cardFeeMonth || item.cardPaymentMonth || item.obligationId) return;
     const rawKey=expenseInputKey(selectedKey(),item), rawFields=cloud.expenseInputs[rawKey];
     if(rawFields){delete rawFields[target.dataset.field];if(!Object.keys(rawFields).length)delete cloud.expenseInputs[rawKey];}
-    if(target.dataset.field==='fundId'){const f=data.safety?.funds.find(f=>f.id===target.value&&!f.archived);if(target.value&&!f)return;if(f){item.fundId=f.id;item.paymentMethod=f.source;delete item.settlement;delete item.billingMonth;delete item.movement;}else delete item.fundId;persist();render();return;}
+    if(target.dataset.field==='fundId'){const f=data.safety?.funds.find(f=>f.id===target.value&&!f.archived);if(target.value&&!f)return;if(f){item.fundId=f.id;item.paymentMethod=f.source;delete item.creditTracking;delete item.creditPeriod;delete item.settlement;delete item.billingMonth;delete item.movement;}else delete item.fundId;persist();render();return;}
     if(target.dataset.field==='movement'){if(item.fundId&&target.value){notify('Bỏ quỹ trước khi chuyển nguồn nội bộ.');render();return;}
-      if(target.value){item.movement=target.value;item.paymentMethod=target.value==='withdraw'?'bank':'cash';item.status='paid';item.category='Chuyển tiền nội bộ';if(!item.title||['Rút tiền mặt','Nạp tiền vào ngân hàng'].includes(item.title))item.title=target.value==='withdraw'?'Rút tiền mặt':'Nạp tiền vào ngân hàng';delete item.settlement;delete item.billingMonth;}
+      if(target.value){delete item.creditTracking;delete item.creditPeriod;item.movement=target.value;item.paymentMethod=target.value==='withdraw'?'bank':'cash';item.status='paid';item.category='Chuyển tiền nội bộ';if(!item.title||['Rút tiền mặt','Nạp tiền vào ngân hàng'].includes(item.title))item.title=target.value==='withdraw'?'Rút tiền mặt':'Nạp tiền vào ngân hàng';delete item.settlement;delete item.billingMonth;}
       else {delete item.movement;item.category='Khác';if(['Rút tiền mặt','Nạp tiền vào ngân hàng'].includes(item.title))item.title='';}
       persist();render();return;
     }
@@ -492,11 +493,12 @@ async function handleInput(event) {
     if (target.dataset.field === 'paymentMethod') {
       if(target.value==='savings'&&data.accounts?.savings===undefined)return;
       if(target.value==='card'&&!canUseCredit())return;
-      item.paymentMethod = target.value; if (target.value === 'card') { item.settlement = 'oneoff'; item.billingMonth = shiftMonth(selectedKey().slice(0,7),1); } else { delete item.settlement; delete item.billingMonth; }
+      item.paymentMethod=target.value;if(target.value==='card'){item.creditTracking=true;delete item.settlement;delete item.billingMonth;delete item.creditPeriod;}else{delete item.creditTracking;delete item.settlement;delete item.billingMonth;}
       persist(); render(); return;
     }
     item[target.dataset.field] = target.dataset.field === 'amount' ? amount(target.value) : target.value;
-    persist(); refreshTotals();
+    if(target.dataset.field==='category'&&!isCardPaymentCategory(target.value)||target.dataset.field==='creditPeriod'&&!target.value)delete item.creditPeriod;
+    persist();if(target.dataset.field==='category'){render();return;}refreshTotals();
   }
   if (target.dataset.income) {
     if(!moduleEnabled(data,'salary'))return;
@@ -537,6 +539,7 @@ root.addEventListener('keydown', event => {
 });
 root.addEventListener('toggle', event => {
   if(event.target.classList.contains('current-wallet-disclosure'))walletExpanded=event.target.open;
+  if(event.target.classList.contains('current-credit')){creditExpanded=event.target.open;try{localStorage.setItem('calendar-credit-expanded',String(creditExpanded));}catch{}}
   if(event.target.id==='ledger-tools')ledgerExpanded=event.target.open;
   if (event.target.classList.contains('calendar-disclosure')) calendarExpanded = event.target.open;
   if (event.target.classList.contains('analysis-panel')) analysisExpanded = event.target.open;
