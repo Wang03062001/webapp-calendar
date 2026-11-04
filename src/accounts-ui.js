@@ -1,3 +1,4 @@
+import {tokyoToday} from './finance-date.js';
 import {showSourceOpening} from './opening-ui.js';
 import { simpleCards,moduleEnabled } from './region-model.js';
 import { availableCredit, setAvailableCredit } from './card-model.js';
@@ -9,7 +10,7 @@ import { currencyLabel, currencyCode } from './preferences.js';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>`${formatAmount(value)} ${currencyLabel()}`;
 const dateLabel=value=>value.split('-').reverse().join('/');
-const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const today=tokyoToday;
 export const sourceName=source=>source==='bank'?'Tài khoản ngân hàng':source==='card'?'Thẻ tín dụng':source==='savings'?'Tiết kiệm':'Tiền mặt';
 export function accountsPanel(data,date,creditAllowed) {
   data=financeView(data,creditAllowed);

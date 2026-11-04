@@ -6,6 +6,7 @@ import {excelFixture,exportAsOf} from '../scripts/fixtures/excel.mjs';
 import {monthSummary} from '../src/model.js';
 import {financeView} from '../src/credit-access.js';
 import {accountBalances,moneyOut} from '../src/account-model.js';
+import {cashPeriodDetails} from '../src/cash-model.js';
 import {salaryCycleDetails} from '../src/stats-model.js';
 import {salaryCycleFixture} from '../scripts/fixtures/salary-cycle.mjs';
 const options={asOf:exportAsOf,creditAllowed:true};
@@ -28,8 +29,8 @@ test('xlsx is an OOXML ZIP with numeric money, unicode, text IDs and no executab
 test('all regions/archived records/currencies and monthly financial totals match existing model',()=>{
  const data=excelFixture(),before=structuredClone(data),sheets=reportSheets(data,options),totals=records(sheets,'Tổng hợp tháng');
  for(const [label,book]of [['Sổ nước ngoài',data],['Sổ Việt Nam',data.regional.vietnam]]){
-  const row=totals.find(r=>r['Khu vực']===label&&r['Tháng']==='2026-10'),expected=monthSummary(book,2026,9);
-  assert.equal(row['Chi phí đã chi'],expected.expense);assert.equal(row['Chi phí dự kiến'],expected.planned);assert.equal(row['Chênh lệch theo chi phí'],expected.balance);assert.equal(row['Tiền ra các nguồn'],moneyOut(book,'2026-10'));
+  const row=totals.find(r=>r['Khu vực']===label&&r['Tháng']==='2026-10'),expected=cashPeriodDetails(book,{year:2026,month:9,asOf:exportAsOf,creditAllowed:true});
+  assert.equal(row['Tổng tiền thực chi'],expected.actualCashOut);assert.equal(row['Dự kiến thanh toán đã biết'],expected.plannedTotal);assert.equal(row['Biến động tài sản'],expected.cashChange);assert.equal(row['Tiền vào thực tế'],expected.actualCashIn);
  }
  assert(records(sheets,'Giao dịch').some(r=>r.ID==='archived'));assert(records(sheets,'Tiết kiệm cũ và mục tiêu').some(r=>r['Tiền tệ']==='VND'&&r['Kỳ']==='2024'));
  const vn=records(sheets,'Giao dịch').find(r=>r.ID==='vn');assert.equal(vn['Tiền tệ'],'VND');assert.equal(vn['Số tiền giao dịch'],123456.789);assert.deepEqual(data,before);
@@ -37,8 +38,9 @@ test('all regions/archived records/currencies and monthly financial totals match
 
 test('protected payments/transfers/fees do not double count costs; notes/history/nulls survive',()=>{
  const sheets=reportSheets(excelFixture(),options),rows=records(sheets,'Giao dịch');
- for(const row of rows.filter(r=>r['Loại giao dịch']==='Thanh toán sao kê'||r['Loại giao dịch']==='Chuyển nội bộ'))assert.equal(row['Chi phí đã chi'],0);
- assert(!rows.some(r=>r['Loại giao dịch']==='Phí sao kê'));assert.equal(records(sheets,'Sao kê thẻ')[0]['Tổng sao kê'],31.5);const summary=records(sheets,'Tổng hợp tháng').find(r=>r['Khu vực']==='Sổ nước ngoài'&&r['Tháng']==='2026-10');assert.equal(summary['Chênh lệch thu chi'],summary['Chênh lệch theo chi phí']-31.5);
+ for(const row of rows.filter(r=>r['Loại giao dịch']==='Chuyển nội bộ'||r['Nguồn tiền']==='Thẻ tín dụng'))assert.equal(row['Tiền thực chi'],0);
+ assert.equal(rows.find(r=>r['Loại giao dịch']==='Thanh toán sao kê')['Tiền thực chi'],31.5);
+ assert(!rows.some(r=>r['Loại giao dịch']==='Phí sao kê'));assert.equal(records(sheets,'Sao kê thẻ')[0]['Tổng sao kê'],31.5);const summary=records(sheets,'Tổng hợp tháng').find(r=>r['Khu vực']==='Sổ nước ngoài'&&r['Tháng']==='2026-10');assert.equal(summary['Đã thanh toán thẻ'],31.5);assert.equal(summary['Tổng tiền thực chi'],moneyOut(excelFixture(),'2026-10'));
  const payment=records(sheets,'Lịch sử trả nợ').find(r=>r['ID lần trả']==='payment');assert.equal(payment['Tổng thanh toán'],10.125);assert.equal(records(sheets,'Lịch sử trả nợ').find(r=>r['ID lần trả']==='voided')['Đã hủy'],'Có');
  assert.equal(records(sheets,'Kế hoạch').find(r=>r['ID khoản vay']==='loan')['APR %'],0);assert.equal(records(sheets,'Kế hoạch').find(r=>r['ID khoản vay']==='loan')['Mức tối thiểu'],null);
  assert(records(sheets,'Ghi chú ngày').some(r=>r['Ghi chú'].includes('😀 & <tag>\nKeep newline')));assert.equal(records(sheets,'Lịch sử quỹ')[0]['Ghi chú'],'Fund audit');assert.equal(records(sheets,'Mốc số dư').find(r=>r.ID==='opening')['Ghi chú'],'Opening audit');assert.equal(records(sheets,'Khoản phải thu')[0]['Gốc còn lại'],95);assert.equal(records(sheets,'Đối chiếu')[0]['ID'],'close');assert.equal(records(sheets,'Số dư nguồn tiền').find(r=>r['Khu vực']==='Sổ nước ngoài')['Hạn mức khả dụng đang hiển thị'],4000);
@@ -53,14 +55,14 @@ test('ordinary export filters both books, credit loans/terms/statements/settings
 });
 
 test('draft status is explicit and report exports never alter cached/financial objects',()=>{
- const data=excelFixture(),before=structuredClone(data);const sheets=reportSheets(data,{...options,draft:true});assert.match(sheet(sheets,'Hướng dẫn').find(r=>r[0]==='Trạng thái dữ liệu')[1],/bản nháp/);excelReport(data,options);assert.deepEqual(data,before);
+ const data=excelFixture(),before=structuredClone(data);const sheets=reportSheets(data,{...options,draft:true});assert.match(sheet(sheets,'Hướng dẫn').find(r=>r[0]==='Trạng thái dữ liệu')[1],/bản nháp/i);excelReport(data,options);assert.deepEqual(data,before);
 });
 
-test('salary-cycle sheet uses actual receipt/cutoff dates separately from unchanged calendar-month totals',()=>{
- const data=salaryCycleFixture(),before=structuredClone(data),sheets=reportSheets(data,{asOf:'2026-11-04',creditAllowed:true}),rows=records(sheets,'Chênh lệch kỳ lương');
- assert.equal(rows.length,1);assert.equal(rows[0]['Đầu kỳ'],'2026-10-15');assert.equal(rows[0]['Cuối kỳ'],'2026-11-14');assert.equal(rows[0]['Tính đến'],'2026-11-04');assert.equal(rows[0]['Tổng thu nhập đã nhận'],190000);assert.equal(rows[0]['Chênh lệch kỳ lương'],184129);
- const month=records(sheets,'Tổng hợp tháng').find(r=>r['Tháng']==='2026-11'&&r['Khu vực']==='Sổ nước ngoài');assert.equal(month['Lương'],190000);assert.equal(month['Chi phí đã chi'],4746.5);assert.deepEqual(data,before);
- const ordinary=reportSheets(excelFixture(),{...options,creditAllowed:false}),row=records(ordinary,'Chênh lệch kỳ lương')[0];assert(!Object.hasOwn(row,'Thanh toán sao kê'));assert.equal(row['Chênh lệch kỳ lương'],salaryCycleDetails(excelFixture(),{asOf:exportAsOf,creditAllowed:false}).activityDifference);
+test('cash report excludes future salary, retains a separate weekend-aware supplementary salary plan',()=>{
+ const data=salaryCycleFixture(),before=structuredClone(data),sheets=reportSheets(data,{asOf:'2026-11-04',creditAllowed:true}),rows=records(sheets,'Kế hoạch kỳ lương');
+ assert.equal(rows.length,1);assert.equal(rows[0]['Đầu kỳ dự kiến'],'2026-10-15');assert.equal(rows[0]['Cuối kỳ dự kiến'],'2026-11-12');assert.equal(rows[0]['Tiền vào thực tế đến ngày xem'],190000);assert.equal(rows[0]['Tiền ra thực tế đến ngày xem'],5871);
+ const month=records(sheets,'Tổng hợp tháng').find(r=>r['Tháng']==='2026-11'&&r['Khu vực']==='Sổ nước ngoài');assert.equal(month['Tiền vào thực tế'],0);assert.equal(month['Tổng tiền thực chi'],4671);assert.equal(month['Biến động tài sản'],-4671);assert.deepEqual(data,before);
+ const ordinary=reportSheets(excelFixture(),{...options,creditAllowed:false});assert(!ordinary.some(s=>s.name==='Thanh toán thẻ'||s.name==='Điều chỉnh thẻ'));assert(!records(ordinary,'Tổng hợp tháng').some(r=>Object.hasOwn(r,'Đã thanh toán thẻ')));
 });
 
 test('invalid dates, nonfinite numbers, oversized cells and duplicate/illegal sheet names fail explicitly',()=>{

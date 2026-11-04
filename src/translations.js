@@ -1,6 +1,70 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Dự kiến chưa nhận|Expected, not received|受取予定・未受取|수령 예정, 미수령|預計收入，尚未收到
+Đã thực nhận|Actually received|実際に受取済み|실제 수령 완료|實際已收到
+Trạng thái nhận tiền|Receipt status|受取状況|수령 상태|收款狀態
+Tiền vào thực tế|Actual cash inflow|実際の入金|실제 현금 유입|實際現金流入
+Tổng tiền vào thực tế|Total actual cash inflow|実際の入金合計|실제 현금 유입 합계|實際現金流入合計
+Tổng tiền thực chi|Total actual cash outflow|実際の支払合計|실제 현금 지출 합계|實際現金流出總計
+Biến động tài sản|Cash asset change|現金資産の増減|현금 자산 변동|現金資產變動
+Biến động tài sản tiền|Cash asset change|現金資産の増減|현금 자산 변동|現金資產變動
+Phát sinh tín dụng|Credit purchases|カード利用額|신용 거래 발생액|信用交易發生額
+Thẻ sắp thanh toán|Upcoming card payment|次回カード支払|예정 카드 납부|即將支付的卡費
+Dòng tiền và tài sản|Cash flow and assets|キャッシュフローと資産|현금 흐름 및 자산|現金流量與資產
+Tài sản đầu kỳ|Opening cash assets|期首現金資産|기초 현금 자산|期初現金資產
+Tài sản cuối kỳ|Closing cash assets|期末現金資産|기말 현금 자산|期末現金資產
+Thu nhập thực nhận|Income actually received|実際に受け取った収入|실제로 수령한 수입|實際收到的收入
+Tiền vào không phải thu nhập mới|Non-income cash inflow|収入ではない入金|수입이 아닌 현금 유입|不屬於新收入的流入
+Tiền vào không tạo thu nhập|Non-income cash inflow|収入ではない入金|수입이 아닌 현금 유입|不構成收入的流入
+Dự kiến thanh toán|Planned payments|支払予定|예정 납부|預計支付
+Thông tin tín dụng · không cộng vào tài sản|Credit information · excluded from cash assets|カード情報・現金資産には含まない|신용 정보 · 현금 자산에서 제외|信用資訊・不計入現金資產
+Dư nợ リボ|Revolving balance|リボ残高|리볼빙 잔액|循環信用餘額
+Tổng nghĩa vụ thẻ|Total card liability|カード債務合計|카드 부채 합계|信用卡債務總額
+Tổng nghĩa vụ thẻ chưa thanh toán|Total outstanding card liability|未払カード債務合計|미결제 카드 부채 합계|未清償信用卡債務總額
+Kế hoạch kỳ lương (bổ sung)|Pay-cycle planning (supplementary)|給与期間の計画（補助）|급여 주기 계획 (보조)|薪資週期規劃（補充）
+Trạng thái tín dụng|Credit payment status|カード支払状況|신용 결제 상태|信用支付狀態
+Đã phát sinh|Incurred|発生済み|발생함|已發生
+Đã phát sinh tín dụng|Credit purchase incurred|カード利用発生済み|신용 거래 발생함|已發生信用交易
+Sao kê thanh toán một phần|Statement partially paid|明細の一部支払済み|명세서 일부 납부|帳單已部分支付
+Chưa đến hạn|Not yet due|支払期日前|납부 기한 전|尚未到期
+Đã tất toán|Settled|精算済み|정산 완료|已結清
+Chưa chốt số tiền|Amount not confirmed|金額未確定|금액 미확정|金額尚未確定
+Bản nháp chưa lưu chưa được tính vào số dư|Unsaved drafts are excluded from balances|未保存の下書きは残高に含まれません|미저장 초안은 잔액에서 제외됩니다|尚未儲存草稿不計入餘額
+Kiểm tra bản đã lưu lúc|Saved data checked at|保存済みデータ確認日時|저장된 데이터 확인 시각|已儲存資料確認時間
+Ghi nhận thanh toán|Record payment|支払を記録|납부 기록|記錄支付
+Mã giao dịch ngân hàng (nếu có)|Bank transaction reference (optional)|銀行取引番号（任意）|은행 거래 번호 (선택)|銀行交易編號（選填）
+Liên kết giao dịch ngân hàng đã nhập|Link an existing bank transaction|入力済みの銀行取引に紐付け|기존 은행 거래 연결|連結已輸入的銀行交易
+Tạo dòng thanh toán mới|Create a new payment entry|新しい支払を作成|새 납부 항목 생성|建立新付款紀錄
+Lịch sử từng lần thanh toán|Individual payment history|支払ごとの履歴|개별 납부 내역|每筆付款紀錄
+Hủy một lần thanh toán|Void one payment|支払を1件取り消す|납부 한 건 취소|取消單筆付款
+Hoàn tiền / điều chỉnh|Refund / adjustment|返金・調整|환불 / 조정|退款／調整
+Lịch sử hoàn tiền / điều chỉnh|Refund / adjustment history|返金・調整履歴|환불 / 조정 내역|退款／調整紀錄
+Hủy một điều chỉnh|Void an adjustment|調整を取り消す|조정 취소|取消調整
+Hoàn về thẻ, không tăng ngân hàng|Refund to card; bank unchanged|カードへの返金・銀行残高は増えません|카드 환불, 은행 잔액 증가 없음|退回信用卡，不增加銀行餘額
+Hoàn thực nhận về ngân hàng / tiền mặt|Actual refund to bank / cash|銀行・現金への実際の返金|은행 / 현금으로 실제 환불|實際退回銀行／現金
+Điều chỉnh giảm sao kê đã xác nhận|Reduce a confirmed statement|確定明細を減額調整|확정 명세서 감액 조정|調減已確認帳單
+Nguồn nhận nếu hoàn tiền thực tế|Receiving account for an actual refund|実際の返金の受取先|실제 환불 수령 계좌|實際退款的收款來源
+Chi tiết hóa đơn|Statement details|明細の詳細|명세서 상세|帳單明細
+Tổng hóa đơn sau điều chỉnh|Statement total after adjustments|調整後の明細合計|조정 후 명세서 합계|調整後帳單總額
+Đã thực trả|Actually paid|実際の支払済額|실제 납부액|實際已付
+Còn phải thanh toán|Remaining amount due|支払残額|남은 납부액|尚須支付
+Gốc リボ thực trả|Revolving principal paid|実際に返済したリボ元金|실제 납부한 리볼빙 원금|實際償還循環信用本金
+Phí đã trả|Fees paid|支払済み手数料|납부한 수수료|已付費用
+Gốc リボ dự kiến ban đầu|Originally estimated revolving principal|当初予定のリボ元金|최초 예상 리볼빙 원금|原估循環信用本金
+Phí リボ dự kiến ban đầu|Originally estimated revolving fees|当初予定のリボ手数料|최초 예상 리볼빙 수수료|原估循環信用費用
+Sửa / hủy giao dịch|Edit / cancel transaction|取引の編集・取消|거래 수정 / 취소|修改／取消交易
+Điều chỉnh / đối chiếu số dư|Balance adjustment / reconciliation|残高の調整・照合|잔액 조정 / 대조|餘額調整／核對
+Tỷ lệ nguồn tiền đã sử dụng|Share of available funds used|利用可能資金の使用率|사용 가능 자금 사용 비율|可用資金使用比例
+Tiền vay nhận về|Loan proceeds received|借入金の受取|대출금 수령|收到借款
+Hoàn tiền thực nhận|Actual cash refund|実際の返金受取|실제 현금 환불|實際收到退款
+Giải thích|Explanation|説明|설명|說明
+Theo ngày tiền thực nhận|By actual receipt date|実際の受取日基準|실제 수령일 기준|依實際收款日期
+Theo ngày mua · không trừ tài sản tiền|By purchase date · no cash asset debit|購入日基準・現金資産は減りません|구매일 기준 · 현금 자산 차감 없음|依購買日・不扣現金資產
+Chưa có sao kê đã xác nhận còn phải trả|No confirmed outstanding statement|未払いの確定明細はありません|미납 확정 명세서 없음|尚無已確認待付帳單
+Chưa có hóa đơn đã xác nhận còn phải trả.|No confirmed outstanding statement.|未払いの確定明細はありません。|미납 확정 명세서가 없습니다.|尚無已確認待付帳單。
+JPY và VND phải nhập số nguyên; số lẻ lịch sử được giữ nguyên.|JPY and VND require whole amounts; historical fractions are preserved.|JPYとVNDは整数で入力します。過去の小数金額は保持します。|JPY와 VND는 정수로 입력하세요. 기존 소수 금액은 보존됩니다.|JPY 與 VND 請輸入整數；歷史小數金額會保留。
+Kế hoạch không tự tạo thu nhập hoặc trừ tài sản.|Planning does not create income or debit assets.|計画で収入の作成や資産の減額は行いません。|계획은 수입을 생성하거나 자산을 차감하지 않습니다.|規劃不會自動產生收入或扣減資產。
 Chênh lệch kỳ lương|Pay-cycle difference|給与期間の収支差額|급여 주기 수지 차액|薪資週期收支差額
 Biểu đồ chênh lệch kỳ lương|Pay-cycle difference chart|給与期間の収支差額グラフ|급여 주기 수지 차액 차트|薪資週期收支差額圖表
 Kỳ lương|Pay cycle|給与期間|급여 주기|薪資週期

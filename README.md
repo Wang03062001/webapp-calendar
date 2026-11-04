@@ -1,3 +1,5 @@
+> **Cách tính hiện hành:** Dashboard, lịch và Excel quản lý theo **dòng tiền thực tế và tài sản tiền**. Giao dịch mua thẻ được hiển thị riêng, chỉ ghi tiền ra khi thực trả. Kỳ lương chỉ còn là kế hoạch bổ sung. Xem [quy tắc, dữ liệu, kiểm thử và hướng dẫn kiểm tra](docs/CASH_BASIS.md). Các phần mô tả KPI cũ phía dưới không còn áp dụng cho Dashboard mới.
+
 # Lịch của tôi
 
 Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập với các năm và khả năng thêm/xóa năm. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.
@@ -293,7 +295,7 @@ Excel là báo cáo để xem/tính toán; chức năng nhập lại dữ liệu
 
 Kiểm thử: `node test/excel.test.js`, `npm test`, `npm run build`; tùy chọn `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node scripts/check-excel-browser.mjs` với máy chủ ở cổng 5175 (hoặc đặt `CALENDAR_URL`). Chỉ dùng dữ liệu giả lập; file/ảnh kiểm thử nằm ở `/tmp`. Bộ ghi OOXML/ZIP không cần cài thêm thư viện hay gọi CDN khi xuất.
 
-## Popup thống kê và thanh toán thẻ
+## Popup thống kê và thanh toán thẻ (cách hiển thị cũ, xem Cash Basis ở trên)
 
 Bấm icon trên từng ô thống kê (có cả trên điện thoại):
 
@@ -316,11 +318,11 @@ Tài sản gồm **ngân hàng chưa phân bổ + tiền mặt + nguồn tiết 
 
 **Chênh lệch thu − chi** vẫn là kết quả trong kỳ, không phải số dư tài sản. Trước ngày nhận lương, số này có thể âm trong khi ngân hàng/tiền mặt còn tiền từ tháng trước. **PayPay còn khả dụng** hiển thị riêng cho admin được máy chủ xác minh, không cộng hạn mức vào tài sản; không hiển thị ở sổ dùng thẻ đơn giản. Các sổ và tiền tệ tiếp tục độc lập; lịch sử tiết kiệm/mục tiêu cũ không tự cộng vào nguồn tiền khác đơn vị.
 
-**Thiết lập số dư** và **Cập nhật PayPay hôm nay** thao tác theo hôm nay. **Đối chiếu theo ngày lịch** mở lại các công cụ theo ngày lịch đang chọn, gồm số dư lịch sử, chuyển nguồn và đối chiếu. Số hiển thị theo bản nháp có nhãn **Gồm bản nháp chưa lưu**, vẫn cần Enter hoặc **Lưu thay đổi** để lưu dữ liệu nhập. Xuất Excel tiếp tục ghi rõ số dư tại ngày lịch được chọn trong file.
+**Thiết lập số dư** và **Cập nhật PayPay hôm nay** thao tác theo hôm nay. **Đối chiếu theo ngày lịch** mở lại các công cụ theo ngày lịch đang chọn, gồm số dư lịch sử, chuyển nguồn và đối chiếu. Bản nháp vẫn cần Enter hoặc **Lưu thay đổi**; số dư hiện tại chỉ dùng dữ liệu được máy chủ xác nhận, bản nháp chưa tính có nhãn riêng. Xuất Excel tiếp tục ghi rõ số dư tại ngày lịch được chọn trong file.
 
 Kiểm tra: `node test/current-wallet.test.js`, `npm test`, `npm run build` và `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs CALENDAR_URL=http://127.0.0.1:5173 node scripts/check-current-wallet-browser.mjs`. Kịch bản dùng dữ liệu mô phỏng, đóng băng đồng hồ trước/sau ngày 15, kiểm tra đổi ngày/kỳ/trang, hai khu vực, số dư PayPay, thu hồi quyền, đổi tài khoản và bố cục máy tính/điện thoại; không gửi dữ liệu đến tài khoản thật.
 
-## Chênh lệch theo kỳ lương ngày 15
+## Chênh lệch theo kỳ lương ngày 15 (cũ, hiện chỉ dùng kế hoạch bổ sung)
 
 Ở sổ bật Lương & thưởng hoặc đã có số lương/thưởng, ô thứ tư trên trang Thu chi là **Chênh lệch kỳ lương**, tính từ **ngày 15 đến hết ngày 14 tháng sau**, theo ngày lịch đang chọn. Ô ghi rõ ngày đầu/cuối kỳ và ngày đang tính đến. Ba ô Thu nhập, Chi tiêu và Dự kiến chi cùng danh sách, lịch, ngân sách và biểu đồ phân tích vẫn tổng hợp theo tháng; trang tổng kết năm giữ số cả năm. Sổ không dùng lương vẫn hiển thị chênh lệch tháng.
 

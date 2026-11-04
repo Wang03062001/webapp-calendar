@@ -80,9 +80,9 @@ test('version 1 storage and backups migrate without losing financial data', () =
   assert.deepEqual(migrated.savings,{});
   assert.deepEqual(migrated.goals,{});
   assert.equal(yearSummary(migrated,2026).balance,9500000);
-  const sanitized = normalizeData({...migrated,savings:{'2026-01':-1,'10000-01':100,'2026-02':'2000'},goals:{'2026':Infinity,'10000':10}});
-  assert.deepEqual(sanitized.savings,{'2026-01':0,'2026-02':2000});
-  assert.deepEqual(sanitized.goals,{'2026':0});
+  assert.throws(()=>normalizeData({...migrated,savings:{'2026-01':-1}}));
+  assert.throws(()=>normalizeData({...migrated,goals:{'2026':Infinity}}));
+  assert.deepEqual(normalizeData({...migrated,savings:{'2026-02':'2000'}}).savings,{'2026-02':2000});
 });
 
 test('years can be added and archived without deleting financial records', () => {

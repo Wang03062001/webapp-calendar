@@ -1,5 +1,6 @@
+import {sumMoney,subtractMoney} from './money.js';
 import {cardMoney,cardDate,roundCard} from './card-model.js';
-export const RECEIPT_TYPES={gift:'Tiền được cho',freelance:'Làm thêm',interest:'Tiền lãi',own:'Tiền của bản thân gửi về',repayment:'Thu hồi nợ gốc'};
+export const RECEIPT_TYPES={gift:'Tiền được cho',freelance:'Làm thêm',interest:'Tiền lãi',own:'Tiền của bản thân gửi về',repayment:'Thu hồi nợ gốc',borrow:'Tiền vay nhận về',refund:'Hoàn tiền thực nhận',other:'Thu nhập khác'};
 export const CASH_SOURCES=['bank','cash','savings'];
 export function normalizeCashEntries(raw){
  if(!Array.isArray(raw))throw Error('Danh sách tiền vào không hợp lệ.');
@@ -12,9 +13,9 @@ export function normalizeCashEntries(raw){
 }
 export const receiptTotals=(data,prefix)=>{
  const rows=(data.receipts||[]).filter(r=>r.date.startsWith(prefix));
- return {income:roundCard(rows.filter(r=>!['own','repayment'].includes(r.type)).reduce((s,r)=>s+r.amount,0)),nonIncome:roundCard(rows.filter(r=>['own','repayment'].includes(r.type)).reduce((s,r)=>s+r.amount,0))};
+ return {income:sumMoney(rows.filter(r=>!['own','repayment','borrow','refund'].includes(r.type)).map(r=>r.amount)),nonIncome:sumMoney(rows.filter(r=>['own','repayment','borrow','refund'].includes(r.type)).map(r=>r.amount))};
 };
-export const receivableRemaining=(data,id)=>roundCard((data.receivables||[]).find(r=>r.id===id)?.amount-(data.receipts||[]).filter(r=>r.type==='repayment'&&r.receivableId===id).reduce((s,r)=>s+r.amount,0));
+export const receivableRemaining=(data,id)=>{const loan=(data.receivables||[]).find(r=>r.id===id);return loan?subtractMoney(loan.amount,sumMoney((data.receipts||[]).filter(r=>r.type==='repayment'&&r.receivableId===id).map(r=>r.amount))):NaN;};
 export function normalizeReceivables(raw,receipts){
  if(!Array.isArray(raw))throw Error('Khoản phải thu không hợp lệ.');const result=[];
  for(const r of raw){if(!r||!String(r.id||'').trim()||result.some(x=>x.id===String(r.id))||!String(r.title||'').trim()||cardMoney(r.amount)<=0)throw Error('Khoản phải thu không hợp lệ.');result.push({id:String(r.id),title:String(r.title).slice(0,500),amount:cardMoney(r.amount)});}

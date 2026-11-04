@@ -1,3 +1,4 @@
+import {tokyoToday} from './finance-date.js';
 import {formatAmount} from './model.js';
 import {currencyLabel} from './preferences.js';
 import {defaultCards,cardMoney} from './card-model.js';
@@ -10,7 +11,7 @@ const button=(action,label,id='')=>`<button class="button secondary" data-safety
 const field=(name,label,value='',type='text',extra='')=>`<label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const cash=(name,label,value=0)=>field(name,`${label} · ${currencyLabel()}`,value==null?'':formatAmount(value),'text','data-money inputmode="decimal" required maxlength="32"');
 const source=(name,data,value='bank')=>`<label>Nguồn tiền<select name="${name}">${['bank','cash',...(data.accounts?.savings!==undefined?['savings']:[])].map(s=>`<option value="${s}" ${s===value?'selected':''}>${sourceName(s)}</option>`).join('')}</select></label>`;
-const localToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const localToday=tokyoToday;
 export function budgetWarnings(data,month){const rows=budgetRows(data,month).filter(b=>b.over>0||b.spent+b.planned>b.amount);return rows.length?`<aside class="budget-warning" role="status"><strong>Cảnh báo ngân sách</strong>${rows.map(b=>`<p><span translate="no">${esc(b.category)}</span>: ${b.over>0?`Đã vượt ${money(b.over)}`:`Đã chi + dự kiến vượt ${money(b.spent+b.planned-b.amount)}`}</p>`).join('')}<button class="text-button" data-view="safety">Xem Nền tảng an toàn</button></aside>`:'';}
 const heading=(title,description,action='')=>`<div class="card-heading"><div><h2>${title}</h2><p>${description}</p></div>${action}</div>`;
 export function safetyPanel(data,date){

@@ -31,12 +31,12 @@ try{
  await open();await page.screenshot({path:'/tmp/calendar-excel-desktop.png'});const adminFile=await download();assert.equal(adminFile.name,`lich-cua-toi-${exportAsOf}.xlsx`);assert.equal(adminFile.bytes.readUInt32LE(0),0x04034b50);assert.match(adminFile.text,/PRIVATE CARD PURCHASE/);assert.match(adminFile.text,/Sổ Việt Nam/);assert.match(adminFile.text,/123456.789/);assert.match(adminFile.text,/Archived cost/);assert(!/<f[\s>]/.test(adminFile.text));await import('node:fs/promises').then(fs=>fs.writeFile('/tmp/calendar-browser-export.xlsx',adminFile.bytes));
  await open();const backup=await download(true);assert(backup.name.endsWith('.json'));assert.deepEqual(JSON.parse(backup.text),original);assert.deepEqual(data,original);assert.equal(saves,0);
  console.log('PASS genuine XLSX download, full owner JSON backup, archived years, two books and no writes');
- // New typing is included as an explicitly marked draft without being submitted.
- await page.locator('[data-action=quick-expense]').click();await page.locator('.day-panel .expense-entry [data-field=title]').fill('Unsaved Excel draft');await page.locator('.day-panel .expense-entry [data-field=amount]').fill('1.234');await open();const draft=await download();assert.match(draft.text,/Unsaved Excel draft/);assert.match(draft.text,/Gồm bản nháp/);assert.equal(saves,0);assert.deepEqual(data,original);
+ // Unsaved typing is backed up, but never counted in the actual-cash report.
+ await page.locator('[data-action=quick-expense]').click();await page.locator('.day-panel .expense-entry [data-field=title]').fill('Unsaved Excel draft');await page.locator('.day-panel .expense-entry [data-field=amount]').fill('1234');await open();const draft=await download();assert(!draft.text.includes('Unsaved Excel draft'));assert.match(draft.text,/Bản nháp chưa lưu/);await open();const draftBackup=await download(true);assert.match(draftBackup.text,/Unsaved Excel draft/);assert.equal(saves,0);assert.deepEqual(data,original);
  // Permissions are freshly checked: revocation/error must not export credit rows.
  admin=false;await open();const ordinary=await download();for(const secret of ['PRIVATE CARD PURCHASE','PRIVATE CREDIT LOAN','PRIVATE CARD NAME','PRIVATE STATEMENT NOTE'])assert(!ordinary.text.includes(secret));assert(!ordinary.text.includes('name="Sao kê thẻ"'));
  roleError=true;await open();const failedRole=await download();assert(!failedRole.text.includes('PRIVATE CARD PURCHASE'));roleError=false;
- console.log('PASS unsaved draft export, fresh role revocation and fail-closed role lookup');
+ console.log('PASS actual report excludes drafts, full JSON retains drafts, fresh role revocation and fail-closed role lookup');
  // Export from Vietnam still contains both independent books.
  await page.locator('[data-region=vietnam]').click();await date();await open();const fromVietnam=await download();assert.match(fromVietnam.text,/Sổ nước ngoài/);assert.match(fromVietnam.text,/Sổ Việt Nam/);assert.match(fromVietnam.text,/Vietnam cost/);
  // Canceling while verification is in progress never produces a late download.

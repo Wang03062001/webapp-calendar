@@ -1,3 +1,4 @@
+import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {normalizeSafety,validateFunds} from './safety-model.js';
 import { normalizeBookSettings,COUNTRIES } from './region-model.js';
 import { normalizeCashEntries, normalizeReceivables, receiptTotals } from './receipt-model.js';
@@ -31,8 +32,8 @@ export const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate
 export const CATEGORIES = ['Ăn uống', 'Nhà ở', 'Đi lại', 'Mua sắm', 'Sức khỏe', 'Giải trí', 'Trả nợ', 'Khác'];
 // Records created before status was introduced remain paid, preserving old totals.
 export const categoryOf = item => item.category || (item.debtPaymentId ? 'Trả nợ' : 'Khác');
-export const expenseStatus = item => item.status === 'planned' ? 'planned' : 'paid';
-export const dayTotal = (day, status = 'all') => roundMoney((day?.items || []).filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && (status === 'all' || expenseStatus(item) === status)).reduce((sum, item) => sum + amount(item.amount), 0));
+export const expenseStatus = item => ['planned','cancelled','draft'].includes(item.status)?item.status:'paid';
+export const dayTotal = (day,status='all')=>sumMoney((day?.items||[]).filter(item=>!item.cardFeeMonth&&!isCardPayment(item)&&!isInternalMovement(item)&&!['cancelled','draft'].includes(expenseStatus(item))&&(status==='all'||expenseStatus(item)===status)).map(item=>amount(item.amount)));
 export function expenseRows(data, year, month = null, { query = '', category = '', status = '' } = {}) {
   const prefix = month === null ? `${year}-` : `${monthKey(year, month)}-`;
   const fold = value => String(value).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
@@ -43,34 +44,34 @@ export function expenseRows(data, year, month = null, { query = '', category = '
 export function monthSummary(data, year, month) {
   const prefix = monthKey(year, month);
   const entries = Object.entries(data.days).filter(([key]) => key.startsWith(`${prefix}-`));
-  const expense = roundMoney(entries.reduce((sum, [, day]) => sum + dayTotal(day, 'paid'), 0));
-  const planned = roundMoney(entries.reduce((sum, [, day]) => sum + dayTotal(day, 'planned'), 0));
+  const expense = sumMoney(entries.map(([,day])=>dayTotal(day,'paid')));
+  const planned = sumMoney(entries.map(([,day])=>dayTotal(day,'planned')));
   const income = data.incomes[prefix] || {};
   const salary = amount(income.salary), bonus = amount(income.bonus);
   const savings = amount(data.savings?.[prefix]);
   const other=receiptTotals(data,prefix);
   const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
   const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
-  return { salary, bonus, expense, planned, savings, balance: roundMoney(salary + bonus + other.income - expense), count, plannedCount, ...(data.receipts?{otherIncome:other.income,otherReceipts:other.nonIncome}:{}) };
+  return { salary, bonus, expense, planned, savings, balance: subtractMoney(addMoney(salary,bonus,other.income),expense), count, plannedCount, ...(data.receipts?{otherIncome:other.income,otherReceipts:other.nonIncome}:{}) };
 }
 export function yearSummary(data, year) {
   return Array.from({ length: 12 }, (_, month) => monthSummary(data, year, month)).reduce((all, item) => {
-    for (const key of Object.keys(all)) all[key] = roundMoney(all[key] + item[key]);
+    for (const key of Object.keys(all)) all[key] = addMoney(all[key],item[key]);
     return all;
   }, { ...(data.receipts?{otherIncome:0,otherReceipts:0}:{}), salary: 0, bonus: 0, expense: 0, planned: 0, savings: 0, balance: 0, count: 0, plannedCount: 0 });
 }
 export function savingsProgress(data, year) {
   const saved = yearSummary(data, year).savings;
   const goal = amount(data.goals?.[year]);
-  return { saved, goal, remaining: roundMoney(Math.max(0, goal - saved)), percent: goal ? Math.round(saved / goal * 100) : 0 };
+  return { saved, goal, remaining: Math.max(0,subtractMoney(goal,saved)), percent: goal ? Math.round(saved / goal * 100) : 0 };
 }
 export const validDate = value => {
   const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(value);
   return Boolean(match && validYear(+match[1]) && +match[3] <= daysInMonth(+match[1], +match[2] - 1));
 };
 export function debtBalance(debt) {
-  const paid = roundMoney(debt.payments.filter(payment => !payment.voided).reduce((sum, payment) => sum + payment.amount, 0));
-  return { paid, remaining: roundMoney(debt.amount - paid) };
+  const paid = sumMoney(debt.payments.filter(payment => !payment.voided).map(p=>p.amount));
+  return { paid, remaining: subtractMoney(debt.amount,paid) };
 }
 function positiveMoney(value) {
   const numeric = Number(typeof value === 'string' ? value.replace(/,/g, '') : value);
@@ -111,7 +112,7 @@ export function cancelDebtPayment(data, debtId, paymentId) {
   if (payment.expenseId) {
     const entry = data.days[payment.date], index = entry?.items.findIndex(item => item.id === payment.expenseId);
     const item = entry?.items[index];
-    if (!item || item.debtId !== debtId || item.debtPaymentId !== paymentId || item.amount !== roundMoney(payment.amount+(payment.interest||0)) || expenseStatus(item)!=='paid' || (payment.source&&item.paymentMethod!==payment.source)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
+    if (!item || item.debtId !== debtId || item.debtPaymentId !== paymentId || item.amount !== addMoney(payment.amount,payment.interest||0) || expenseStatus(item)!=='paid' || (payment.source&&item.paymentMethod!==payment.source)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
     entry.items.splice(index, 1);
   }
   payment.voided = true;
@@ -129,7 +130,7 @@ export function repayDebt(data, debtId, payment, { recordExpense = true } = {}) 
   if(payment.source!==undefined && !['bank','cash','savings'].includes(payment.source))throw new Error('Nguồn thanh toán không hợp lệ.');
   const interest=payment.interest===undefined?0:cardMoney(payment.interest);
   const value = interest>0?cardMoney(payment.amount):positiveMoney(payment.amount);
-  const total=roundMoney(value+interest);if(total>MAX_AMOUNT)throw Error('Tổng thanh toán vượt giới hạn.');
+  const total=addMoney(value,interest);if(total>MAX_AMOUNT)throw Error('Tổng thanh toán vượt giới hạn.');
   const id = String(payment.id || '');
   if (!id.trim() || debt.payments.some(item => item.id === id)) throw new Error('Lần trả nợ này đã được ghi nhận.');
   if (!validDate(payment.date)) throw new Error('Ngày trả nợ không hợp lệ.');
@@ -154,20 +155,22 @@ export function normalizeData(input) {
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
     if (!match || !validYear(+match[1]) || +match[3] > daysInMonth(+match[1], +match[2] - 1) || !day || !Array.isArray(day.items)) continue;
-    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: amount(item.amount), ...(item.fundId?{fundId:String(item.fundId)}:{}),...(item.obligationId?{obligationId:String(item.obligationId)}:{}), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod: 'card', settlement: ['oneoff', 'ribo', 'fee'].includes(item.settlement) ? item.settlement : 'oneoff', ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
+    result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: cardMoney(item.amount??0), ...(item.fundId?{fundId:String(item.fundId)}:{}),...(item.obligationId?{obligationId:String(item.obligationId)}:{}), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth,...(item.cardPaymentId?{cardPaymentId:String(item.cardPaymentId)}:{})} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod: 'card', settlement: ['oneoff', 'ribo', 'fee'].includes(item.settlement) ? item.settlement : 'oneoff', ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
   }
+  for(const entry of Object.values(result.days)){const ids=new Set();for(const item of entry.items){if(ids.has(item.id))throw Error('Mã giao dịch trong ngày bị trùng.');ids.add(item.id);}}
   for(const entry of Object.values(result.days))for(const item of entry.items)if(isInternalMovement(item)){
     if(item.cardPaymentMonth||item.cardFeeMonth||item.debtPaymentId)throw Error('Chuyển tiền không được gắn với thanh toán nợ.');
     item.paymentMethod=item.movement==='withdraw'?'bank':'cash';delete item.settlement;delete item.billingMonth;
   }
   for (const [key, income] of Object.entries(input.incomes)) {
-    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4)) && income) result.incomes[key] = { salary: amount(income.salary), bonus: amount(income.bonus), note: String(income.note || '').slice(0, 20000), ...(['bank','cash','savings'].includes(income.account) ? {account:income.account} : {}), ...(income.earnedMonth && validMonth(income.earnedMonth) ? { earnedMonth: income.earnedMonth } : {}), ...(income.receivedOn && cardDate(income.receivedOn) ? { receivedOn: income.receivedOn } : {}) };
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4)) && income) result.incomes[key] = { salary: cardMoney(income.salary??0), bonus: cardMoney(income.bonus??0), note: String(income.note || '').slice(0, 20000), ...(['bank','cash','savings'].includes(income.account) ? {account:income.account} : {}), ...(income.earnedMonth && validMonth(income.earnedMonth) ? { earnedMonth: income.earnedMonth } : {}), ...(income.receivedOn && cardDate(income.receivedOn) ? { receivedOn: income.receivedOn } : {}),...(income.status!==undefined?{status:income.status}:{}) };
   }
+  for(const income of Object.values(result.incomes))if(income.status!==undefined&&!['planned','received'].includes(income.status))throw Error('Trạng thái nhận thu nhập không hợp lệ.');
   for (const [key, value] of Object.entries(input.savings || {})) {
-    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4))) result.savings[key] = amount(value);
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4))) result.savings[key] = cardMoney(value);
   }
   for (const [key, value] of Object.entries(input.goals || {})) {
-    if (/^\d{4}$/.test(key) && validYear(Number(key))) result.goals[key] = amount(value);
+    if (/^\d{4}$/.test(key) && validYear(Number(key))) result.goals[key] = cardMoney(value);
   }
   if (input.debts !== undefined) {
     if (!Array.isArray(input.debts)) throw new Error('Danh sách nợ không hợp lệ.');
@@ -186,7 +189,7 @@ export function normalizeData(input) {
       const expense = result.days[payment.date]?.items.find(item => item.id === payment.expenseId);
       if (payment.voided) {
         if (expense) throw new Error('Lần trả nợ đã hủy vẫn có khoản chi liên kết.');
-      } else if (!expense || expense.debtId !== debt.id || expense.debtPaymentId !== payment.id || expense.amount !== roundMoney(payment.amount+(payment.interest||0)) || expenseStatus(expense) !== 'paid' || (payment.source && expense.paymentMethod !== payment.source)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
+      } else if (!expense || expense.debtId !== debt.id || expense.debtPaymentId !== payment.id || expense.amount !== addMoney(payment.amount,payment.interest||0) || expenseStatus(expense) !== 'paid' || (payment.source && expense.paymentMethod !== payment.source)) throw new Error('Khoản chi trả nợ không khớp lịch sử thanh toán.');
       linked.set(payment.expenseId, payment);
     }
     const seen = new Set();

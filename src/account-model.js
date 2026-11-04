@@ -1,3 +1,5 @@
+import {cardPayments} from './card-ledger.js';
+import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {validateFunds} from './safety-model.js';
 import { financeView } from './credit-access.js';
 import { cardMoney, cardDate, roundCard, statementNumbers, validMonth } from './card-model.js';
@@ -48,10 +50,9 @@ export function normalizeAccounts(raw) {
   for(const month of new Set([...(result.reconciliations||[]).filter(r=>r.kind==='manual'),...(result.openingHistory||[])].map(r=>r.confirmedOn.slice(0,7))))if(balanceUpdateCount(result,month)>3)throw Error('Đã dùng hết 3 lượt cập nhật số dư trong tháng.');
   return result;
 }
-export function moneyOut(data, prefix) {
-  const direct = Object.entries(data.days).filter(([date])=>date.startsWith(prefix)).reduce((sum,[,entry])=>sum+entry.items.filter(i=>i.status!=='planned' && accountSource(i)!=='card' && !isCardPayment(i) && !isInternalMovement(i)).reduce((s,i)=>s+i.amount,0),0);
-  const card = (data.cards?.statements||[]).filter(s=>s.status==='paid' && s.paidOn.startsWith(prefix)).reduce((sum,s)=>sum+statementNumbers(s).total,0);
-  return roundCard(direct+card);
+export function moneyOut(data,prefix){
+ const direct=Object.entries(data.days).filter(([date])=>date.startsWith(prefix)).flatMap(([,entry])=>entry.items).filter(i=>!['planned','cancelled','draft'].includes(i.status)&&accountSource(i)!=='card'&&!isCardPayment(i)&&!isInternalMovement(i));
+ return sumMoney([...direct.map(i=>i.amount),...cardPayments(data).filter(p=>p.date.startsWith(prefix)).map(p=>p.amount)]);
 }
 export function accountBalances(data, through, {ignoreReconciliationOn} = {}) {
   if(!data.accounts)return null;
@@ -66,22 +67,27 @@ export function accountBalances(data, through, {ignoreReconciliationOn} = {}) {
   const includesCredit=date=>date>=a.openedOn&&date<=through;
   const includesMoney=date=>date<=through&&(opening.timing==='end'?date>opening.date:date>=opening.date)&&(!closing||date>closing.date);
   const includesSource=(source,date)=>source==='savings'?(opening.savingsTiming==='end'?date>savingsStart:date>=savingsStart)&&date<=through&&(!savingClosing||date>savingClosing.date):includesMoney(date);
-  for(const [month,income] of Object.entries(data.incomes))if(includesSource(income.account||'bank',income.receivedOn||`${month}-15`)){const source=income.account==='cash'?'cash':income.account==='savings'?'savings':'bank';if(source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[source]+=(income.salary||0)+(income.bonus||0);}
+  for(const [month,income] of Object.entries(data.incomes))if(income.status!=='planned'&&includesSource(income.account||'bank',income.receivedOn||`${month}-15`)){const source=income.account==='cash'?'cash':income.account==='savings'?'savings':'bank';if(source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[source]=addMoney(balances[source],income.salary||0,income.bonus||0);}
   for(const [date,entry] of Object.entries(data.days))if(date<=through)for(const item of entry.items) {
-    if(item.status==='planned'||isCardPayment(item))continue;
+    if(['planned','cancelled','draft'].includes(item.status)||isCardPayment(item))continue;
     if(isInternalMovement(item)){
-      if(includesMoney(date)){const from=item.movement==='withdraw'?'bank':'cash',to=from==='bank'?'cash':'bank';balances[from]-=item.amount;balances[to]+=item.amount;}
+      if(includesMoney(date)){const from=item.movement==='withdraw'?'bank':'cash',to=from==='bank'?'cash':'bank';balances[from]=subtractMoney(balances[from],item.amount);balances[to]=addMoney(balances[to],item.amount);}
       continue;
     }
-    const source=accountSource(item);if(source==='card'){if(includesCredit(date))balances.creditDebt+=item.amount;}else if(includesSource(source,date)){if(source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[source]-=item.amount;}
+    const source=accountSource(item);if(source==='card'){if(includesCredit(date))balances.creditDebt=addMoney(balances.creditDebt,item.amount);}else if(includesSource(source,date)){if(source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[source]=subtractMoney(balances[source],item.amount);}
   }
-  for(const statement of data.cards?.statements||[])if(statement.status==='paid'&&statement.paidOn<=through) {
-    const value=statementNumbers(statement).total;if(includesSource(statement.paymentSource||'bank',statement.paidOn))balances[statement.paymentSource||'bank']-=value;if(includesCredit(statement.paidOn))balances.creditDebt-=value;
+  for(const payment of cardPayments(data))if(payment.date<=through){
+    if(includesSource(payment.source,payment.date))balances[payment.source]=subtractMoney(balances[payment.source],payment.amount);
+    if(includesCredit(payment.date))balances.creditDebt=subtractMoney(balances.creditDebt,payment.amount);
   }
-  for(const item of a.transfers){if((item.from==='savings'||item.to==='savings')&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');if(includesSource(item.from,item.date))balances[item.from]-=item.amount;if(includesSource(item.to,item.date))balances[item.to]+=item.amount;}
-  for(const r of data.receipts||[])if(includesSource(r.source,r.date)){if(r.source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[r.source]+=r.amount;}
+  for(const r of data.cards?.adjustments||[])if(!r.voided&&r.date<=through){
+    if(r.type==='bank-refund'){if(includesSource(r.source,r.date))balances[r.source]=addMoney(balances[r.source],r.amount);}
+    else if(includesCredit(r.date))balances.creditDebt=subtractMoney(balances.creditDebt,r.amount);
+  }
+  for(const item of a.transfers){if((item.from==='savings'||item.to==='savings')&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');if(includesSource(item.from,item.date))balances[item.from]=subtractMoney(balances[item.from],item.amount);if(includesSource(item.to,item.date))balances[item.to]=addMoney(balances[item.to],item.amount);}
+  for(const r of data.receipts||[])if(includesSource(r.source,r.date)){if(r.source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[r.source]=addMoney(balances[r.source],r.amount);}
   for(const key of ['bank','cash','creditDebt',...(a.savings!==undefined?['savings']:[])])if(balances[key]!==null)balances[key]=roundCard(balances[key]);
-  if(a.creditLimit!==null && balances.creditDebt!==null && balances.creditDebt>=0)balances.available=roundCard(a.creditLimit-balances.creditDebt);
+  if(a.creditLimit!==null && balances.creditDebt!==null && balances.creditDebt>=0)balances.available=subtractMoney(a.creditLimit,balances.creditDebt);
   return balances;
 }
 
@@ -119,11 +125,12 @@ export function reconcileMonth(data,date,actual,{id,currency='JPY',today,manual=
 
 export function validateSavingsLedger(data){
  const a=data.accounts,dates=[];
- for(const [date,entry] of Object.entries(data.days))if(entry.items.some(i=>i.paymentMethod==='savings'&&i.status!=='planned'))dates.push(date);
+ for(const [date,entry] of Object.entries(data.days))if(entry.items.some(i=>i.paymentMethod==='savings'&&!['planned','cancelled','draft'].includes(i.status)))dates.push(date);
  for(const [month,i] of Object.entries(data.incomes))if(i.account==='savings'&&(i.salary||i.bonus))dates.push(i.receivedOn||`${month}-15`);
  for(const r of data.receipts||[])if(r.source==='savings')dates.push(r.date);
  for(const t of a?.transfers||[])if(t.from==='savings'||t.to==='savings')dates.push(t.date);
- for(const s of data.cards?.statements||[])if(s.status==='paid'&&s.paymentSource==='savings')dates.push(s.paidOn);
+ for(const p of cardPayments(data))if(p.source==='savings')dates.push(p.date);
+ for(const r of data.cards?.adjustments||[])if(!r.voided&&r.type==='bank-refund'&&r.source==='savings')dates.push(r.date);
  if(dates.length&&a?.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');
  if(a?.savings===undefined)return;
  const start=sourceOpening(a).savingsDate;

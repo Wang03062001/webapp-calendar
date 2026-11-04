@@ -1,10 +1,11 @@
+import {tokyoToday} from './finance-date.js';
 import { currencyLabel } from './preferences.js';
 import { MAX_AMOUNT, formatAmount, addDebt, updateDebt, removeDebt, repayDebt, cancelDebtPayment, debtBalance, debtDueStatus } from './model.js';
 
 const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const money = value => `${formatAmount(value)} ${currencyLabel()}`;
 const types = ['Vay cá nhân', 'Thẻ tín dụng', 'Trả góp', 'Vay ngân hàng', 'Khác'];
-const localDate = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
+const localDate=tokyoToday;
 const dateLabel = date => date.split('-').reverse().join('/');
 
 export function debtsPanel(data, filter = 'all') {

@@ -1,3 +1,4 @@
+import {tokyoToday} from './finance-date.js';
 import {normalizeData,formatAmount,MAX_AMOUNT} from './model.js';
 import {accountBalances,sourceOpening,setSourceOpening,reconcileMonth,monthEnd,balanceUpdateCount} from './account-model.js';
 import {currencyLabel,currencyCode} from './preferences.js';
@@ -5,7 +6,7 @@ import {t} from './i18n.js';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>value==null?t('Chưa có số dư tại ngày này'):`${formatAmount(value)} ${currencyLabel()}`;
 const dateLabel=value=>value.split('-').reverse().join('/');
-const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const today=tokyoToday;
 
 // Only bank/cash/savings sources change. The original credit baseline, linked
 // rows and observed reconciliations remain intact in the full document.
