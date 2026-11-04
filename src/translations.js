@@ -1,6 +1,16 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Chênh lệch kỳ lương|Pay-cycle difference|給与期間の収支差額|급여 주기 수지 차액|薪資週期收支差額
+Biểu đồ chênh lệch kỳ lương|Pay-cycle difference chart|給与期間の収支差額グラフ|급여 주기 수지 차액 차트|薪資週期收支差額圖表
+Kỳ lương|Pay cycle|給与期間|급여 주기|薪資週期
+Tính đến|Through|集計日|집계일|計至
+Thu nhập đã nhận|Income received|受取済みの収入|수령한 수입|已收收入
+Chưa có lương đã nhận được ghi trong kỳ này.|No received salary recorded in this cycle yet.|この期間には受取済みの給与がまだ記録されていません。|이 주기에 수령한 급여가 아직 기록되지 않았습니다.|此週期尚未記錄已收到的薪資。
+Kỳ lương từ ngày 15 đến hết ngày 14 tháng sau. Chỉ tính các khoản đã ghi đến ngày đang chọn, theo ngày thực nhận và ngày chi.|The pay cycle runs from the 15th through the 14th of the next month. Only entries through the selected date count, using receipt and spending dates.|給与期間は15日から翌月14日までです。選択日までの記録を、実際の受取日と支出日で集計します。|급여 주기는 매월 15일부터 다음 달 14일까지입니다. 선택한 날짜까지의 기록을 실제 수령일과 지출일 기준으로 집계합니다.|薪資週期為每月15日至下月14日，依實際收款及支出日期，僅計入所選日期以前的紀錄。
+Các ô Thu nhập, Chi tiêu và Dự kiến chi vẫn tổng hợp theo tháng.|The Income, Spending and Planned spending cards still use calendar months.|収入・支出・支出予定のカードは暦月で集計します。|수입, 지출 및 예정 지출 카드는 계속 달력 월별로 집계합니다.|收入、支出及預計支出卡片仍按曆月彙總。
+Giao dịch trong kỳ lương|Transactions in this pay cycle|給与期間内の取引|급여 주기 내 거래|薪資週期內交易
+Ngày kỳ lương không hợp lệ.|Invalid pay-cycle date.|給与期間の日付が無効です。|급여 주기 날짜가 유효하지 않습니다.|薪資週期日期無效。
 Ngân hàng|Bank|銀行|은행|銀行
 Gồm bản nháp chưa lưu|Includes unsaved draft|未保存の下書きを含む|저장되지 않은 초안 포함|包含尚未儲存草稿
 Tài sản hiện tại|Current assets|現在の資産|현재 자산|目前資產

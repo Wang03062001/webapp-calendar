@@ -1,4 +1,4 @@
-import {statsDetails} from './stats-model.js';
+import {statsDetails,salaryCycleDetails,salaryCycleEnabled} from './stats-model.js';
 import {readBook,countryOf} from './region-model.js';
 import {financeView} from './credit-access.js';
 import {monthSummary,categoryOf,expenseStatus,debtBalance} from './model.js';
@@ -25,6 +25,8 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
   help.push(['Ngày xem số dư',asOf],['Phạm vi','Toàn bộ các năm có dữ liệu trong các sổ khu vực, kể cả năm đã ẩn khỏi điều hướng.'],['Trạng thái dữ liệu',draft?'Gồm bản nháp trên trình duyệt chưa được máy chủ xác nhận.':'Dữ liệu trên trình duyệt tại thời điểm xuất.'],['Dữ liệu thẻ',allowed?'Bao gồm theo quyền admin vừa được xác minh.':'Ẩn dữ liệu thẻ và khoản vay tín dụng theo quyền hiện tại.'],['Tiền tệ','Mỗi dòng ghi riêng khu vực và tiền tệ; không quy đổi hoặc cộng tổng các đồng tiền.'],['Tổng chi tiêu & trả thẻ','Chi phí phát sinh trong kỳ cộng sao kê đã thanh toán theo ngày trả thực tế; chênh lệch thu chi trừ tổng này. Chi phí và tiền ra vẫn có cột riêng.'],['Chi phí','Không tính chuyển nội bộ, phí sao kê hoặc thanh toán thẻ lần nữa. Chỉ Đã chi được tính vào chi phí thực tế.'],['Số dư','Tính đến ngày xem số dư ở trên; tổng hợp tháng vẫn theo đúng giao dịch của từng tháng.'],['Khôi phục','Excel để xem và tính toán. Dùng Sao lưu JSON trong hộp xuất dữ liệu để nhập lại toàn bộ dữ liệu vào ứng dụng.']);
   const settings=table('Sổ và cài đặt',['Khu vực','Quốc gia','Tiền thu chi','Tiền tiết kiệm cũ','Các năm đang hiện','Chức năng','Giá trị']);
   const summary=table('Tổng hợp tháng',['Khu vực','Tiền tệ','Tháng','Lương','Thưởng','Thu nhập khác','Chi phí đã chi','Chi phí dự kiến','Chênh lệch theo chi phí','Tiền ra các nguồn','Số khoản đã chi','Số khoản dự kiến',allowed?'Tổng chi tiêu & trả thẻ':'Tổng chi tiêu','Chênh lệch thu chi','Tổng dự kiến đã biết',...(allowed?['Thanh toán sao kê trong kỳ','Sao kê chờ trả trong kỳ','Sao kê chưa xác nhận']:[])]);
+  const cycles=table('Chênh lệch kỳ lương',['Khu vực','Tiền tệ','Đầu kỳ','Cuối kỳ','Tính đến','Lương đã nhận','Thưởng đã nhận','Thu nhập khác','Tổng thu nhập đã nhận','Chi phí phát sinh',...(allowed?['Thanh toán sao kê']:[]),'Tổng chi được tính','Chênh lệch kỳ lương','Tiền ra thực tế','Thu nhập trừ tiền ra thực tế','Đã ghi lương trong kỳ']);
+  help.push(['Kỳ lương','Trang Chênh lệch kỳ lương dùng kỳ từ ngày 15 đến hết ngày 14 tháng sau theo ngày xem, chỉ tính giao dịch đến ngày xem và thu nhập theo ngày thực nhận. Tổng hợp tháng giữ kỳ tháng dương lịch, không đổi thành kỳ lương.']);
   const expenses=table('Giao dịch',['Khu vực','Tiền tệ','Ngày','ID','Nội dung','Danh mục','Trạng thái','Nguồn tiền','Loại giao dịch','Số tiền giao dịch','Chi phí đã chi','Chi phí dự kiến','ID quỹ','ID lịch phải trả','ID khoản vay','ID lần trả nợ',...(allowed?['Cách trả thẻ','Kỳ sao kê','Kỳ thanh toán sao kê']:[])]);
   const notes=table('Ghi chú ngày',['Khu vực','Ngày','Ghi chú']);
   const income=table('Thu nhập',['Khu vực','Tiền tệ','Tháng nhận','Tháng làm việc','Ngày nhận','Nguồn nhận','Lương','Thưởng','Ghi chú']);
@@ -50,6 +52,10 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
     const book=financeView(readBook(document,region),allowed),label=region==='foreign'?(countryOf(book)==='VN'?'Sổ gốc (Việt Nam)':'Sổ nước ngoài'):'Sổ Việt Nam',currencies=normalizeCurrencies(book.currencies),unit=currencies.cash,prefix=[label,unit];
     settings.push([label,countryOf(book),unit,currencies.savings,(book.years||[]).join(', '),'','']);
     for(const [key,value]of entries(book.bookSettings?.modules))settings.push([label,'','','','',key,value?'Có':'Không']);
+    if(salaryCycleEnabled(book)){
+      const c=salaryCycleDetails(book,{asOf,creditAllowed:allowed});
+      cycles.push([...prefix,c.cycle.start,c.cycle.end,asOf,c.summary.salary,c.summary.bonus,c.summary.otherIncome,c.income,c.summary.expense,...(allowed?[c.settlementTotal]:[]),c.activityTotal,c.activityDifference,c.outflow,c.cashDifference,c.salaries.length?'Có':'Chưa ghi']);
+    }
     const months=new Set([...Object.keys(book.days),...Object.keys(book.incomes),...Object.keys(book.savings),...(book.receipts||[]).map(r=>r.date),...book.debts.flatMap(d=>d.payments.map(p=>p.date)),...(book.cards?.statements||[]).flatMap(s=>[s.month,s.paidOn,s.dueDate].filter(Boolean))].map(date=>date.slice(0,7)));
     for(const month of [...months].sort()){
       const [y,m]=month.split('-').map(Number),totals=monthSummary(book,y,m-1),detail=statsDetails(book,{year:y,month:m-1,creditAllowed:allowed});

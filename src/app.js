@@ -1,5 +1,5 @@
 import {currentWalletContent,localToday} from './current-wallet.js';
-import {statsDetails} from './stats-model.js';
+import {statsDetails,salaryCycleDetails,salaryCycleEnabled} from './stats-model.js';
 import {showStatsDialog} from './stats-ui.js';
 import {downloadFile,showExportDialog} from './export-ui.js';
 import {expenseConfirmed, protectedExpense} from './expense-model.js';
@@ -180,10 +180,13 @@ function renderCurrentWallet() {
 }
 function statsContent(totals) {
   const credit=hasCreditAccess(),details=statsDetails(data,{year,month:view==='year'?null:month,creditAllowed:credit});
+  const cycle=view==='calendar'&&salaryCycleEnabled(data)?salaryCycleDetails(data,{asOf:selectedKey(),creditAllowed:credit}):null;
+  const dateLabel=date=>date.split('-').reverse().join('/');
+  const differenceHint=cycle?`Kỳ lương ${dateLabel(cycle.cycle.start)}–${dateLabel(cycle.cycle.end)} · Tính đến ${dateLabel(cycle.cycle.asOf)}${cycle.salaries.length?'':' · Chưa có lương đã nhận được ghi trong kỳ này.'}`:credit?'Thu nhập − chi phát sinh − trả sao kê':'Thu nhập − đã chi; chưa tính tiền đầu kỳ';
   return stat('wallet', 'Thu nhập', details.income, 'Lương + thưởng + thu nhập khác · __CASH__', 'purple')
     + stat('down', credit?'Chi tiêu & trả thẻ':'Chi tiêu phát sinh', details.activityTotal, credit?`${totals.count} khoản chi · ${details.settlements.length} lần trả sao kê`:`${totals.count} khoản`, 'orange')
     + stat('note', 'Dự kiến chi', details.plannedTotal, `${totals.plannedCount} khoản dự kiến${credit?` · ${details.upcomingStatements.length} sao kê chờ trả`:''}${details.unknownStatements.length?' · có sao kê chưa xác nhận':''}`, 'pink')
-    + stat('chart', 'Chênh lệch thu − chi', details.activityDifference, credit?'Thu nhập − chi phát sinh − trả sao kê':'Thu nhập − đã chi; chưa tính tiền đầu kỳ', 'blue');
+    + stat('chart', cycle?'Chênh lệch kỳ lương':'Chênh lệch thu − chi', (cycle||details).activityDifference, differenceHint, 'blue');
 }
 function dashboardCharts() {
   const total = view === 'year' ? yearSummary(visibleData(), year) : monthSummary(visibleData(), year, month);
@@ -355,8 +358,9 @@ root.addEventListener('click', async event => {
   if(button.dataset.statDetails){
     if(!canEdit())return;
     const context=financeContext(),period={year,month:view==='year'?null:month},requestedView=view;
+    if(button.dataset.statDetails==='chart'&&view==='calendar'&&salaryCycleEnabled(data))period.asOf=selectedKey();
     await context.verifyCreditAccess();
-    if(!context.canEdit()||view!==requestedView||year!==period.year||period.month!==null&&month!==period.month)return;
+    if(!context.canEdit()||view!==requestedView||year!==period.year||period.month!==null&&month!==period.month||period.asOf&&selectedKey()!==period.asOf)return;
     showStatsDialog(context,button.dataset.statDetails,period);return;
   }
   if(button.dataset.editExpense){if(canEdit())showExpenseDialog(financeContext(),button.dataset.expenseDate,button.dataset.editExpense,expenseEditor);return;}

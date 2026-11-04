@@ -6,6 +6,8 @@ import {excelFixture,exportAsOf} from '../scripts/fixtures/excel.mjs';
 import {monthSummary} from '../src/model.js';
 import {financeView} from '../src/credit-access.js';
 import {accountBalances,moneyOut} from '../src/account-model.js';
+import {salaryCycleDetails} from '../src/stats-model.js';
+import {salaryCycleFixture} from '../scripts/fixtures/salary-cycle.mjs';
 const options={asOf:exportAsOf,creditAllowed:true};
 const sheet=(sheets,name)=>sheets.find(s=>s.name===name).rows;
 const records=(sheets,name)=>{const [columns,...rows]=sheet(sheets,name);return rows.map(row=>Object.fromEntries(columns.map((column,i)=>[column,row[i]])));};
@@ -52,6 +54,13 @@ test('ordinary export filters both books, credit loans/terms/statements/settings
 
 test('draft status is explicit and report exports never alter cached/financial objects',()=>{
  const data=excelFixture(),before=structuredClone(data);const sheets=reportSheets(data,{...options,draft:true});assert.match(sheet(sheets,'Hướng dẫn').find(r=>r[0]==='Trạng thái dữ liệu')[1],/bản nháp/);excelReport(data,options);assert.deepEqual(data,before);
+});
+
+test('salary-cycle sheet uses actual receipt/cutoff dates separately from unchanged calendar-month totals',()=>{
+ const data=salaryCycleFixture(),before=structuredClone(data),sheets=reportSheets(data,{asOf:'2026-11-04',creditAllowed:true}),rows=records(sheets,'Chênh lệch kỳ lương');
+ assert.equal(rows.length,1);assert.equal(rows[0]['Đầu kỳ'],'2026-10-15');assert.equal(rows[0]['Cuối kỳ'],'2026-11-14');assert.equal(rows[0]['Tính đến'],'2026-11-04');assert.equal(rows[0]['Tổng thu nhập đã nhận'],190000);assert.equal(rows[0]['Chênh lệch kỳ lương'],184129);
+ const month=records(sheets,'Tổng hợp tháng').find(r=>r['Tháng']==='2026-11'&&r['Khu vực']==='Sổ nước ngoài');assert.equal(month['Lương'],190000);assert.equal(month['Chi phí đã chi'],4746.5);assert.deepEqual(data,before);
+ const ordinary=reportSheets(excelFixture(),{...options,creditAllowed:false}),row=records(ordinary,'Chênh lệch kỳ lương')[0];assert(!Object.hasOwn(row,'Thanh toán sao kê'));assert.equal(row['Chênh lệch kỳ lương'],salaryCycleDetails(excelFixture(),{asOf:exportAsOf,creditAllowed:false}).activityDifference);
 });
 
 test('invalid dates, nonfinite numbers, oversized cells and duplicate/illegal sheet names fail explicitly',()=>{

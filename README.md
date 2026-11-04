@@ -300,7 +300,7 @@ Bấm icon trên từng ô thống kê (có cả trên điện thoại):
 - **Thu nhập**: danh sách lương, thưởng và thu nhập khác, tổng từng nhóm và tổng cuối. Tiền của bản thân chuyển về và thu hồi gốc không tính thêm thu nhập.
 - **Chi tiêu & trả thẻ**: chi phí phát sinh (gồm mua bằng thẻ) cộng sao kê thực sự đã thanh toán trong tháng/năm đang xem. Popup tách hai nhóm, hiển thị mua một lần/gốc リボ/phí trong sao kê Nhật, tổng cuối và phần tiền ra thực tế. Sổ dùng sao kê đơn giản chỉ hiện tổng sao kê.
 - **Dự kiến chi**: khoản dự kiến đã nhập và sao kê đã xác nhận nhưng chưa thanh toán, theo hạn phải trả trong kỳ. Khoản phải trả có liên kết chỉ tính một giao dịch. Sao kê bản nháp nằm riêng, chưa giả định là 0 hoặc cộng vào tổng đã biết.
-- **Chênh lệch thu − chi**: biểu đồ thu nhập, chi phí phát sinh, thanh toán sao kê và số còn lại; có số chi tiết kèm theo. Công thức ô này = thu nhập − chi phát sinh − sao kê đã trả.
+- **Chênh lệch thu − chi**: biểu đồ thu nhập, chi phí phát sinh, thanh toán sao kê và số còn lại; có số chi tiết kèm theo. Công thức = thu nhập − chi phát sinh − sao kê đã trả. Trang năm và sổ không dùng lương giữ kỳ dương lịch; sổ có lương trên trang Thu chi hiển thị **Chênh lệch kỳ lương** với kỳ/ngày chốt riêng như dưới đây.
 
 Trả sao kê của tháng trước vẫn tính vào kỳ **ngày thanh toán thực tế**, gồm tiền một lần, phí và gốc リボ; không lấy kỳ sao kê làm ngày chi tiền. Đây là tổng chi và trả thẻ để theo dõi ngân sách. Phần **tiền ra thực tế** = chi trực tiếp từ ngân hàng/tiền mặt/tiết kiệm + trả sao kê. Số dư các nguồn tiếp tục trừ tiền một lần theo sổ; chi phí gốc, lịch, danh mục, ngân sách và lịch sử không bị sửa để tạo thống kê này.
 
@@ -319,3 +319,17 @@ Tài sản gồm **ngân hàng chưa phân bổ + tiền mặt + nguồn tiết 
 **Thiết lập số dư** và **Cập nhật PayPay hôm nay** thao tác theo hôm nay. **Đối chiếu theo ngày lịch** mở lại các công cụ theo ngày lịch đang chọn, gồm số dư lịch sử, chuyển nguồn và đối chiếu. Số hiển thị theo bản nháp có nhãn **Gồm bản nháp chưa lưu**, vẫn cần Enter hoặc **Lưu thay đổi** để lưu dữ liệu nhập. Xuất Excel tiếp tục ghi rõ số dư tại ngày lịch được chọn trong file.
 
 Kiểm tra: `node test/current-wallet.test.js`, `npm test`, `npm run build` và `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs CALENDAR_URL=http://127.0.0.1:5173 node scripts/check-current-wallet-browser.mjs`. Kịch bản dùng dữ liệu mô phỏng, đóng băng đồng hồ trước/sau ngày 15, kiểm tra đổi ngày/kỳ/trang, hai khu vực, số dư PayPay, thu hồi quyền, đổi tài khoản và bố cục máy tính/điện thoại; không gửi dữ liệu đến tài khoản thật.
+
+## Chênh lệch theo kỳ lương ngày 15
+
+Ở sổ bật Lương & thưởng hoặc đã có số lương/thưởng, ô thứ tư trên trang Thu chi là **Chênh lệch kỳ lương**, tính từ **ngày 15 đến hết ngày 14 tháng sau**, theo ngày lịch đang chọn. Ô ghi rõ ngày đầu/cuối kỳ và ngày đang tính đến. Ba ô Thu nhập, Chi tiêu và Dự kiến chi cùng danh sách, lịch, ngân sách và biểu đồ phân tích vẫn tổng hợp theo tháng; trang tổng kết năm giữ số cả năm. Sổ không dùng lương vẫn hiển thị chênh lệch tháng.
+
+Ví dụ chọn ngày 04/11 thì kỳ là **15/10–14/11**, tính các khoản từ 15/10 đến 04/11. Lương đã nhận 15/10 được dùng cùng các khoản chi cuối tháng 10 và đầu tháng 11; sang ngày 01/11 không bắt đầu lại từ 0. Chọn ngày 15/11 sẽ mở kỳ **15/11–14/12**. Tiền tài sản vẫn được mang sang theo sổ nguồn tiền, không bị đặt lại khi sang kỳ mới.
+
+Thu nhập trong kỳ dùng **ngày thực nhận** (`receivedOn`, mặc định ngày 15), không dùng tháng làm việc hay chỉ dựa trên khóa tháng của bản ghi. Lương chưa đến ngày nhận không được cộng; không có bản ghi thì hiện **Chưa có lương đã nhận được ghi trong kỳ này**, không tự suy ra lương. Nếu nhận muộn hoặc thực sự chi vượt thu, chênh lệch có thể âm. Tiền vào khác thuộc thu nhập được tính theo ngày nhận; chuyển nội bộ, tiền bản thân gửi về và thu hồi gốc không tạo thu nhập mới.
+
+Công thức kỳ lương giữ **thu nhập đã nhận − chi phí phát sinh − sao kê thực đã trả**. Popup icon mở biểu đồ, tổng theo cùng kỳ và danh sách giao dịch để kiểm tra; vẫn tách thêm tiền ra thực tế. Mua bằng thẻ và trả sao kê tiếp tục theo cách hiển thị đã chọn, không sửa sổ số dư hay cộng phí/thanh toán thêm lần nữa vào chi phí gốc.
+
+Xuất Excel có trang riêng **Chênh lệch kỳ lương**, ghi ngày đầu/cuối kỳ, ngày tính đến và các thành phần số tiền theo từng sổ/tiền tệ/quyền xem. Trang **Tổng hợp tháng** giữ số dương lịch. Kỳ lương là phép xem dữ liệu, không tự lưu hoặc sửa ngày giao dịch/thu nhập.
+
+Kiểm tra: `node test/salary-cycle.test.js`, `npm test`, `npm run build` và kịch bản `scripts/check-stats-browser.mjs` bằng API/tài khoản mô phỏng như trên. Bao gồm đổi tháng, ngày 14/15, nhận sớm/muộn, thiếu lương, ngày thực nhận khác khóa tháng, giao năm/năm ẩn, sao kê, quyền admin, hai sổ, popup cũ và giao diện điện thoại/máy tính.
