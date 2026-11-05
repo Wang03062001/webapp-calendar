@@ -176,3 +176,5 @@ html[data-theme=dark] .current-wallet{background:#211d2b;border-color:#453b55;co
 .current-credit>summary{font-size:var(--text-sm);font-weight:700;line-height:1.7;cursor:pointer}.current-credit-body{padding-top:8px}.credit-tracking-panel>p,.credit-tracking-panel>.statement-note{margin:16px 20px}.credit-tracking-panel>.stat-detail-total{margin:16px 20px}.credit-history>summary{cursor:pointer;font-weight:700}.credit-history{padding:20px}.credit-history>button{display:block;margin:12px 0;background:transparent;color:inherit}
 
 .credit-tracking-panel~.card{margin-top:18px}html[data-theme=dark] .credit-metrics span{color:#e2d8ef}html[data-theme=dark] .credit-metrics strong{color:#c9a3ff}
+
+.tracking-start{padding:14px 20px;margin:18px 0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.tracking-start p{margin:0;font-size:var(--text-sm)}.reset-settings{margin-top:26px;padding-top:18px;border-top:1px solid var(--border)}.reset-dialog .account-submit.danger{background:#b4233b;color:white}.reset-dialog [data-cancel]{margin-top:10px}.reset-dialog p{overflow-wrap:anywhere}

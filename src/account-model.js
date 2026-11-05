@@ -75,7 +75,7 @@ export function accountBalances(data, through, {ignoreReconciliationOn} = {}) {
       if(includesMoney(date)){const from=item.movement==='withdraw'?'bank':'cash',to=from==='bank'?'cash':'bank';balances[from]=subtractMoney(balances[from],item.amount);balances[to]=addMoney(balances[to],item.amount);}
       continue;
     }
-    const source=accountSource(item);if(source==='card'){if(includesCredit(date))balances.creditDebt=addMoney(balances.creditDebt,item.amount);}else if(includesSource(source,date)){if(source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[source]=subtractMoney(balances[source],item.amount);}
+    const source=accountSource(item);if(source==='card'){if(!item.creditTracking&&includesCredit(date))balances.creditDebt=addMoney(balances.creditDebt,item.amount);}else if(includesSource(source,date)){if(source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[source]=subtractMoney(balances[source],item.amount);}
   }
   for(const payment of cardPayments(data))if(payment.date<=through){
     if(includesSource(payment.source,payment.date))balances[payment.source]=subtractMoney(balances[payment.source],payment.amount);

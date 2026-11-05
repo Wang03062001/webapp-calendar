@@ -34,7 +34,7 @@ export const CATEGORIES = ['Ăn uống', 'Nhà ở', 'Đi lại', 'Mua sắm', '
 // Records created before status was introduced remain paid, preserving old totals.
 export const categoryOf = item => item.category || (item.debtPaymentId ? 'Trả nợ' : 'Khác');
 export const expenseStatus = item => ['planned','cancelled','draft'].includes(item.status)?item.status:'paid';
-export const dayTotal = (day,status='all')=>sumMoney((day?.items||[]).filter(item=>!item.cardFeeMonth&&!isCardPayment(item)&&!isTrackingCardPayment(item)&&!isInternalMovement(item)&&!['cancelled','draft'].includes(expenseStatus(item))&&(status==='all'||expenseStatus(item)===status)).map(item=>amount(item.amount)));
+export const dayTotal = (day,status='all')=>sumMoney((day?.items||[]).filter(item=>!(item.paymentMethod==='card'&&item.creditTracking)&&!item.cardFeeMonth&&!isCardPayment(item)&&!isTrackingCardPayment(item)&&!isInternalMovement(item)&&!['cancelled','draft'].includes(expenseStatus(item))&&(status==='all'||expenseStatus(item)===status)).map(item=>amount(item.amount)));
 export function expenseRows(data, year, month = null, { query = '', category = '', status = '' } = {}) {
   const prefix = month === null ? `${year}-` : `${monthKey(year, month)}-`;
   const fold = value => String(value).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
@@ -51,8 +51,8 @@ export function monthSummary(data, year, month) {
   const salary = amount(income.salary), bonus = amount(income.bonus);
   const savings = amount(data.savings?.[prefix]);
   const other=receiptTotals(data,prefix);
-  const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isTrackingCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
-  const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !item.cardFeeMonth && !isCardPayment(item) && !isTrackingCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
+  const count = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !(item.paymentMethod==='card'&&item.creditTracking) && !item.cardFeeMonth && !isCardPayment(item) && !isTrackingCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'paid').length, 0);
+  const plannedCount = entries.reduce((sum, [, day]) => sum + day.items.filter(item => !(item.paymentMethod==='card'&&item.creditTracking) && !item.cardFeeMonth && !isCardPayment(item) && !isTrackingCardPayment(item) && !isInternalMovement(item) && expenseStatus(item) === 'planned').length, 0);
   return { salary, bonus, expense, planned, savings, balance: subtractMoney(addMoney(salary,bonus,other.income),expense), count, plannedCount, ...(data.receipts?{otherIncome:other.income,otherReceipts:other.nonIncome}:{}) };
 }
 export function yearSummary(data, year) {
@@ -152,6 +152,7 @@ export const emptyData = () => ({ version: 2, years: [...YEARS], days: {}, incom
 export function normalizeData(input) {
   if (!input || ![1, 2].includes(input.version) || typeof input.days !== 'object' || !input.days || typeof input.incomes !== 'object' || !input.incomes) throw new Error('Dữ liệu không đúng định dạng.');
   const result = emptyData();
+  if(input.trackingStart!==undefined){if(!validDate(input.trackingStart))throw Error('Ngày bắt đầu theo dõi không hợp lệ.');result.trackingStart=input.trackingStart;}
   if (input.currencies !== undefined) result.currencies = normalizeCurrencies(input.currencies);
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
@@ -221,6 +222,12 @@ export function normalizeData(input) {
     result.regional={vietnam:vn};
   }
   if(input.safety!==undefined||Object.values(result.days).some(d=>d.items.some(i=>i.fundId||i.obligationId)))result.safety=normalizeSafety(input.safety||{},result);
+  if(result.trackingStart){
+    const start=result.trackingStart,month=start.slice(0,7),a=result.accounts;
+    const dates=[...Object.keys(result.days).filter(d=>result.days[d].items.length||result.days[d].note),...Object.entries(result.incomes).map(([m,r])=>r.receivedOn||m+'-15'),...(result.receipts||[]).map(r=>r.date),...result.debts.flatMap(d=>d.payments.map(p=>p.date)),...(a?[a.openedOn,a.savingsOpenedOn,...a.transfers.map(r=>r.date),...(a.reconciliations||[]).map(r=>r.date),...(a.openingHistory||[]).map(r=>r.date)]:[]),...(result.safety?.funds||[]).flatMap(f=>f.entries.map(e=>e.date))].filter(Boolean);
+    if(dates.some(d=>d<start)||Object.keys(result.savings).some(m=>m<month)||Object.keys(result.goals).some(y=>y<start.slice(0,4))||(result.safety?.budgets||[]).some(b=>b.month<month))throw Error('Giao dịch hoặc số dư nằm trước ngày bắt đầu theo dõi.');
+    if(result.cards)throw Error('Sổ mới chỉ ghi giao dịch tín dụng, không lưu dữ liệu PayPay hoặc sao kê.');
+  }
   validateSavingsLedger(result);
   validateFunds(result);
   return result;

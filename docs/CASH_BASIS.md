@@ -2,6 +2,18 @@
 
 Đây là quy tắc hiện hành, thay cho KPI thu nhập trừ chi phát sinh / chênh lệch kỳ lương trước đây.
 
+## Quy tắc mới nhất: sổ mới và bỏ theo dõi PayPay
+
+Phần này thay cho các mô tả giao diện PayPay/リボ/sao kê cũ phía dưới. Chỉ giữ nguồn chi tín dụng, danh sách/tổng theo ngày/tháng/năm và xuất Excel; không còn nhập số dư khả dụng, dư nợ, phí hay tạo sao kê. Giao dịch `creditTracking=true` không vào tổng tiền thực chi, cost helper tháng, ngân sách hoặc dư nợ ghi sổ. Trả thẻ thực tế vẫn là một khoản chi từ ngân hàng/tiền mặt/tiết kiệm, không phải giao dịch mua bằng tín dụng.
+
+**Cài đặt → Bắt đầu theo dõi mới** đặt ngày mặc định 01/11/2026, hiển thị tài khoản/phạm vi cả hai khu vực/số giao dịch sẽ xóa, cho tải JSON trước khi xóa và yêu cầu nhập `RESET`. Đây là thao tác xóa tài chính của tài khoản đang xác minh, không xóa Auth/profile/tài khoản khác. Mọi năm, giao dịch, ghi chú, thu nhập, quỹ, khoản vay, mốc/đối chiếu số dư và dữ liệu thẻ cũ ở cả hai sổ đều được thay bằng sổ trống; giữ đơn vị tiền/cấu hình quốc gia. Có dữ liệu tín dụng cần quyền admin vừa xác minh. Không xóa tự động theo ngày, khi đăng nhập hoặc cập nhật ứng dụng.
+
+`reset-model.js` tạo document sạch với `trackingStart` ở mỗi sổ. `SyncController.resetConfirmed` gửi đúng một lần ghi theo revision và kiểm tra lại danh tính; không gửi bản nháp cũ trước. Dữ liệu/cached draft/raw input chỉ được thay sau server ACK; lỗi/xung đột giữ nguyên và không ghi đè dữ liệu thiết bị khác. Cache của tài khoản khác giữ nguyên. Các popup cũ bị vô hiệu sau reset/đổi khu vực/tài khoản. Không chạy reset trên dữ liệu thật khi kiểm thử.
+
+Sổ trống chưa có `accounts`: hiển thị **Chưa thiết lập**, không giả số dư 0. Nhập số dư đầu ngày của ngày biết chính xác (mặc định 01/11), trước các giao dịch cùng ngày. Tổng tài sản = ngân hàng + tiền mặt + nguồn tiết kiệm; không nhập tổng độc lập, không cộng tiền này vào thu nhập. Nếu chọn mốc muộn hơn vì không nhớ số dư đầu tháng, tài sản trước mốc là chưa biết. `trackingStart` chặn bản ghi tiền/số dư trước ngày bắt đầu và dữ liệu PayPay quay lại sổ mới. Tháng làm việc của lương có thể là tháng 10 nếu thực nhận từ tháng 11, không bị chặn.
+
+Kiểm tra: `npm test`, `npm run build`; trình duyệt dùng `scripts/check-reset-browser.mjs` và `scripts/check-excel-browser.mjs`, mock toàn bộ API. `check-cash-browser.mjs` chuyển sang luồng reset/tín dụng hiện hành. Các model sao kê cũ vẫn đọc được backup cũ; không tự chuyển đổi hoặc xóa tài chính của người chưa reset. Excel sổ mới chỉ có bảng giao dịch tín dụng, không có bảng hạn mức/リボ/sao kê; file cũ có dữ liệu lịch sử vẫn xuất được trước reset.
+
 ## Tín dụng chỉ để theo dõi
 
 - Bỏ KPI **Thẻ sắp thanh toán** và số **Tổng nghĩa vụ thẻ** ở khung bên phải. Bấm tiêu đề thông tin tín dụng để ẩn/hiện, chỉ lưu tùy chọn giao diện trên thiết bị.

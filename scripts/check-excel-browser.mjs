@@ -27,7 +27,7 @@ async function download(json=false){
  const waiting=page.waitForEvent('download');if(json)await page.locator('#export-dialog details').evaluate(el=>el.open=true);await page.locator(json?'[data-download-json]':'[data-download-excel]').click();const result=await waiting;const bytes=await readFile(await result.path());await page.locator('#export-dialog').waitFor({state:'detached'});return {name:result.suggestedFilename(),bytes,text:bytes.toString()};
 }
 try{
- await page.goto(process.env.CALENDAR_URL||'http://127.0.0.1:5175');await page.locator('nav [data-view=credit]').waitFor();await date();const original=structuredClone(data);
+ await page.goto(process.env.CALENDAR_URL||'http://127.0.0.1:5175');await page.locator('[data-stat=credit]').waitFor();await date();const original=structuredClone(data);
  await open();await page.screenshot({path:'/tmp/calendar-excel-desktop.png'});const adminFile=await download();assert.equal(adminFile.name,`lich-cua-toi-${exportAsOf}.xlsx`);assert.equal(adminFile.bytes.readUInt32LE(0),0x04034b50);assert.match(adminFile.text,/PRIVATE CARD PURCHASE/);assert.match(adminFile.text,/Sổ Việt Nam/);assert.match(adminFile.text,/123456.789/);assert.match(adminFile.text,/Archived cost/);assert(!/<f[\s>]/.test(adminFile.text));await import('node:fs/promises').then(fs=>fs.writeFile('/tmp/calendar-browser-export.xlsx',adminFile.bytes));
  await open();const backup=await download(true);assert(backup.name.endsWith('.json'));assert.deepEqual(JSON.parse(backup.text),original);assert.deepEqual(data,original);assert.equal(saves,0);
  console.log('PASS genuine XLSX download, full owner JSON backup, archived years, two books and no writes');

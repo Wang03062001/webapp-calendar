@@ -2,7 +2,7 @@ import { emptyData, normalizeData } from './model.js';
 import { confirmedExpenses } from './expense-model.js';
 
 export const LOCAL_KEY = 'lich-cua-toi.v1';
-export const hasData = data => Object.keys(data.days).length + Object.keys(data.incomes).length + Object.keys(data.savings).length + Object.keys(data.goals).length + (data.debts?.length || 0) + (data.cards?.statements.length || 0) + (data.cards?.availableCreditHistory?.length || 0) + (data.cards?.riboBalanceHistory?.length || 0) + (data.cards?.trackingMonths?.length || 0) + (data.accounts ? 1 : 0) + (data.receipts?.length||0) + (data.receivables?.length||0) + (data.safety?1:0) + (data.regional?.vietnam&&hasData(data.regional.vietnam)?1:0) > 0;
+export const hasData = data => (data.trackingStart?1:0) + Object.keys(data.days).length + Object.keys(data.incomes).length + Object.keys(data.savings).length + Object.keys(data.goals).length + (data.debts?.length || 0) + (data.cards?.statements.length || 0) + (data.cards?.availableCreditHistory?.length || 0) + (data.cards?.riboBalanceHistory?.length || 0) + (data.cards?.trackingMonths?.length || 0) + (data.accounts ? 1 : 0) + (data.receipts?.length||0) + (data.receivables?.length||0) + (data.safety?1:0) + (data.regional?.vietnam&&hasData(data.regional.vietnam)?1:0) > 0;
 
 export class SyncController {
   constructor(client, storage, { onData, onStatus, onConfirmed = () => {} }) {
@@ -66,11 +66,13 @@ export class SyncController {
     } catch (error) { if (epoch === this.epoch && counter === this.counter && readId === this.readId) this.statusChanged('error', error.message); }
   }
   save(data) {
+    if(this.resetting)throw Error('Đang đặt lại dữ liệu. Vui lòng chờ.');
     if (!this.user) throw new Error('Hãy đăng nhập trước khi nhập dữ liệu.');
     this.data = structuredClone(data); this.counter++; this.dirty = true; this.cache();
     if (!['conflict', 'error'].includes(this.status)) this.statusChanged(this.inFlight ? 'saving' : this.queued ? 'pending' : 'draft');
   }
   async commit() {
+    if(this.resetting)throw Error('Đang đặt lại dữ liệu. Vui lòng chờ.');
     if (!this.user) throw new Error('Hãy đăng nhập trước khi lưu dữ liệu.');
     if (!this.dirty) return;
     this.queued = { data: structuredClone(this.data), counter: this.counter }; this.cache();
@@ -79,6 +81,7 @@ export class SyncController {
   // Explicit financial edits become visible/countable only after the
   // optimistic server write succeeds. Failed attempts never enter the cache.
   async commitConfirmed(next) {
+    if(this.resetting)throw Error('Đang đặt lại dữ liệu. Vui lòng chờ.');
     if (!this.user) throw new Error('Hãy đăng nhập trước khi lưu dữ liệu.');
     const epoch = this.epoch, counter = this.counter;
     const snapshot = normalizeData(structuredClone(next)), before = JSON.stringify(this.data);
@@ -100,6 +103,26 @@ export class SyncController {
         if (epoch === this.epoch) this.statusChanged(error.code === '40001' ? 'conflict' : 'error', error.message);
         throw error;
       } finally { this.inFlight = null; }
+    })();
+    return this.inFlight;
+  }
+  async resetConfirmed(next){
+    if(!this.user||this.inFlight||this.resetting||this.status==='conflict')throw Error('Chưa thể đặt lại dữ liệu. Kiểm tra đồng bộ và thử lại.');
+    const snapshot=normalizeData(structuredClone(next)),epoch=this.epoch,actor=this.user.id,revision=this.revision;
+    this.resetting=true;this.readId=(this.readId||0)+1;this.statusChanged('saving');
+    this.inFlight=(async()=>{
+      try{
+        const verified=await this.client.user();
+        if(verified.id!==actor||epoch!==this.epoch)throw Error('Phiên đăng nhập đã thay đổi.');
+        const row=await this.client.save(snapshot,revision);
+        if(epoch!==this.epoch)throw Error('Phiên đăng nhập đã thay đổi.');
+        this.revision=row.revision;this.data=snapshot;this.confirmedData=structuredClone(snapshot);this.confirmedAt=new Date().toISOString();this.confirmedExpenses=confirmedExpenses(snapshot);
+        this.expenseInputs={};this.queued=null;this.dirty=false;this.counter++;this.resetting=false;
+        // Only remove this account's old cache, and only after the server ACK.
+        try{this.cache();}catch{this.storage.removeItem(this.cacheKey);}
+        this.onData(this.data);this.statusChanged('ready');
+      }catch(error){if(epoch===this.epoch){this.resetting=false;this.statusChanged(error.code==='40001'?'conflict':'error',error.message);}throw error;}
+      finally{this.resetting=false;this.inFlight=null;}
     })();
     return this.inFlight;
   }

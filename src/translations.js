@@ -1,6 +1,28 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Bắt đầu theo dõi mới|Start a new ledger|新しい記録を開始|새 장부 시작|開始新的帳本
+Đặt lại dữ liệu tài chính|Reset financial data|財務データをリセット|재무 데이터 초기화|重設財務資料
+Xóa dữ liệu cũ và chọn ngày bắt đầu theo dõi mới cho cả hai khu vực.|Clear old data and select a new start date for both regional books.|両地域の既存データを消去し、新しい開始日を選びます。|두 지역 장부의 기존 데이터를 지우고 새 시작일을 선택합니다.|清除兩個地區的舊資料並選擇新的開始日期。
+Sao lưu JSON trước khi xóa|Back up JSON before clearing|消去前にJSONを保存|삭제 전 JSON 백업|清除前備份 JSON
+Ngày bắt đầu theo dõi|Tracking start date|記録開始日|기록 시작일|開始記錄日期
+Nhập RESET để xác nhận xóa cả hai khu vực|Type RESET to confirm clearing both books|RESETと入力して両地域の消去を確認|두 장부 삭제를 확인하려면 RESET 입력|輸入 RESET 確認清除兩個地區
+Xóa dữ liệu và bắt đầu lại|Clear data and start again|データを消去して開始|데이터 삭제 후 다시 시작|清除資料並重新開始
+Nhập số dư đầu kỳ|Enter opening balances|開始残高を入力|기초 잔액 입력|輸入期初餘額
+Theo dõi từ|Tracking from|記録開始|기록 시작|記錄始於
+Chưa thiết lập số dư đầu kỳ.|Opening balances have not been entered.|開始残高は未入力です。|기초 잔액이 입력되지 않았습니다.|尚未設定期初餘額。
+Tổng tài sản đầu ngày:|Total opening assets:|始業時の資産合計：|일초 총자산:|當日開始時資產總額：
+Tổng chi tiêu tín dụng|Total credit purchases|カード利用合計|신용 지출 합계|信用消費總額
+Chi tiêu tín dụng|Credit purchases|カード利用|신용 지출|信用消費
+Chỉ tổng hợp theo ngày giao dịch. Không tính vào tổng chi tiền trong tháng và không trừ tài sản.|Summed by transaction date only. Excluded from monthly cash spending and assets.|取引日別の集計のみ。月の現金支出や資産減少には含めません。|거래일 기준으로만 집계하며 월 현금 지출과 자산 차감에서 제외합니다.|僅按交易日期彙總，不計入每月現金支出，也不扣除資產。
+Ngày bắt đầu:|Start date:|開始日：|시작일:|開始日期：
+Giao dịch sẽ xóa: sổ nước ngoài|Transactions to clear: foreign book|消去する取引：海外帳簿|삭제할 거래: 해외 장부|將清除的交易：海外帳本
+sổ Việt Nam|Vietnam book|ベトナム帳簿|베트남 장부|越南帳本
+Bao gồm mọi năm đã lưu.|Includes all saved years.|保存済みの全年度を含みます。|저장된 모든 연도를 포함합니다.|包括所有已儲存年份。
+Xóa toàn bộ dữ liệu tài chính và bản nháp của tài khoản này trong cả hai khu vực, gồm giao dịch, thu nhập, số dư, quỹ, khoản vay và dữ liệu PayPay / sao kê. Giữ tài khoản đăng nhập, tiền tệ và tùy chọn giao diện.|Clear this account's finances and drafts in both books, including transactions, income, balances, funds, loans and PayPay / statements. Keep the login account, currencies and display preferences.|このアカウントの両地域の財務データと下書きを消去します。取引・収入・残高・積立・借入・PayPay・請求情報が対象です。ログインアカウント・通貨・表示設定は保持します。|두 장부의 거래, 수입, 잔액, 자금, 대출, PayPay / 명세서 및 초안을 삭제합니다. 로그인 계정, 통화, 화면 설정은 유지합니다.|清除此帳戶兩地區的財務資料與草稿，包括交易、收入、餘額、基金、貸款及 PayPay／帳單。保留登入帳戶、幣別及顯示偏好。
+Sau khi xóa, nhập số dư ngân hàng, tiền mặt và tiết kiệm đầu ngày bắt đầu, trước các giao dịch. Tổng tài sản tự cộng từ các nguồn này. Nếu chưa nhập, số dư hiển thị Chưa thiết lập.|After clearing, enter bank, cash and savings balances at the start of the chosen day, before transactions. Assets are summed from these sources. Balances remain Not set until entered.|消去後、選択した日の取引前の銀行・現金・貯蓄残高を入力します。資産は各資金源から合計します。未入力の残高は未設定と表示します。|삭제 후 선택한 날의 거래 전 은행, 현금, 저축 잔액을 입력하세요. 총자산은 이 금액의 합계이며 입력 전에는 미설정으로 표시됩니다.|清除後輸入開始日交易前的銀行、現金及儲蓄餘額。資產由各來源自動加總，未輸入前顯示尚未設定。
+Cần quyền admin đã xác minh để xóa dữ liệu tín dụng cũ.|Verified admin permission is required to clear legacy credit data.|従来の信用データの消去には確認済み管理者権限が必要です。|기존 신용 데이터를 삭제하려면 검증된 관리자 권한이 필요합니다.|清除舊信用資料需要已驗證管理員權限。
+Đang đặt lại dữ liệu. Vui lòng chờ.|Resetting data. Please wait.|データをリセット中です。お待ちください。|데이터 초기화 중입니다. 기다려 주세요.|正在重設資料，請稍候。
 Cách trả (liên kết cũ)|Payment type (legacy link)|支払種別（従来の関連情報）|결제 방식 (기존 연결)|付款方式（舊連結）
 Giao dịch tín dụng trong tháng|Credit purchases this month|当月のカード利用|이번 달 신용 거래|本月信用交易
 Phí tín dụng|Credit fees|カード手数料|신용 수수료|信用費用
