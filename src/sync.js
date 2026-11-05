@@ -49,21 +49,36 @@ export class SyncController {
       this.statusChanged('error', error.message);
     }
   }
-  async refresh() {
+  async refresh({checkDraft = false} = {}) {
     if (!this.user || this.inFlight) return;
     if (this.dirty) {
       if (this.queued) return this.flush();
-      if (this.status !== 'conflict') this.statusChanged('draft');
-      return;
+      // Background polling must neither submit unsaved typing nor dismiss a
+      // connection failure without contacting the server. Explicit Retry may
+      // read the saved revision while retaining the local draft in full.
+      if (!checkDraft || this.status === 'conflict') {
+        if (!['conflict', 'error'].includes(this.status)) this.statusChanged('draft');
+        return;
+      }
     }
-    const epoch = this.epoch, counter = this.counter, readId = this.readId = (this.readId || 0) + 1;
+    const epoch = this.epoch, counter = this.counter, hadDraft = this.dirty, baseRevision = this.revision, readId = this.readId = (this.readId || 0) + 1;
+    const sameScope = () => epoch === this.epoch && counter === this.counter && !this.inFlight && !this.queued && readId === this.readId;
+    const current = () => sameScope() && hadDraft === this.dirty && baseRevision === this.revision;
+    let accepted = false;
     try {
       const row = await this.client.load(this.user.id);
-      if (epoch !== this.epoch || counter !== this.counter || this.dirty || readId !== this.readId) return;
+      if (!current()) return;
+      accepted = true;
       const revision = row?.revision || 0, changed = revision !== this.revision || this.status === 'loading';
+      if (hadDraft) {
+        if (revision !== this.revision) { this.statusChanged('conflict', 'Dữ liệu đã thay đổi trên thiết bị khác. Bản nháp của bạn được giữ lại; hãy xuất bản nháp trước khi tải bản trên đám mây.'); return; }
+        const confirmed = row ? normalizeData(row.data) : emptyData();
+        this.confirmedData = confirmed; this.confirmedAt = new Date().toISOString(); this.confirmedExpenses = confirmedExpenses(confirmed);
+        this.cache(); this.onConfirmed(); this.statusChanged('draft'); return;
+      }
       this.data = row ? normalizeData(row.data) : emptyData(); this.revision = revision; this.confirmedData = structuredClone(this.data);this.confirmedAt=new Date().toISOString(); this.confirmedExpenses = confirmedExpenses(this.data); this.cache();
       if (changed) this.onData(this.data); this.statusChanged('ready');
-    } catch (error) { if (epoch === this.epoch && counter === this.counter && readId === this.readId) this.statusChanged('error', error.message); }
+    } catch (error) { if (current() || accepted && sameScope()) this.statusChanged('error', error.message); }
   }
   save(data) {
     if(this.resetting)throw Error('Đang đặt lại dữ liệu. Vui lòng chờ.');

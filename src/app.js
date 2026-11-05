@@ -419,7 +419,7 @@ root.addEventListener('click', async event => {
     case 'quick-savings': view = 'calendar'; render(); focusEditor('#monthly-savings'); break;
     case 'account': showAccount(); break;
     case 'register': if (!cloud.user) showAccount('signup'); break;
-    case 'cloud-retry': await cloud.refresh(); break;
+    case 'cloud-retry': await cloud.refresh({checkDraft:true}); break;
     case 'cloud-remote': {
       if (!ask('Thay bản nháp trên máy bằng dữ liệu đám mây? Hãy xuất dữ liệu trước nếu cần giữ bản nháp.')) break;
       try { await cloud.useRemote(); } catch (error) { notify(error.message); }
@@ -606,7 +606,7 @@ function renderCloud() {
   let message = '', actions = '';
   if (['error', 'conflict'].includes(cloud.status)) {
     message = escape(cloud.message);
-    actions = cloud.status === 'conflict' ? '<button data-action="backup">Sao lưu bản nháp JSON</button><button data-action="cloud-remote">Tải bản đám mây</button>' : `<button data-action="${cloud.user ? 'cloud-retry' : 'account'}">${cloud.user ? 'Thử đồng bộ lại' : 'Đăng nhập'}</button>`;
+    actions = cloud.status === 'conflict' ? '<button data-action="backup">Sao lưu bản nháp JSON</button><button data-action="cloud-remote">Tải bản đám mây</button>' : `${cloud.user?'<button data-action="backup">Sao lưu bản nháp JSON</button>':''}<button data-action="${cloud.user ? 'cloud-retry' : 'account'}">${cloud.user ? 'Thử đồng bộ lại' : 'Đăng nhập'}</button>`;
   } else if (cloud.status === 'loading') message = 'Đang tải dữ liệu tài khoản. Vui lòng chờ trước khi chỉnh sửa.';
   document.querySelector('#cloud-notice').innerHTML = message ? `<div class="cloud-notice ${['error', 'conflict'].includes(cloud.status) ? 'cloud-warning' : ''}"><span>${message}</span><div>${actions}</div></div>` : '';
 }

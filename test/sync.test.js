@@ -80,6 +80,42 @@ test('network save failure keeps the draft dirty and reports failure',async t=>{
  await sync.open();sync.save(doc(321));await sync.commit();
  assert.equal(sync.status,'error');assert.equal(sync.dirty,true);assert.equal(JSON.parse(store.getItem(sync.cacheKey)).data.goals['2026'],321);
 });
+test('draft polling retains connection failures; explicit retry reads without submitting or replacing typing',async t=>{
+ let reads=0,writes=0,offline=false;
+ const {sync,store}=setup(t,{load:async()=>{reads++;if(offline)throw new CloudError('Offline','NETWORK');return {data:doc(10),revision:1};},save:async()=>{writes++;return {revision:2};}});
+ await sync.open();sync.save(doc(321));sync.expenseInputs={raw:{title:'Keep raw typing'}};offline=true;sync.statusChanged('error','Offline');
+ const before=JSON.stringify(sync.data),count=reads;await sync.refresh();assert.equal(reads,count);assert.equal(sync.status,'error');
+ await sync.refresh({checkDraft:true});assert.equal(reads,count+1);assert.equal(sync.status,'error');assert.equal(JSON.stringify(sync.data),before);assert.equal(sync.queued,null);assert.equal(writes,0);
+ offline=false;await sync.refresh({checkDraft:true});assert.equal(sync.status,'draft');assert.equal(sync.dirty,true);assert.equal(sync.revision,1);assert.equal(JSON.stringify(sync.data),before);assert.equal(sync.confirmedData.goals['2026'],10);assert.equal(sync.confirmedExpenses!==null,true);assert.deepEqual(sync.expenseInputs,{raw:{title:'Keep raw typing'}});assert.equal(writes,0);
+ const cache=JSON.parse(store.getItem(sync.cacheKey));assert.equal(cache.data.goals['2026'],321);assert.equal(cache.confirmedData.goals['2026'],10);assert.deepEqual(cache.expenseInputs,sync.expenseInputs);
+});
+test('explicit draft retry detects remote revision changes or deletion and preserves both books',async t=>{
+ let remote={data:doc(10),revision:1};const {sync,store}=setup(t,{load:async()=>remote});await sync.open();
+ const draft=doc(321);draft.regional={vietnam:doc(654)};sync.save(draft);const before=JSON.stringify(sync.data);remote={data:doc(999),revision:2};
+ await sync.refresh({checkDraft:true});assert.equal(sync.status,'conflict');assert.equal(sync.revision,1);assert.equal(JSON.stringify(sync.data),before);assert.equal(sync.confirmedData.goals['2026'],10);assert.equal(JSON.parse(store.getItem(sync.cacheKey)).data.regional.vietnam.goals['2026'],654);
+ sync.statusChanged('error','Connection');remote=null;await sync.refresh({checkDraft:true});assert.equal(sync.status,'conflict');assert.equal(JSON.stringify(sync.data),before);
+});
+test('explicit retry submits only the previous saved snapshot and keeps newer unsaved text',async t=>{
+ let fail=true;const submitted=[];const {sync}=setup(t,{save:async data=>{if(fail)throw new CloudError('Offline','NETWORK');submitted.push(data.goals['2026']);return {revision:1};}});
+ await sync.open();sync.save(doc(100));await sync.commit();sync.save(doc(200));fail=false;await sync.refresh({checkDraft:true});assert.deepEqual(submitted,[100]);assert.equal(sync.data.goals['2026'],200);assert.equal(sync.status,'draft');assert.equal(sync.dirty,true);
+});
+test('late draft connectivity checks cannot replace newer typing or another account',async t=>{
+ const response=deferred(),{sync,client}=setup(t);await sync.open();sync.save(doc(100));client.load=async()=>response.promise;const pending=sync.refresh({checkDraft:true});sync.save(doc(200));response.resolve({data:doc(900),revision:9});await pending;assert.equal(sync.data.goals['2026'],200);assert.equal(sync.revision,0);assert.equal(sync.status,'draft');
+ const other=deferred();client.load=async()=>other.promise;const oldAccount=sync.refresh({checkDraft:true});await sync.logout();other.resolve({data:doc(999),revision:99});await oldAccount;assert.equal(sync.status,'guest');assert.deepEqual(sync.data,emptyData());assert.equal(sync.confirmedData,null);
+});
+test('a late draft retry cannot override a submitted save or its successful acknowledgement',async t=>{
+ for(const failRead of [false,true])for(const finishWriteFirst of [false,true]){
+  const read=deferred(),write=deferred(),{sync,client}=setup(t,{save:async()=>write.promise});await sync.open();sync.save(doc(100));
+  client.load=async()=>{await read.promise;if(failRead)throw new CloudError('Late network failure','NETWORK');return {data:doc(900),revision:99};};
+  const probe=sync.refresh({checkDraft:true}),pendingSave=sync.commit();if(finishWriteFirst){write.resolve({revision:1});await pendingSave;}
+  read.resolve();await probe;assert.equal(sync.status,finishWriteFirst?'ready':'saving');
+  if(!finishWriteFirst){write.resolve({revision:1});await pendingSave;}assert.equal(sync.status,'ready');assert.equal(sync.revision,1);assert.equal(sync.dirty,false);assert.equal(sync.data.goals['2026'],100);assert.equal(sync.confirmedData.goals['2026'],100);
+ }
+});
+test('cache failure after an accepted new remote revision is still reported',async t=>{
+ const {sync,client,store}=setup(t);await sync.open();client.load=async()=>({data:doc(123),revision:2});store.setItem=()=>{throw Error('Synthetic cache quota');};
+ await sync.refresh();assert.equal(sync.status,'error');assert.equal(sync.message,'Synthetic cache quota');assert.equal(sync.revision,2);
+});
 test('logout never displays legacy guest data, even if it is corrupt',async t=>{
  const {sync,store}=setup(t,{load:async()=>({data:doc(999),revision:1})});
  await sync.open();store.setItem(LOCAL_KEY,'corrupt original');await sync.logout();
