@@ -1,6 +1,34 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Đặt lại Nền tảng an toàn|Reset safety planning|安全計画をリセット|안전 계획 초기화|重設安全規劃
+Đặt lại quỹ, ngân sách mọi tháng, lịch theo dõi, dự phòng và kế hoạch trả nợ thông thường của khu vực này.|Reset funds, all monthly budgets, tracked bills, reserves and ordinary debt plans in this book.|この地域の積立枠、全月の予算、支払予定、予備費、通常の返済計画をリセットします。|이 장부의 기금, 모든 월별 예산, 추적 일정, 예비비 및 일반 부채 계획을 초기화합니다.|重設此地區的專款、各月預算、追蹤帳單、預備金與一般還款規劃。
+Giữ nguyên số dư ngân hàng, tiền mặt, tiết kiệm, khoản đã chi, thu nhập, khoản vay, ghi chú và khu vực còn lại. Dữ liệu tín dụng cũ được giữ nguyên.|Keep bank, cash and savings balances, paid expenses, income, loans, notes and the other book. Legacy credit data is retained.|銀行・現金・貯蓄残高、支払済み支出、収入、借入、メモ、他地域は保持します。既存のクレジット情報も保持します。|은행, 현금, 저축 잔액과 지출 완료 내역, 수입, 대출, 메모 및 다른 장부를 유지합니다. 기존 신용 데이터도 유지합니다.|保留銀行、現金、儲蓄餘額、已支出款項、收入、貸款、備註及另一地區。舊信用資料亦保留。
+Xóa quỹ|Delete fund|積立枠を削除|기금 삭제|刪除專款
+Xóa phần tiền dành riêng và bỏ liên kết quỹ. Giữ nguyên số dư thực, các khoản chi và ghi chú; không tạo giao dịch chuyển tiền.|Remove earmarks and fund links. Keep actual balances, expenses and notes; no transfer is created.|確保枠と関連付けを解除します。実際の残高、支出、メモは保持し、振替は作成しません。|배정액과 기금 연결을 제거합니다. 실제 잔액, 지출 및 메모를 유지하며 이체를 만들지 않습니다.|移除預留額與專款連結。保留實際餘額、支出及備註，不建立轉帳。
+Xóa lịch phải trả|Delete tracked bill|支払予定を削除|추적 청구 삭제|刪除追蹤帳單
+Bỏ lịch theo dõi và liên kết. Khoản đã chi vẫn giữ nguyên ngày, số tiền và nguồn tiền.|Remove tracking and its link. Paid expenses keep their dates, amounts and sources.|追跡と関連付けを解除します。支払済み支出の日付・金額・資金元は保持します。|추적과 연결을 제거합니다. 지출 완료 내역의 날짜, 금액 및 자금 출처를 유지합니다.|移除追蹤及連結。已支出款項的日期、金額與資金來源維持不變。
+Xóa khoản dự kiến|Delete planned expense|予定支出を削除|예정 지출 삭제|刪除預計支出
+Xóa khoản chưa chi khỏi lịch và dự báo. Giữ nguyên ghi chú trong ngày và mọi khoản đã chi.|Remove the unpaid plan from the calendar and forecast. Keep day notes and all paid expenses.|未払いの予定をカレンダーと予測から削除します。当日のメモと支払済み支出は保持します。|미지출 계획을 달력과 예측에서 제거합니다. 일별 메모와 지출 완료 내역을 유지합니다.|從月曆及預測移除尚未支出的計畫。保留當日備註及所有已支出款項。
+Xóa điều kiện trả nợ|Delete repayment assumptions|返済条件を削除|상환 가정 삭제|刪除還款假設
+Chỉ xóa giả thiết lãi suất và mức tối thiểu. Giữ nguyên khoản vay, hạn trả gốc và lịch sử thanh toán.|Remove only rate and minimum-payment assumptions. Keep the loan, original due date and payment history.|金利と最低支払額の仮定のみを削除します。借入、元の期日、支払履歴は保持します。|금리와 최소 상환액 가정만 제거합니다. 대출, 원래 만기일 및 상환 이력을 유지합니다.|僅刪除利率及最低還款假設。保留貸款、原到期日與付款紀錄。
+Lịch sử xóa|Deletion history|削除履歴|삭제 이력|刪除紀錄
+Bản ghi gốc được giữ trong sao lưu JSON, không tham gia tính số dư.|Original records remain in JSON backups and do not affect balances.|元の記録はJSONバックアップに保持され、残高計算には使いません。|원본 기록은 JSON 백업에 보존되며 잔액 계산에 포함되지 않습니다.|原始紀錄保留於 JSON 備份，不參與餘額計算。
+Chưa có lịch sử xóa.|No deletion history yet.|削除履歴はありません。|아직 삭제 이력이 없습니다.|尚無刪除紀錄。
+Lưu bản ghi gốc vào Lịch sử xóa để đối chiếu. Chỉ áp dụng sau khi máy chủ xác nhận.|Keep original records in deletion history for reference. Apply only after server confirmation.|照合用に元の記録を削除履歴へ保存します。サーバー確認後にのみ適用します。|확인을 위해 원본 기록을 삭제 이력에 보존합니다. 서버 확인 후에만 적용합니다.|將原始紀錄存入刪除紀錄以供核對，僅在伺服器確認後套用。
+Xóa cả khoản dự kiến chưa chi liên kết khỏi lịch|Also delete linked unpaid plans from the calendar|関連する未払い予定もカレンダーから削除|연결된 미지출 계획도 달력에서 삭제|同時從月曆刪除連結的未支出計畫
+Nếu bỏ chọn, khoản dự kiến còn trong lịch và vẫn được tính vào dự báo.|If unchecked, plans stay in the calendar and forecast.|未選択の場合、予定はカレンダーと予測に残ります。|선택 해제 시 계획은 달력과 예측에 남습니다.|取消勾選時，計畫仍保留於月曆及預測。
+Các khoản dự kiến khác trong lịch và khoản vay vẫn được dự báo từ sổ gốc.|Other calendar plans and loans are still forecast from their original records.|他のカレンダー予定や借入は元の記録から引き続き予測します。|다른 달력 계획과 대출은 원본 기록을 기준으로 계속 예측합니다.|其他月曆計畫與貸款仍依原始紀錄進行預測。
+Nhập RESET để xác nhận đặt lại khu vực này|Type RESET to confirm resetting this book|RESETと入力してこの地域のリセットを確認|이 장부 초기화를 확인하려면 RESET 입력|輸入 RESET 確認重設此地區
+Đặt lại khu vực này|Reset this book|この地域をリセット|이 장부 초기화|重設此地區
+Xác nhận xóa|Confirm deletion|削除を確認|삭제 확인|確認刪除
+Lịch chưa chi|Unpaid tracked bills|未払いの支払予定|미지출 추적 청구|未支出追蹤帳單
+Lịch giữ khoản đã chi|Tracked bills with retained expenses|支出を保持する支払予定|지출 유지 청구|保留已支出的追蹤帳單
+Lịch sử xóa không hợp lệ.|Invalid deletion history.|削除履歴が無効です。|삭제 이력이 올바르지 않습니다.|刪除紀錄無效。
+Thao tác xóa không hợp lệ.|Invalid deletion action.|削除操作が無効です。|삭제 작업이 올바르지 않습니다.|刪除操作無效。
+Lịch phải trả đã thay đổi.|The tracked bill has changed.|支払予定が変更されました。|추적 청구가 변경되었습니다.|追蹤帳單已變更。
+Chỉ xóa khoản dự kiến thông thường chưa chi.|Only ordinary unpaid plans can be deleted.|通常の未払い予定のみ削除できます。|일반 미지출 계획만 삭제할 수 있습니다.|僅可刪除一般未支出計畫。
+Không thể xóa điều kiện trả nợ này.|Cannot delete these repayment assumptions.|この返済条件は削除できません。|이 상환 가정을 삭제할 수 없습니다.|無法刪除此還款假設。
 Tài sản chi tiêu|Spendable assets|支出用資金|지출용 자산|可支用資產
 Tài sản và tiết kiệm|Assets and savings|支出用資金と貯蓄|자산과 저축|資產與儲蓄
 Tiết kiệm riêng|Separate savings|別管理の貯蓄|별도 저축|獨立儲蓄

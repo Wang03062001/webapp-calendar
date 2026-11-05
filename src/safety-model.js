@@ -33,6 +33,16 @@ export function normalizeSafety(raw,data){
  }
  for(const [date,day] of Object.entries(data.days))for(const item of day.items)if(item.obligationId&&!result.obligations.some(o=>o.id===item.obligationId&&o.date===date&&o.expenseId===item.id))fail('Thiếu lịch phải trả liên kết.');
  for(const t of raw.debtTerms||[]){if(!t||!data.debts.some(d=>d.id===t.debtId)||result.debtTerms.some(x=>x.debtId===t.debtId)||!sources.includes(t.source)||t.nextDueDate&&!cardDate(t.nextDueDate))fail('Điều kiện trả nợ không hợp lệ.');result.debtTerms.push({debtId:t.debtId,apr:t.apr==null||String(t.apr).trim()===''?null:rate(t.apr),minimum:t.minimum==null||String(t.minimum).trim()===''?null:cardMoney(t.minimum),source:t.source,...(t.nextDueDate?{nextDueDate:t.nextDueDate}:{})});}
+ // Removed planning records retain their original history as inert audit text.
+ if(raw.cleanupHistory!==undefined){
+  if(!Array.isArray(raw.cleanupHistory))fail('Lịch sử xóa không hợp lệ.');
+  result.cleanupHistory=[];
+  for(const h of raw.cleanupHistory){
+   if(!h||!text(h.id)||result.cleanupHistory.some(x=>x.id===text(h.id))||!cardDate(h.date)||!['reset','fund','obligation','planned','debtTerms'].includes(h.action)||typeof h.snapshot!=='string'||h.creditProtected!==undefined&&typeof h.creditProtected!=='boolean')fail('Lịch sử xóa không hợp lệ.');
+   try{const snapshot=JSON.parse(h.snapshot);if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))fail('Lịch sử xóa không hợp lệ.');}catch{fail('Lịch sử xóa không hợp lệ.');}
+   result.cleanupHistory.push({id:text(h.id),date:h.date,action:h.action,label:String(h.label||''),snapshot:h.snapshot,...(h.creditProtected?{creditProtected:true}:{})});
+  }
+ }
  return result;
 }
 export function fundBalance(data,id,date){

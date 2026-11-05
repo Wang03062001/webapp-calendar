@@ -6,6 +6,7 @@ export function financeView(data, allowed) {
   const creditDebts = new Set(data.debts.filter(d => d.type === 'Thẻ tín dụng').map(d => d.id));
   const { cards, ...view } = data;
   return { ...view, debts: data.debts.filter(d => !creditDebts.has(d.id)),
+    ...(data.safety?.cleanupHistory?{safety:{...data.safety,cleanupHistory:data.safety.cleanupHistory.filter(h=>!h.creditProtected)}}:{}),
     days: Object.fromEntries(Object.entries(data.days).map(([date, entry]) => [date, {...entry, items: entry.items.filter(i => !isCreditItem(i) && !creditDebts.has(i.debtId))}])),
     ...(data.accounts ? {accounts: {...data.accounts, creditDebt: 0, creditLimit: null}} : {}) };
 }
