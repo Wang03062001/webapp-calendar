@@ -599,7 +599,7 @@ function renderCloud() {
   const removeYearButton = document.querySelector('[data-action="remove-year"]');
   if (removeYearButton) removeYearButton.disabled = !canEdit() || years().length <= 1;
   document.querySelector('[data-action="save"]').hidden = !cloud.user;
-  document.querySelector('[data-action="save"]').disabled = !canEdit() || !cloud.dirty;
+  document.querySelector('[data-action="save"]').disabled = !canEdit() || !cloud.dirty || cloud.conflicted;
   document.querySelector('#storage-description').textContent = cloud.user ? [`${currencyLabel()} / ${currencyLabel('savings')}`, labels[cloud.status]].filter(Boolean).join(' · ') : 'Đăng nhập để nhập và lưu dữ liệu';
   document.querySelector('.local-badge').hidden = cloud.status === 'ready';
   document.querySelector('.local-badge').innerHTML = `${icon('check')} ${labels[cloud.status]}`;

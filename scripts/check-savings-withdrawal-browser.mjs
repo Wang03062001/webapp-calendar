@@ -19,7 +19,12 @@ await page.addInitScript(()=>localStorage.setItem('lich-auth:mjgxzzxmfifhoymvdao
 const balance=k=>page.locator(`[data-current-balance=${k}]`),field=k=>page.locator(`#cash-entry-dialog [name=${k}]`);
 async function open(){await page.locator('[data-action=withdraw-savings]').click();await page.locator('#cash-entry-dialog').waitFor();assert.equal(await field('type').inputValue(),'savings-withdrawal');}
 async function submit(){await page.locator('#cash-entry-dialog .account-submit').click();await page.locator('#cash-entry-dialog').waitFor({state:'detached'});}
-async function show(){await page.reload();await page.waitForFunction(()=>document.querySelector('[data-current-balance=assets]')?.textContent==='150 JPY');}
+async function show(){
+ const before=saves;await page.reload();await page.waitForFunction(()=>document.querySelector('[data-current-balance=assets]')?.textContent==='150 JPY');
+ // Recovery is explicit; reloading a conflict must not allow another write.
+ const recovery=page.locator('#cloud-notice [data-action=cloud-remote]');
+ if(await recovery.count()){assert.equal(saves,before);page.once('dialog',d=>d.accept());await recovery.click();await recovery.waitFor({state:'detached'});}
+}
 try{
  await page.goto(process.env.CALENDAR_URL||'http://127.0.0.1:5185');await page.waitForFunction(()=>document.querySelector('[data-current-balance=assets]')?.textContent==='150 JPY');assert.equal(await balance('savings').innerText(),'1,000 JPY');assert.equal(await balance('savings').evaluate(e=>Boolean(e.closest('.current-wallet-disclosure'))),false);assert.equal(await page.locator('[data-savings-cumulative]').innerText(),'1,000,000 VNĐ');assert.equal(await page.locator('[data-stat=credit]').count(),0);
  await open();await field('amount').fill('200');assert.equal(await page.locator('[data-withdraw-remaining]').innerText(),'800 JPY');await page.locator('#cash-entry-dialog form').evaluate(f=>window.canceledWithdrawal=f);await page.locator('#cash-entry-dialog .dialog-close').click();await page.evaluate(()=>window.canceledWithdrawal.requestSubmit());assert.equal(saves,0);

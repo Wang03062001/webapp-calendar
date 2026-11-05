@@ -41,6 +41,14 @@ test('REST distinguishes conflict and missing schema without hiding server error
  client.fetcher=async()=>new Response(JSON.stringify({code:'PGRST205'}),{status:404});
  await assert.rejects(client.request('/rest/v1/calendar_documents'),/supabase\/setup.sql/);
 });
+test('REST recognizes Postgres 40001 in HTTP 500 and document conflicts in HTTP 409',async()=>{
+ for(const [status,body] of [[500,{code:'40001'}],[500,{code:40001}],[409,null]]){
+  const client=new SupabaseClient({url:'https://example.supabase.co',key:'public'},storage(),async()=>new Response(body?JSON.stringify(body):'',{status}));
+  await assert.rejects(client.request('/rest/v1/rpc/save_calendar_document'),error=>error.code==='40001'&&error.message.includes('thiết bị khác'));
+ }
+ const client=new SupabaseClient({url:'https://example.supabase.co',key:'public'},storage(),async()=>new Response(JSON.stringify({code:'23505'}),{status:409}));
+ await assert.rejects(client.request('/rest/v1/rpc/save_calendar_document'),error=>error.code==='23505');
+});
 test('sign-in loads cloud data without silently uploading local-only finances',async t=>{
  let writes=0;const {sync,store}=setup(t,{load:async()=>({data:doc(200),revision:2}),save:async()=>{writes++;}});
  store.setItem(LOCAL_KEY,JSON.stringify(doc(999)));

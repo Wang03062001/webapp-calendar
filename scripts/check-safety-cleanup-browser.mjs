@@ -26,7 +26,13 @@ const dialog=()=>page.locator('#safety-dialog'),input=name=>dialog().locator(`[n
 async function open(action,id){let b=page.locator(`[data-safety-action=${action}]`);if(id!==undefined)b=b.and(page.locator(`[data-safety-id=${JSON.stringify(id)}]`));b=b.first();await b.evaluate(e=>{for(let p=e.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await b.click();await dialog().waitFor();}
 async function submit(){await dialog().locator('.account-submit').click();await dialog().waitFor({state:'detached'});}
 async function close(){await dialog().locator('[data-cancel],.dialog-close').first().click();await dialog().waitFor({state:'detached'});}
-async function fresh(){doc=cleanupFixture();revision++;await page.reload();await balance().filter({hasText:'1,079 JPY'}).waitFor();await page.locator('nav [data-view=safety]').click();}
+async function fresh(){
+ doc=cleanupFixture();revision++;const before=saves;await page.reload();await balance().filter({hasText:'1,079 JPY'}).waitFor();
+ // A reload preserves the conflict block; continue via explicit recovery.
+ const recovery=page.locator('#cloud-notice [data-action=cloud-remote]');
+ if(await recovery.count()){assert.equal(saves,before);page.once('dialog',d=>d.accept());await recovery.click();await recovery.waitFor({state:'detached'});}
+ await page.locator('nav [data-view=safety]').click();
+}
 const body=()=>JSON.stringify(doc);
 try{
  await page.goto(process.env.CALENDAR_URL||'http://127.0.0.1:5186');await balance().filter({hasText:'1,079 JPY'}).waitFor();await page.locator('nav [data-view=safety]').click();assert.match(await page.locator('#summary-period').innerText(),/Nền tảng an toàn/);

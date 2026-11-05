@@ -78,6 +78,16 @@ Khi có lỗi kết nối, **Sao lưu bản nháp JSON** luôn có ngay trên c�
 
 Thông báo **Không kết nối được Supabase** xuất phát từ yêu cầu mạng không hoàn tất, bao gồm quá thời gian chờ 15 giây; riêng ảnh thông báo chưa đủ phân biệt DNS, CORS, mạng của thiết bị hay dịch vụ gián đoạn. Kiểm tra URL triển khai và `/auth/v1/health` chỉ xác nhận khả năng truy cập dịch vụ, không thay thế kiểm tra đăng nhập/RLS/RPC bằng quyền hợp lệ. Không xóa bộ nhớ trình duyệt để thử sửa lỗi khi còn bản nháp. Có thể kiểm thử hoàn toàn giả lập bằng `scripts/check-connection-browser.mjs`.
 
+### Khi log có `40001 — Document changed on another device`
+
+Đây là cơ chế kiểm tra phiên bản trong `save_calendar_document`: yêu cầu đã tới database nhưng dùng phiên bản cũ. Có thể do tab/thiết bị khác đã lưu, tab còn chạy mã cũ hoặc lần trước đã lưu thành công nhưng phản hồi bị mất. PostgREST có thể trả HTTP 500 kèm SQLSTATE `40001`; web vẫn phải nhận đúng là xung đột. Không bỏ điều kiện revision hoặc tăng revision trên máy để ép ghi đè.
+
+Web lưu cờ xung đột riêng theo tài khoản, giữ toàn bộ bản nháp/hàng đợi/nội dung nhập và chặn các đường ghi, kể cả tải lại hoặc đăng nhập lại. Hàng đợi phục hồi từ cache cũ và lần ghi bị lỗi được đọc đối chiếu trước khi gửi lại. Chỉ xác nhận một lần ghi mất phản hồi nếu toàn bộ tài liệu hai khu vực khớp chính xác với ảnh đã gửi và revision máy chủ đúng bằng revision cũ + 1; thứ tự khóa JSON không ảnh hưởng phép so sánh. Khi khác nội dung hoặc đã có nhiều revision mới, giữ bản nháp và báo xung đột, không tự gộp. Chỉ **Tải bản đám mây** thành công sau xác nhận của người dùng mới bỏ chặn; đọc thất bại vẫn giữ bản nháp/cờ chặn. Phản hồi phục hồi cũ không được áp dụng cho tài khoản khác.
+
+Để xử lý bản nháp đang xung đột: **Sao lưu bản nháp JSON** trước, đóng các tab web cũ sau khi đã sao lưu nội dung cần giữ, tải lại bản mới bằng Ctrl+F5, rồi xem và xác nhận **Tải bản đám mây** nếu muốn thay bản nháp bằng dữ liệu hiện có trên máy chủ. Đối chiếu bản sao lưu để nhập lại phần còn thiếu; không tự nhập toàn bộ bản cũ đè lên bản mới. Cập nhật mã không tự xử lý thay chủ tài khoản hoặc thay đổi dữ liệu thật. Kiểm thử bằng `test/conflict-recovery.test.js` và script giả lập `scripts/check-conflict-browser.mjs`.
+
+Lỗi `42P01 relation "supabase_migrations.schema_migrations" does not exist` liên quan đến bảng theo dõi migration của công cụ Supabase. Web này không truy vấn bảng đó và có thể được cài bằng SQL Editor thủ công. Không dùng lỗi này để kết luận bảng tài chính `calendar_documents` bị mất hoặc reset dữ liệu; kiểm tra riêng nguồn truy vấn/lịch sử migration khi cần.
+
 Database lưu trên project Supabase của bạn, trong bảng `public.calendar_documents`; mỗi tài khoản có một dòng JSON chứa lịch, thu nhập, tiết kiệm và mục tiêu. Frontend không có quyền đọc dữ liệu tài khoản khác hoặc ghi trực tiếp vào bảng; chỉ ghi qua hàm có kiểm tra người dùng và phiên bản dữ liệu. Thiết lập này chưa tự tạo chính sách sao lưu phía Supabase.
 
 ## Tên đăng nhập, khôi phục mật khẩu và admin

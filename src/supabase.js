@@ -20,7 +20,8 @@ export class SupabaseClient {
     const text = await response.text();
     let result; try { result = text ? JSON.parse(text) : null; } catch { result = null; }
     if (!response.ok) {
-      const code = result?.code || result?.error_code || String(response.status);
+      const rawCode = String(result?.code || result?.error_code || response.status);
+      const code = path === '/rest/v1/rpc/save_calendar_document' && response.status === 409 && rawCode === '409' ? '40001' : rawCode;
       if (path === '/rest/v1/rpc/calendar_username_available') throw new CloudError('Chưa thiết lập tên tài khoản. Chủ project cần chạy admin-setup.sql.', code);
       let message = 'Không thể đồng bộ. Hãy kiểm tra cấu hình Supabase và thử lại.';
       if (code === '40001') message = 'Dữ liệu đã thay đổi trên thiết bị khác. Bản nháp của bạn được giữ lại; hãy xuất bản nháp trước khi tải bản trên đám mây.';
