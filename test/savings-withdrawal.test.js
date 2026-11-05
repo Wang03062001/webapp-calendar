@@ -1,0 +1,42 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {newRegionalBook,readBook,writeBook} from '../src/region-model.js';
+import {normalizeData,monthSummary} from '../src/model.js';
+import {addReceipt,receiptTotals} from '../src/receipt-model.js';
+import {accountBalances,reconcileMonth} from '../src/account-model.js';
+import {cashPeriodDetails,cashEvents} from '../src/cash-model.js';
+import {currentWallet,currentWalletContent} from '../src/current-wallet.js';
+import {forecast30} from '../src/safety-model.js';
+import {validateSpendingSources} from '../src/finance-validation.js';
+import {reportSheets} from '../src/excel-report.js';
+const base=()=>{const d=newRegionalBook('JP');d.currencies.savings='VND';d.accounts={openedOn:'2026-11-01',bank:100,cash:50,savings:1000,creditDebt:0,creditLimit:null,transfers:[]};d.savings={'2026-11':1000000};d.regional={vietnam:newRegionalBook('VN')};return d;};
+const withdraw=(d,amount=200,source='bank',id='withdraw',date='2026-11-02')=>addReceipt(d,{id,date,type:'savings-withdrawal',source,amount,note:'Keep withdrawal note'});
+const period=d=>cashPeriodDetails(d,{year:2026,month:10,asOf:'2026-11-05',creditAllowed:true});
+test('withdrawal moves reserve to selected liquid source once, is not income/spending, never touches monthly history or inactive region',()=>{
+ for(const source of ['bank','cash']){const d=base(),before=structuredClone(d),other=structuredClone(d.regional);withdraw(d,200,source);const b=accountBalances(d,'2026-11-05'),r=period(d);assert.equal(b.savings,800);assert.equal(b[source],before.accounts[source]+200);assert.equal(currentWallet(d,{asOf:'2026-11-05'}).assets,350);assert.equal(b.bank+b.cash+b.savings,1150);assert.equal(r.openingCash,150);assert.equal(r.closingCash,350);assert.equal(r.actualCashIn,200);assert.equal(r.nonIncomeIn,200);assert.equal(r.economicIncome,0);assert.equal(r.actualCashOut,0);assert.equal(r.adjustment,0);assert.deepEqual(receiptTotals(d,'2026-11'),{income:0,nonIncome:200});assert.equal(monthSummary(d,2026,10).balance,0);assert.deepEqual(d.savings,before.savings);assert.deepEqual(d.days,{});assert.deepEqual(d.accounts.transfers,[]);assert.deepEqual(d.regional,other);assert.deepEqual(normalizeData(d),d);assert.equal(cashEvents(d).filter(e=>e.id==='withdraw').length,1);}
+});
+test('missing stock, invalid destination/date/amount, duplicate and later historical insufficiency fail without mutating the document',()=>{
+ for(const mutate of [d=>delete d.accounts.savings,d=>d.accounts.savingsOpenedOn='2026-11-03',d=>d.days['2026-11-03']={note:'',items:[{id:'legacy',title:'Old source payment',paymentMethod:'savings',status:'paid',amount:900}]}]){const d=base();mutate(d);const before=structuredClone(d);assert.throws(()=>withdraw(d));assert.deepEqual(d,before);}
+ for(const [amount,source,date]of [[1001,'bank','2026-11-02'],[10,'savings','2026-11-02'],[0,'cash','2026-11-02'],[-1,'bank','2026-11-02'],[10,'bank','2026-02-30']]){const d=base(),before=structuredClone(d);assert.throws(()=>withdraw(d,amount,source,'bad',date));assert.deepEqual(d,before);}
+ const d=base();withdraw(d,500);const before=structuredClone(d);assert.throws(()=>withdraw(d,600,'cash','second'));assert.throws(()=>withdraw(d,10));assert.deepEqual(d,before);
+});
+test('earmarked savings must be released before withdrawal; edit/delete and source changes undo both legs exactly',()=>{
+ const d=base();d.safety={funds:[{id:'reserve',name:'Reserved savings',source:'savings',kind:'goal',target:1000,entries:[{id:'earmark',date:'2026-11-01',direction:'allocate',amount:900,note:'Keep fund audit'}]}]};const before=structuredClone(d);assert.throws(()=>withdraw(d,200),/quỹ vượt số dư/);assert.deepEqual(d,before);withdraw(d,100);assert.equal(accountBalances(d,'2026-11-05').savings,900);
+ const changed=structuredClone(d);changed.receipts[0].source='cash';changed.receipts[0].amount=50;const n=normalizeData(changed),b=accountBalances(n,'2026-11-05');assert.equal(b.bank,100);assert.equal(b.cash,100);assert.equal(b.savings,950);n.receipts=[];const restored=normalizeData(n);assert.equal(accountBalances(restored,'2026-11-05').bank,100);assert.equal(accountBalances(restored,'2026-11-05').cash,50);assert.equal(accountBalances(restored,'2026-11-05').savings,1000);
+});
+test('deposit into savings is separate from expense; combined withdrawal and source transfers balance liquid pool with no fake adjustment',()=>{
+ const d=base();d.accounts.transfers=[{id:'deposit',date:'2026-11-02',from:'bank',to:'savings',amount:50},{id:'bank-cash',date:'2026-11-03',from:'bank',to:'cash',amount:20}];withdraw(d,100,'bank','release','2026-11-03');const n=normalizeData(d),r=period(n),b=accountBalances(n,'2026-11-05');assert.equal(r.savingsDeposited,50);assert.equal(r.actualCashIn,100);assert.equal(r.actualCashOut,0);assert.equal(r.economicIncome,0);assert.equal(r.expectedClosing,200);assert.equal(r.closingCash,200);assert.equal(r.adjustment,0);assert.equal(b.savings,950);assert.equal(b.bank+b.cash+b.savings,1150);
+ const legacy=base();legacy.accounts.transfers=[{id:'old-withdraw',date:'2026-11-02',from:'savings',to:'cash',amount:100}];assert.equal(period(legacy).actualCashIn,100);assert.equal(period(legacy).economicIncome,0);assert.equal(period(legacy).adjustment,0);
+});
+test('reconciled source closes and different payment months do not apply either withdrawal leg twice; forecast moves both sides',()=>{
+ const d=base();withdraw(d);reconcileMonth(d,'2026-11-30',{bank:300,cash:50,savings:800},{id:'close',today:'2026-12-03'});withdraw(d,100,'cash','next','2026-12-02');const n=normalizeData(d),b=accountBalances(n,'2026-12-03');assert.equal(b.bank,300);assert.equal(b.cash,150);assert.equal(b.savings,700);const r=cashPeriodDetails(n,{year:2026,month:11,asOf:'2026-12-03'});assert.equal(r.actualCashIn,100);assert.equal(r.adjustment,0);
+ const future=base();withdraw(future,200,'bank','future','2026-11-10');const forecast=forecast30(future,'2026-11-05');const end=forecast.days.at(-1);assert.equal(end.bank,300);assert.equal(end.savings,800);assert.equal(end.bank+end.cash+end.savings,1150);
+});
+test('cash currency precision, independent regions, no direct new savings expenses, and separate savings rail',()=>{
+ const d=newRegionalBook('GB');d.accounts={openedOn:'2026-11-01',bank:100,cash:50,savings:1000.123,creditDebt:0,creditLimit:null,transfers:[]};withdraw(d,0.123);assert.equal(accountBalances(normalizeData(d),'2026-11-05').savings,1000);
+ const a=base(),other=structuredClone(a.regional);withdraw(a);const combined=writeBook(a,'foreign',readBook(a,'foreign'));assert.deepEqual(combined.regional,other);const wrong=structuredClone(a);wrong.days['2026-11-05']={note:'',items:[{id:'new',title:'Direct',amount:5,status:'paid',paymentMethod:'savings'}]};assert.throws(()=>validateSpendingSources(a,wrong),/Rút tiết kiệm/);validateSpendingSources(wrong,structuredClone(wrong));const moved=structuredClone(wrong);moved.days['2026-11-06']=moved.days['2026-11-05'];delete moved.days['2026-11-05'];validateSpendingSources(wrong,moved);const duplicated=structuredClone(wrong);duplicated.days['2026-11-06']=structuredClone(duplicated.days['2026-11-05']);assert.throws(()=>validateSpendingSources(wrong,duplicated),/Rút tiết kiệm/);
+ const html=currentWalletContent(a,{asOf:'2026-11-05',signedIn:true});assert.match(html,/Tài sản chi tiêu/);assert.match(html,/<section class="current-savings"/);assert.match(html,/350 JPY/);assert.match(html,/800 JPY/);assert(!html.includes('1,150 JPY'));
+});
+test('Excel reports liquid assets and two source movements with receipt identity, correct non-income totals and no duplicate financial rows',()=>{
+ const d=base();withdraw(d);const before=structuredClone(d),sheets=reportSheets(d,{asOf:'2026-11-05'}),records=name=>{const [h,...r]=sheets.find(s=>s.name===name).rows;return r.map(v=>Object.fromEntries(h.map((k,i)=>[k,v[i]])));};
+ const balance=records('Số dư nguồn tiền')[0];assert.equal(balance['Tài sản'],350);assert.equal(balance['Tiết kiệm nguồn'],800);const summary=records('Tổng hợp tháng')[0];assert.equal(summary['Tiền vào không tạo thu nhập'],200);assert.equal(summary['Tổng tiền thực chi'],0);assert.equal(summary['Tiết kiệm cuối kỳ'],800);const receipt=records('Tiền vào khác')[0];assert.equal(receipt['Nguồn rút ra'],'Tiết kiệm');assert.equal(receipt['Số tiền'],200);assert.equal(records('Chuyển nguồn').filter(r=>r.ID==='withdraw').length,1);assert.deepEqual(d,before);
+});

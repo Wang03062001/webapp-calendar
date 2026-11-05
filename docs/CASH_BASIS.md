@@ -2,6 +2,16 @@
 
 Đây là quy tắc hiện hành, thay cho KPI thu nhập trừ chi phát sinh / chênh lệch kỳ lương trước đây.
 
+## Tiết kiệm riêng và rút qua tiền vào khác
+
+Tài sản chi tiêu chỉ gồm ngân hàng + tiền mặt. `accounts.savings` là số dư dự trữ riêng trong cùng tiền tệ thu chi của sổ. `savings[month]` là lịch sử tích lũy riêng, có thể dùng đồng tiền khác, không phải số dư để tự rút.
+
+`receipts[].type=savings-withdrawal` ghi ngày, số tiền, nơi nhận `bank|cash`, ID và ghi chú. Một bản ghi đồng thời trừ nguồn tiết kiệm và cộng nguồn nhận, không tạo thêm expense/transfer. Thuộc tiền vào không tạo thu nhập; không giảm tổng lịch sử tích lũy và không đổi tiền. Sửa/xóa đảo đúng cả hai phía; kiểm tra lại toàn bộ lịch sử và quỹ trước khi lưu. Thiếu mốc tiết kiệm, số tiền vượt số dư tại ngày rút hoặc làm thiếu vào ngày sau, và tiền đã dành cho quỹ đều được kiểm tra. Không tự xóa/giải phóng quỹ. Popup đóng, đổi khu vực hoặc tài khoản không được ghi tiếp; lỗi/xung đột giữ số đã nhập và cả hai số dư cũ.
+
+Giao diện khoản chi/trả nợ mới dùng ngân hàng/tiền mặt; muốn dùng tiết kiệm thì rút trước. Bản ghi dùng trực tiếp tiết kiệm cũ được giữ để đọc/đối chiếu và sửa theo quyền cũ, không tự chuyển đổi. Dòng tiền nguồn tiết kiệm cũ xuất riêng, không cộng vào tiền chi của ngân hàng/tiền mặt. Gửi từ ngân hàng/tiền mặt vào tiết kiệm không phải chi tiêu: `savingsDeposited` tách riêng trong cầu nối số dư. Rút từ tiết kiệm theo `accounts.transfers` cũ vẫn tăng nguồn nhận một lần, tách khỏi thu nhập.
+
+Excel: tài sản đầu/cuối kỳ là ngân hàng + tiền mặt; có cột tiết kiệm đầu/cuối kỳ và chuyển vào tiết kiệm. Tiền vào khác ghi rõ nguồn rút ra, bảng Chuyển nguồn có dòng đối chiếu cùng ID; đây không phải một giao dịch tiền thứ hai. Dòng tiền có cờ chuyển vào tiết kiệm để tách khỏi chi tiêu. Dự báo giao dịch rút tương lai đã lưu di chuyển cả hai nguồn. Không có thay đổi API/SQL hoặc tự chỉnh dữ liệu thật. Chạy `test/savings-withdrawal.test.js` và mocked `scripts/check-savings-withdrawal-browser.mjs` với các kiểm tra khác.
+
 ## Quy tắc mới nhất: sổ mới và bỏ theo dõi PayPay
 
 Phần này thay cho các mô tả giao diện PayPay/リボ/sao kê cũ phía dưới. Chỉ giữ nguồn chi tín dụng, danh sách/tổng theo ngày/tháng/năm và xuất Excel; không còn nhập số dư khả dụng, dư nợ, phí hay tạo sao kê. Giao dịch `creditTracking=true` không vào tổng tiền thực chi, cost helper tháng, ngân sách hoặc dư nợ ghi sổ. Trả thẻ thực tế vẫn là một khoản chi từ ngân hàng/tiền mặt/tiết kiệm, không phải giao dịch mua bằng tín dụng.
@@ -28,12 +38,12 @@ Kiểm tra: `npm test`, `npm run build`; trình duyệt dùng `scripts/check-res
 ## Công thức và thời gian
 
 - Tổng đã tiết kiệm đến hiện tại là tổng `savings[YYYY-MM]` đã được máy chủ xác nhận của sổ đang xem, từ mọi năm có dữ liệu đến tháng hiện tại ở Asia/Tokyo. Độc lập với năm/tháng đang chọn; không bỏ dữ liệu năm đã ẩn. Dữ liệu chỉ có tháng, không suy ra ngày gửi cụ thể. Loại tháng tương lai, mục tiêu năm và số dư `accounts.savings`; không quy đổi hoặc cộng hai khu vực/đồng tiền. Đây là lịch sử tích lũy, không phải một khoản tài sản được cộng thêm. Khi đang nhập/lưu lỗi, tổng giữ ảnh đã xác nhận; chỉ đổi sau ACK. Excel có bảng Tổng tiết kiệm theo ngày xem báo cáo (tối đa hôm nay). Kiểm tra bằng `scripts/check-savings-browser.mjs` với API giả lập.
-- Tài sản tiền = ngân hàng + tiền mặt + nguồn tiết kiệm thực có trong cùng sổ/đồng tiền.
+- Tài sản chi tiêu = ngân hàng + tiền mặt. Tiết kiệm là nguồn dự trữ riêng, không cộng vào tổng này.
 - Quỹ phân bổ trong `safety.funds` chỉ đánh dấu tiền trong nguồn; không cộng vào tài sản lần nữa. Lịch sử tiết kiệm/mục tiêu cũ có đơn vị riêng không tự trở thành nguồn tiền.
 - Thu nhập mới có trạng thái **Dự kiến chưa nhận / Đã thực nhận**. Dự kiến không tự trở thành thực nhận khi đến ngày. Các bản ghi ngày nhận cũ giữ cách đọc tương thích, không tự sửa lịch sử.
 - Tiền vào là tiền thực nhận theo ngày nhận: lương, thưởng, các khoản nhận khác. Tiền vay nhận về, tiền của bản thân, thu hồi gốc và hoàn tiền tăng tiền nhưng được tách khỏi thu nhập kinh tế.
-- Tiền ra = chi trực tiếp + gốc/lãi thực trả nợ khác + từng lần thực trả thẻ. Mua thẻ, dự kiến, hủy, nháp và chuyển nội bộ không vào tiền thực chi.
-- Cuối kỳ = đầu kỳ + tiền vào − tiền ra. Biến động = cuối kỳ − đầu kỳ. Nguồn có thể dùng = đầu kỳ + tiền vào. Tỷ lệ sử dụng = tiền ra / nguồn có thể dùng × 100; N/A khi thiếu mốc hoặc mẫu số không dương.
+- Tiền ra chi tiêu = chi trực tiếp từ ngân hàng/tiền mặt + gốc/lãi thực trả nợ khác + từng lần thực trả thẻ từ hai nguồn này. Mua thẻ, dự kiến, hủy, nháp và chuyển vào tiết kiệm không vào tiền thực chi. Rút tiết kiệm vào ngân hàng/tiền mặt là tiền vào không tạo thu nhập.
+- Cuối kỳ = đầu kỳ + tiền vào − tiền thực chi − chuyển vào tiết kiệm. Biến động = cuối kỳ − đầu kỳ. Nguồn có thể dùng = đầu kỳ + tiền vào. Tỷ lệ sử dụng = tiền thực chi / nguồn có thể dùng × 100; N/A khi thiếu mốc hoặc mẫu số không dương.
 - Nếu có mốc khởi tạo/đối chiếu trong kỳ, chênh lệch được trình bày riêng dưới **Điều chỉnh / đối chiếu số dư**. Không tạo khoản thu/chi giả để ép khớp công thức.
 - Báo cáo ngày/tháng/năm dùng ngày 1–cuối kỳ, theo Asia/Tokyo, chỉ tính đến ngày thực tế. Nhật và Việt Nam độc lập; không cộng hay đổi JPY với VND.
 - Kỳ lương là kế hoạch bổ sung. Ngày 15 trùng cuối tuần được đề xuất lùi về ngày trong tuần trước đó: 15/11/2026 → 13/11, kỳ trước kết thúc 12/11. Thiếu lịch nghỉ lễ thì ghi rõ chưa xác minh; người dùng nhập ngày thực nhận, ứng dụng không tự biến ngày dự kiến thành tiền vào. `salaryDate()` nhận danh sách ngày nghỉ rõ ràng khi có dữ liệu đó.

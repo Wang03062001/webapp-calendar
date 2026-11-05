@@ -1,6 +1,35 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Tài sản chi tiêu|Spendable assets|支出用資金|지출용 자산|可支用資產
+Tài sản và tiết kiệm|Assets and savings|支出用資金と貯蓄|자산과 저축|資產與儲蓄
+Tiết kiệm riêng|Separate savings|別管理の貯蓄|별도 저축|獨立儲蓄
+Số dư tiết kiệm còn lại|Remaining savings balance|貯蓄残高|남은 저축 잔액|剩餘儲蓄餘額
+Rút tiết kiệm|Withdraw savings|貯蓄から引き出す|저축 인출|提領儲蓄
+Theo dõi riêng với tài sản chi tiêu. Rút tiết kiệm qua Tiền vào khác để nhận vào ngân hàng hoặc tiền mặt.|Kept separate from spendable assets. Withdraw through Other cash inflows to receive into bank or cash.|支出用資金と別に管理します。「その他の入金」から銀行または現金へ引き出します。|지출용 자산과 별도로 관리합니다. 기타 입금에서 은행 또는 현금으로 저축을 인출하세요.|與可支用資產分開管理。透過其他入款將儲蓄轉入銀行或現金。
+Tài sản chi tiêu gồm ngân hàng + tiền mặt.|Spendable assets include bank + cash.|支出用資金は銀行＋現金です。|지출용 자산은 은행 + 현금입니다.|可支用資產為銀行加現金。
+Ngân hàng + tiền mặt · theo ngày thực nhận|Bank + cash · by actual receipt date|銀行＋現金・実際の入金日基準|은행 + 현금 · 실제 수령일 기준|銀行加現金・按實際收款日期
+Biến động tài sản chi tiêu|Spendable asset change|支出用資金の増減|지출용 자산 변동|可支用資產變動
+Tài sản chi tiêu còn lại|Remaining spendable assets|残りの支出用資金|남은 지출용 자산|剩餘可支用資產
+Ngân hàng + tiền mặt · tiết kiệm theo dõi riêng|Bank + cash · savings tracked separately|銀行＋現金・貯蓄は別管理|은행 + 현금 · 저축은 별도 관리|銀行加現金・儲蓄獨立管理
+Tiết kiệm riêng đầu ngày|Separate savings at start of day|当日開始時の別管理貯蓄|하루 시작 시 별도 저축|當日開始時獨立儲蓄
+Tài sản chi tiêu đầu ngày:|Opening spendable assets:|当日開始時の支出用資金：|하루 시작 시 지출용 자산:|當日開始時可支用資產：
+Tài sản chi tiêu:|Spendable assets:|支出用資金：|지출용 자산:|可支用資產：
+Rút tiết kiệm chỉ nhận vào ngân hàng hoặc tiền mặt.|Savings withdrawals can only go into bank or cash.|貯蓄の引出先は銀行または現金のみです。|저축 인출금은 은행 또는 현금으로만 받을 수 있습니다.|儲蓄提領只能轉入銀行或現金。
+Rút tiết kiệm qua Tiền vào khác vào ngân hàng hoặc tiền mặt trước khi chi.|Withdraw savings through Other cash inflows into bank or cash before spending.|支出前に「その他の入金」で貯蓄を銀行または現金へ引き出してください。|지출 전에 기타 입금에서 저축을 은행 또는 현금으로 인출하세요.|支出前，請先透過其他入款將儲蓄轉入銀行或現金。
+Rút từ số dư tiết kiệm thực của khu vực này, cùng đơn vị tiền. Không tạo thu nhập mới.|Withdraw from this book's actual savings in the same currency. This creates no new income.|この地域の実際の貯蓄から同じ通貨で引き出します。新たな収入にはなりません。|이 장부의 실제 저축에서 같은 통화로 인출합니다. 새 수입은 생기지 않습니다.|從此地區的實際儲蓄餘額以相同幣別提領，不產生新收入。
+Tiết kiệm tại ngày nhận:|Savings on receipt date:|受取日時点の貯蓄：|수령일 저축 잔액:|收款當日儲蓄：
+Sau khi rút:|After withdrawal:|引出後：|인출 후:|提領後：
+Nhận vào ngân hàng:|Receive into bank:|銀行へ受取：|은행으로 수령:|轉入銀行：
+Nhận vào tiền mặt:|Receive as cash:|現金で受取：|현금으로 수령:|轉入現金：
+Tiết kiệm · bản ghi cũ|Savings · legacy record|貯蓄・既存の記録|저축 · 기존 기록|儲蓄・舊紀錄
+Chuyển vào tiết kiệm|Move into savings|貯蓄へ移す|저축으로 이체|轉入儲蓄
+Tiền nhận trực tiếp vào tiết kiệm|Receipts directly into savings|貯蓄への直接入金|저축으로 직접 받은 금액|直接存入儲蓄的款項
+Chi trực tiếp từ tiết kiệm · bản ghi cũ|Direct savings spending · legacy records|貯蓄からの直接支出・既存の記録|저축 직접 지출 · 기존 기록|直接從儲蓄支出・舊紀錄
+Chuyển vào tiết kiệm được ghi riêng, không tính là chi tiêu.|Savings deposits are separate from spending.|貯蓄への移動は支出と分けて記録します。|저축 이체는 지출과 별도로 기록합니다.|轉入儲蓄獨立記錄，不計為消費支出。
+Tài sản chi tiêu = ngân hàng + tiền mặt. Cuối kỳ = đầu kỳ + tiền vào − tiền thực chi − chuyển vào tiết kiệm, cộng điều chỉnh số dư đã xác nhận nếu có.|Spendable assets = bank + cash. Closing = opening + inflows − spending − savings deposits, plus any confirmed balance adjustments.|支出用資金＝銀行＋現金。期末＝期首＋入金−支出−貯蓄への移動＋確認済み残高調整です。|지출용 자산 = 은행 + 현금. 기말 = 기초 + 입금 − 지출 − 저축 이체 + 확인된 잔액 조정입니다.|可支用資產＝銀行＋現金。期末＝期初＋入款−實際支出−轉入儲蓄，再加上已確認餘額調整。
+Xóa khoản nhận sẽ giảm số dư tương ứng. Với Rút tiết kiệm, số tiền được hoàn lại tiết kiệm và trừ khỏi ngân hàng hoặc tiền mặt đã nhận.|Deleting a receipt reverses its balance effect. A savings withdrawal restores savings and debits the receiving bank or cash.|入金の削除で残高への影響を戻します。貯蓄の引出は貯蓄へ戻し、受取先の銀行または現金から差し引きます。|입금을 삭제하면 잔액 변동이 취소됩니다. 저축 인출은 저축에 복구하고 수령한 은행 또는 현금에서 차감합니다.|刪除入款會還原餘額變動。儲蓄提領會歸還儲蓄，並扣回收款的銀行或現金。
+Sau khi xóa, nhập số dư ngân hàng, tiền mặt và tiết kiệm đầu ngày bắt đầu, trước các giao dịch. Tài sản chi tiêu = ngân hàng + tiền mặt; tiết kiệm theo dõi riêng. Nếu chưa nhập, số dư hiển thị Chưa thiết lập.|After clearing, enter bank, cash and savings balances before transactions on the start date. Spendable assets = bank + cash; savings is separate. Unentered balances show Not set.|消去後、開始日の取引前の銀行・現金・貯蓄残高を入力します。支出用資金＝銀行＋現金、貯蓄は別管理です。未入力なら未設定と表示します。|삭제 후 시작일 거래 전 은행, 현금, 저축 잔액을 입력하세요. 지출용 자산 = 은행 + 현금이며 저축은 별도입니다. 입력 전에는 미설정으로 표시됩니다.|清除後輸入開始日交易前的銀行、現金及儲蓄餘額。可支用資產為銀行加現金，儲蓄分開管理。未輸入前顯示尚未設定。
 Tổng đã tiết kiệm đến hiện tại|Total saved to date|現在までの積立合計|현재까지 저축한 총액|截至目前已儲蓄總額
 Đăng nhập để xem tổng tiết kiệm.|Sign in to view total savings.|積立合計を表示するにはログインしてください。|총 저축액을 보려면 로그인하세요.|登入以查看儲蓄總額。
 Chưa có dữ liệu đã được máy chủ xác nhận.|No server-confirmed data is available yet.|サーバーで確認済みのデータはまだありません。|아직 서버에서 확인된 데이터가 없습니다.|尚無伺服器已確認的資料。

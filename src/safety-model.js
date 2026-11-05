@@ -88,7 +88,7 @@ export function forecast30(data,asOf){
  // Planned expenses are represented by exactly one obligation row, not twice.
  for(const o of obligations){if(o.amount==null||!o.source){unknown.push(o);continue;}push({...o,date:o.date<=asOf?addDays(asOf,1):o.date,delta:-o.amount,overdue:o.date<=asOf});}
  for(const [month,i]of Object.entries(data.incomes))push({date:i.receivedOn||month+'-15',source:i.account||'bank',delta:addMoney(i.salary||0,i.bonus||0),title:'Lương & thưởng'});
- for(const r of data.receipts||[])push({date:r.date,source:r.source,delta:r.amount,title:r.note||'Tiền nhận'});
+ for(const r of data.receipts||[]){push({date:r.date,source:r.source,delta:r.amount,title:r.note||'Tiền nhận'});if(r.type==='savings-withdrawal')push({date:r.date,source:'savings',delta:-r.amount,title:'Rút tiết kiệm'});}
  for(const [date,day]of Object.entries(data.days))for(const i of day.items){
   if(['planned','cancelled','draft'].includes(i.status)||i.paymentMethod==='card'||i.cardPaymentMonth||i.cardFeeMonth)continue;
   if(isInternalMovement(i)){const from=i.movement==='withdraw'?'bank':'cash',to=from==='bank'?'cash':'bank';push({date,source:from,delta:-i.amount,title:i.title});push({date,source:to,delta:i.amount,title:i.title});}

@@ -3,6 +3,15 @@ import {wholeCurrencyMoney} from './money.js';
 import {statementProgress} from './card-ledger.js';
 import {shiftMonth} from './card-model.js';
 const moneyFields=new Set(['amount','salary','bonus','bank','cash','savings','creditDebt','creditLimit','oneOff','priorBalance','newRibo','principal','fees','interest','target','essentialMonthly','monthlyDebtBudget','minimum','expectedBank','expectedCash','expectedSavings','deltaBank','deltaCash','deltaSavings','statementAmount','estimatedPrincipal','estimatedFees','monthlyPrincipal']);
+export function validateSpendingSources(before,next){
+ const prior=Object.values(before.days).flatMap(d=>d.items),current=Object.values(next.days).flatMap(d=>d.items);
+ for(const [date,day]of Object.entries(next.days))for(const item of day.items)if(item.paymentMethod==='savings'){
+  const old=before.days[date]?.items.find(r=>r.id===item.id);
+  // A legacy obligation may move its original row to the actual payment day.
+  const moved=!old&&prior.filter(r=>r.id===item.id&&r.paymentMethod==='savings').length===1&&current.filter(r=>r.id===item.id).length===1;
+  if(old?.paymentMethod!=='savings'&&!moved)throw Error('Rút tiết kiệm qua Tiền vào khác vào ngân hàng hoặc tiền mặt trước khi chi.');
+ }
+}
 export function validateMoneyChanges(before,next){
  const compatible=new Set();for(const bill of next.cards?.statements||[]){const prior=before?.cards?.statements?.find(s=>s.month===bill.month);if(!prior)continue;const remaining=statementProgress(prior).remaining;if(Number.isInteger(remaining))continue;for(const p of bill.payments||[])if(!prior.payments?.some(old=>old.id===p.id)&&p.amount===remaining){compatible.add(p.id);compatible.add(p.expenseId);}}
  const currency=next.currencies?.cash||'JPY',legacyCurrency=next.currencies?.savings||'VND';

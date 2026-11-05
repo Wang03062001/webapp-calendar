@@ -86,7 +86,14 @@ export function accountBalances(data, through, {ignoreReconciliationOn} = {}) {
     else if(includesCredit(r.date))balances.creditDebt=subtractMoney(balances.creditDebt,r.amount);
   }
   for(const item of a.transfers){if((item.from==='savings'||item.to==='savings')&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');if(includesSource(item.from,item.date))balances[item.from]=subtractMoney(balances[item.from],item.amount);if(includesSource(item.to,item.date))balances[item.to]=addMoney(balances[item.to],item.amount);}
-  for(const r of data.receipts||[])if(includesSource(r.source,r.date)){if(r.source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[r.source]=addMoney(balances[r.source],r.amount);}
+  for(const r of data.receipts||[]){
+    if(r.type==='savings-withdrawal'){
+      if(a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');
+      if(!['bank','cash'].includes(r.source))throw Error('Rút tiết kiệm chỉ nhận vào ngân hàng hoặc tiền mặt.');
+      if(includesSource('savings',r.date))balances.savings=subtractMoney(balances.savings,r.amount);
+    }
+    if(includesSource(r.source,r.date)){if(r.source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[r.source]=addMoney(balances[r.source],r.amount);}
+  }
   for(const key of ['bank','cash','creditDebt',...(a.savings!==undefined?['savings']:[])])if(balances[key]!==null)balances[key]=roundCard(balances[key]);
   if(a.creditLimit!==null && balances.creditDebt!==null && balances.creditDebt>=0)balances.available=subtractMoney(a.creditLimit,balances.creditDebt);
   return balances;
@@ -128,7 +135,7 @@ export function validateSavingsLedger(data){
  const a=data.accounts,dates=[];
  for(const [date,entry] of Object.entries(data.days))if(entry.items.some(i=>i.paymentMethod==='savings'&&!['planned','cancelled','draft'].includes(i.status)))dates.push(date);
  for(const [month,i] of Object.entries(data.incomes))if(i.account==='savings'&&(i.salary||i.bonus))dates.push(i.receivedOn||`${month}-15`);
- for(const r of data.receipts||[])if(r.source==='savings')dates.push(r.date);
+ for(const r of data.receipts||[])if(r.source==='savings'||r.type==='savings-withdrawal')dates.push(r.date);
  for(const t of a?.transfers||[])if(t.from==='savings'||t.to==='savings')dates.push(t.date);
  for(const p of cardPayments(data))if(p.source==='savings')dates.push(p.date);
  for(const r of data.cards?.adjustments||[])if(!r.voided&&r.type==='bank-refund'&&r.source==='savings')dates.push(r.date);

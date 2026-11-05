@@ -49,6 +49,6 @@ test('daily card payments consume their selected source and earmarked fund once,
  const {fundBalance}=await import('../src/safety-model.js');
  for(const source of ['bank','cash','savings']){
   const d=base();d.accounts.bank=100000;d.accounts.cash=100000;d.accounts.savings=100000;d.safety={funds:[{id:'reserve',name:'Card reserve',source,kind:'goal',target:100000,entries:[{id:'allocation',date:'2026-09-01',direction:'allocate',amount:60000,note:'Keep audit'}]}]};d.days['2026-10-27']={note:'Payment note',items:[{id:'fund-payment',title:'Pay bill',category:'Thanh toán thẻ',paymentMethod:source,status:'paid',fundId:'reserve',amount:31320}]};
-  const next=normalizeData(d);assert.equal(accountBalances(next,'2026-10-31')[source],68680);assert.equal(fundBalance(next,'reserve','2026-10-31'),28680);assert.equal(cash(next).actualCashOut,31320);assert.equal(trackingMonth(next,'2026-10',{asOf:'2026-10-31'}).paymentTotal,31320);next.days['2026-10-27'].items[0].amount=60001;assert.throws(()=>normalizeData(next),/Quỹ không đủ/);
+  const next=normalizeData(d);assert.equal(accountBalances(next,'2026-10-31')[source],68680);assert.equal(fundBalance(next,'reserve','2026-10-31'),28680);assert.equal(cash(next).actualCashOut,source==='savings'?0:31320);assert.equal(trackingMonth(next,'2026-10',{asOf:'2026-10-31'}).paymentTotal,31320);next.days['2026-10-27'].items[0].amount=60001;assert.throws(()=>normalizeData(next),/Quỹ không đủ/);
  }
 });
