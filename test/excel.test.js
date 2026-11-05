@@ -86,3 +86,8 @@ test('monthly tracking and daily card-payment category export numeric observatio
  const purchase=records(sheets,'Giao dịch').find(r=>r.ID==='tracking-purchase');assert.equal(purchase['Kỳ sao kê'],'');assert.equal(purchase['Tiền thực chi'],0);
  const ordinary=reportSheets(data,{...options,creditAllowed:false});assert(!ordinary.some(s=>s.name==='Theo dõi tín dụng tháng'||s.name==='Lịch sử dư nợ リボ'));assert(!records(ordinary,'Giao dịch').some(r=>r.ID==='daily-card-payment'||r.ID==='tracking-purchase'));
 });
+
+test('cumulative savings report uses each book savings currency and cutoff, including archived months but excluding goals, source balances and future months',()=>{
+ const data=excelFixture();data.savings={'2024-12':10.123,'2026-11':20,'2026-12':99999};data.regional.vietnam.savings={'2025-12':1000,'2026-11':2000,'2027-01':999999};data.regional.vietnam.currencies.savings='JPY';const before=structuredClone(data);
+ const rows=records(reportSheets(data,{asOf:'2026-11-04',creditAllowed:true}),'Tổng tiết kiệm');assert.deepEqual(rows.map(r=>[r['Khu vực'],r['Tiền tệ'],r['Tổng đã tiết kiệm theo tháng'],r['Số tháng có ghi nhận']]),[['Sổ nước ngoài','VND',30.123,2],['Sổ Việt Nam','JPY',3000,2]]);assert(rows.every(r=>r['Tháng tổng hợp']==='2026-11'&&r['Tính đến']==='2026-11-04'));assert.deepEqual(records(reportSheets(data,{asOf:'2026-11-04',creditAllowed:false}),'Tổng tiết kiệm'),rows);assert.deepEqual(data,before);
+});

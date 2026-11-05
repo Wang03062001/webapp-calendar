@@ -5,7 +5,7 @@ import {tokyoToday,salaryDate,plannedSalaryCycle} from './finance-date.js';
 import {statsDetails,salaryCycleDetails,salaryCycleEnabled} from './stats-model.js';
 import {readBook,countryOf} from './region-model.js';
 import {financeView} from './credit-access.js';
-import {monthSummary,categoryOf,expenseStatus,debtBalance} from './model.js';
+import {monthSummary,categoryOf,expenseStatus,debtBalance,savingsToDate} from './model.js';
 import {accountBalances,accountSource,isCardPayment,isInternalMovement,moneyOut,sourceOpening} from './account-model.js';
 import {statementNumbers,roundCard,cardDate,shiftMonth,availableCredit} from './card-model.js';
 import {normalizeCurrencies} from './preferences.js';
@@ -31,6 +31,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
   const table=(name,columns)=>{const rows=[columns];sheets.push({name,rows});return rows;};
   const help=table('Hướng dẫn',['Nội dung','Giá trị']);
   help.push(['Ngày xem số dư',asOf],['Phạm vi','Toàn bộ các năm có dữ liệu trong các sổ khu vực, kể cả năm đã ẩn khỏi điều hướng.'],['Trạng thái dữ liệu',draft?'Bản nháp chưa lưu chưa được tính vào báo cáo dòng tiền; giữ đầy đủ trong sao lưu JSON.':'Dữ liệu đã lưu tại thời điểm xuất.'],['Dữ liệu thẻ',allowed?'Bao gồm theo quyền admin vừa được xác minh.':'Ẩn dữ liệu thẻ và khoản vay tín dụng theo quyền hiện tại.'],['Tiền tệ','Mỗi dòng ghi riêng khu vực và tiền tệ; không quy đổi hoặc cộng tổng các đồng tiền.'],['Dòng tiền thực tế','Chỉ tiền thực nhận/thực trả đến ngày xem. Mua bằng thẻ không tính là tiền ra; sao kê chỉ tính từng lần thực trả một lần.'],['Chi phí','Không tính chuyển nội bộ, phí sao kê hoặc thanh toán thẻ lần nữa. Chỉ Đã chi được tính vào chi phí thực tế.'],['Số dư','Tính đến ngày xem số dư ở trên; tổng hợp tháng vẫn theo đúng giao dịch của từng tháng.'],['Khôi phục','Excel để xem và tính toán. Dùng Sao lưu JSON trong hộp xuất dữ liệu để nhập lại toàn bộ dữ liệu vào ứng dụng.']);
+  help.push(['Tổng tiết kiệm','Cộng lịch sử tiết kiệm tháng đã lưu đến tháng của ngày xem, gồm các năm trước; không cộng mục tiêu, số dư nguồn tiết kiệm hoặc tháng tương lai.']);
   const settings=table('Sổ và cài đặt',['Khu vực','Quốc gia','Tiền thu chi','Tiền tiết kiệm cũ','Các năm đang hiện','Chức năng','Giá trị']);
   const summary=table('Tổng hợp tháng',['Khu vực','Tiền tệ','Tháng','Tài sản đầu kỳ','Tiền vào thực tế','Thu nhập thực nhận','Tiền vào không tạo thu nhập','Chi trực tiếp','Trả nợ khác',...(allowed?['Đã thanh toán thẻ']:[]),'Tổng tiền thực chi','Tài sản cuối kỳ','Biến động tài sản','Tỷ lệ nguồn tiền đã dùng %','Điều chỉnh số dư',...(allowed?['Phát sinh tín dụng']:[]),'Dự kiến thanh toán đã biết','Tính đến']);
   const flows=table('Dòng tiền thực tế',['Khu vực','Tiền tệ','ID','Ngày','Chiều','Loại','Nguồn','Số tiền','Tạo thu nhập','Nội dung','Ghi chú']);
@@ -45,6 +46,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
   const reconciliations=table('Đối chiếu',['Khu vực','Tiền tệ','ID','Ngày','Loại','Ngày xác nhận','Ngân hàng thực tế','Ngân hàng theo sổ','Chênh lệch ngân hàng','Tiền mặt thực tế','Tiền mặt theo sổ','Chênh lệch tiền mặt','Tiết kiệm thực tế','Tiết kiệm theo sổ','Chênh lệch tiết kiệm','Ghi chú']);
   const transfers=table('Chuyển nguồn',['Khu vực','Tiền tệ','ID','Ngày','Từ','Đến','Số tiền','Loại bản ghi']);
   const savings=table('Tiết kiệm cũ và mục tiêu',['Khu vực','Tiền tệ','Loại','Kỳ','Số tiền']);
+  const savingsTotal=table('Tổng tiết kiệm',['Khu vực','Tiền tệ','Tính đến','Tháng tổng hợp','Tổng đã tiết kiệm theo tháng','Số tháng có ghi nhận']);
   const debts=table('Khoản vay',['Khu vực','Tiền tệ','ID','Nội dung','Loại','Gốc ban đầu','Gốc đã trả','Gốc còn lại','Ngày đến hạn']);
   const payments=table('Lịch sử trả nợ',['Khu vực','Tiền tệ','ID khoản vay','ID lần trả','Ngày','Gốc','Lãi phí','Tổng thanh toán','Nguồn','Đã hủy','ID giao dịch liên kết']);
   const funds=table('Quỹ',['Khu vực','Tiền tệ','ID','Tên','Nguồn','Loại','Mục tiêu','Đã đóng','Số dư tại ngày xem']);
@@ -66,6 +68,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
     settings.push([label,countryOf(book),unit,currencies.savings,(book.years||[]).join(', '),'','']);
     for(const [key,value]of entries(book.bookSettings?.modules))settings.push([label,'','','','',key,value?'Có':'Không']);
     const cutoff=asOf<tokyoToday()?asOf:tokyoToday();
+    const accumulated=savingsToDate(book,cutoff);savingsTotal.push([label,currencies.savings,cutoff,accumulated.through,accumulated.total,accumulated.months]);
     if(salaryCycleEnabled(book)){
       const month=cutoff.slice(0,7),plan=plannedSalaryCycle(cutoff>=salaryDate(month).date?month:shiftMonth(month,-1));
       const c=cashPeriodDetails(book,{start:plan.start,end:plan.end,asOf:cutoff,creditAllowed:allowed});

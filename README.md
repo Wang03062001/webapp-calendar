@@ -8,6 +8,8 @@
 
 Web app tiếng Việt quản lý lịch, chi tiêu và thu nhập với các năm và khả năng thêm/xóa năm. Cần đăng nhập để nhập và lưu dữ liệu. Dữ liệu đồng bộ qua Supabase giữa các thiết bị.
 
+Trong **Quỹ tiết kiệm của bạn**, mục **Tổng đã tiết kiệm đến hiện tại** cộng lịch sử tiết kiệm theo tháng đã lưu đến tháng hiện tại, gồm các năm trước và năm đã ẩn khỏi danh sách. Đổi tháng/năm xem không đổi tổng này; tháng tương lai và mục tiêu năm không được cộng. Mỗi khu vực dùng riêng tiền tệ tiết kiệm của sổ. Đây là tổng lịch sử đã ghi, không tự tăng tài sản hoặc thay số dư nguồn tiết kiệm. Excel có trang **Tổng tiết kiệm** theo ngày xem báo cáo.
+
 ## Chạy ứng dụng
 
 Yêu cầu Node.js 22 trở lên. Không có dependency cần cài đặt.

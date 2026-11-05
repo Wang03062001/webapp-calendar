@@ -66,6 +66,13 @@ export function savingsProgress(data, year) {
   const goal = amount(data.goals?.[year]);
   return { saved, goal, remaining: Math.max(0,subtractMoney(goal,saved)), percent: goal ? Math.round(saved / goal * 100) : 0 };
 }
+// Monthly history has no day-of-month: include saved months through the
+// current month, including archived years. Source balances/goals are separate.
+export function savingsToDate(data,asOf){
+  if(!cardDate(asOf))throw Error('Ngày tổng hợp tiết kiệm không hợp lệ.');
+  const through=asOf.slice(0,7),rows=Object.entries(data.savings||{}).filter(([month])=>validMonth(month)&&month<=through);
+  return {total:sumMoney(rows.map(([,value])=>value)),through,months:rows.length};
+}
 export const validDate = value => {
   const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(value);
   return Boolean(match && validYear(+match[1]) && +match[3] <= daysInMonth(+match[1], +match[2] - 1));

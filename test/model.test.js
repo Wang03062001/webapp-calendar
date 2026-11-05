@@ -219,3 +219,8 @@ test('due-date filters handle today, seven days, overdue, year boundaries and co
  repayDebt(data,'a',{id:'p',date:'2027-01-03',amount:100});assert.equal(debtDueStatus(debt,'2027-01-04'),'paid');
  cancelDebtPayment(data,'a','p');assert.equal(debtDueStatus(debt,'2027-01-04'),'overdue');assert.deepEqual(normalizeData(data),data);
 });
+
+test('cumulative savings spans archived years through current month, preserves legacy precision and separates goals/source stocks/regions',async()=>{
+ const {savingsToDate}=await import('../src/model.js');const data=emptyData();data.years=[2026];data.savings={'2024-12':1000.123,'2026-10':2000.2,'2026-11':3000,'2026-12':900000,'2027-01':800000};data.goals={'2026':999999};data.accounts={savings:700000};data.regional={vietnam:{savings:{'2026-11':999999999}}};const before=structuredClone(data);
+ assert.deepEqual(savingsToDate(data,'2026-11-05'),{total:6000.323,through:'2026-11',months:3});assert.deepEqual(savingsToDate(data,'2026-10-31'),{total:3000.323,through:'2026-10',months:2});assert.equal(savingsToDate(data,'2026-12-01').total,906000.323);assert.deepEqual(savingsToDate(emptyData(),'2026-11-05'),{total:0,through:'2026-11',months:0});assert.throws(()=>savingsToDate(data,'2026-02-30'));assert.deepEqual(data,before);
+});

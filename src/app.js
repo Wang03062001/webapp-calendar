@@ -15,11 +15,11 @@ import {regionBar,showRegionSettings,receiptsPanel,receivablesPanel,showCashEntr
 import { financeView, isCreditItem, creditSnapshot } from './credit-access.js';
 import { accountsPanel, showAccountLedger, showMonthReconciliation, showBalanceRequest, showSavingsOpening, sourceName } from './accounts-ui.js';
 import { accountSource, moneyKind, moneyOut, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
-import { setCurrencies, currencyLabel, readDisplay, saveDisplay, installMoneyFormatting } from './preferences.js';
+import { setCurrencies, currencyLabel, normalizeCurrencies, readDisplay, saveDisplay, installMoneyFormatting } from './preferences.js';
 import { startTranslations, setLanguage, t } from './i18n.js';
 import { showSettings, needsCurrencySetup } from './settings-ui.js';
 import { showProfile } from './profile-ui.js';
-import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, monthSummary, yearSummary, savingsProgress, emptyData, normalizeData, CATEGORIES, categoryOf, expenseStatus, expenseRows } from './model.js';
+import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, monthSummary, yearSummary, savingsProgress, savingsToDate, emptyData, normalizeData, CATEGORIES, categoryOf, expenseStatus, expenseRows } from './model.js';
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
 import { SyncController } from './sync.js';
@@ -218,11 +218,19 @@ function stat(symbol, label, value, detail, color, currency = 'cash') {
 }
 function savingsPanel() {
   return `<section class="card savings-panel" aria-label="Kế hoạch tiết kiệm"><div class="card-heading"><div class="income-heading"><span class="stat-icon green">${icon('spark')}</span><div><h2>Quỹ tiết kiệm của bạn</h2><p>${view === 'year' ? `Mục tiêu tiết kiệm năm ${year}` : `Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} / ${year}`}</p></div></div><span class="tag">TIẾT KIỆM</span></div>
+    <div id="savings-cumulative" class="savings-cumulative" aria-live="polite">${savingsCumulativeContent()}</div>
     <div class="savings-layout"><div class="savings-inputs">
       ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>__SAVINGS__</span><input id="monthly-savings" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0" value="${amount(data.savings[monthKey(year, month)]) ? formatAmount(data.savings[monthKey(year, month)]) : ''}" /></label>` : ''}
       ${view === 'year' ? `<label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>__SAVINGS__</span><input id="annual-savings-goal" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0" value="${amount(data.goals[year]) ? formatAmount(data.goals[year]) : ''}" /></label>` : ''}
     </div>${view === 'year' ? `<div id="savings-progress">${savingsProgressContent()}</div>` : ''}</div>
     <p class="savings-hint">Số nhập theo tháng là lịch sử tích lũy, không tự tăng số dư nguồn tiết kiệm. Dùng Phân bổ / chuyển nguồn tiền để đưa tiền vào tiết kiệm. Dữ liệu tiết kiệm cũ __SAVINGS__ được giữ nguyên; nguồn tiết kiệm thực dùng __CASH__.</p></section>`;
+}
+function savingsCumulativeContent(){
+  const title='<span>Tổng đã tiết kiệm đến hiện tại</span>';
+  if(!cloud.user)return `${title}<p>Đăng nhập để xem tổng tiết kiệm.</p>`;
+  if(!cloud.confirmedData)return `${title}<strong>N/A</strong><p>Chưa có dữ liệu đã được máy chủ xác nhận.</p>`;
+  const book=actualData(),d=savingsToDate(book,localToday()),unit=normalizeCurrencies(book.currencies).savings;
+  return `${title}<strong data-savings-cumulative>${formatAmount(d.total)} ${unit==='VND'?'VNĐ':unit}</strong><p>Đến tháng ${d.through.slice(5)}/${d.through.slice(0,4)} · Tất cả các năm đã lưu</p><small>Cộng các khoản tiết kiệm tháng đã lưu, gồm cả năm trước.</small>`;
 }
 function savingsProgressContent() {
   if (view === 'calendar') return `<div class="savings-progress-heading"><span>Đã tiết kiệm trong tháng</span><strong>${dong(monthSummary(visibleData(), year, month).savings)}</strong></div>`;
@@ -333,6 +341,7 @@ function refreshTotals() {
   if(document.querySelector('#budget-warnings'))document.querySelector('#budget-warnings').innerHTML=budgetWarnings(actualView(),monthKey(year,month));
   document.querySelector('#dashboard-charts').innerHTML = dashboardCharts();
   const progress = document.querySelector('#savings-progress'); if (progress) progress.innerHTML = savingsProgressContent();
+  const cumulative=document.querySelector('#savings-cumulative');if(cumulative)cumulative.innerHTML=savingsCumulativeContent();
   if (view === 'year') return;
   document.querySelector('#day-money-out').textContent=money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut);
   document.querySelector('#day-total').textContent = money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut);

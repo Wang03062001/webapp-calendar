@@ -1,6 +1,12 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Tổng đã tiết kiệm đến hiện tại|Total saved to date|現在までの積立合計|현재까지 저축한 총액|截至目前已儲蓄總額
+Đăng nhập để xem tổng tiết kiệm.|Sign in to view total savings.|積立合計を表示するにはログインしてください。|총 저축액을 보려면 로그인하세요.|登入以查看儲蓄總額。
+Chưa có dữ liệu đã được máy chủ xác nhận.|No server-confirmed data is available yet.|サーバーで確認済みのデータはまだありません。|아직 서버에서 확인된 데이터가 없습니다.|尚無伺服器已確認的資料。
+Đến tháng|Through month|集計対象月|집계 기준 월|統計截至月份
+Tất cả các năm đã lưu|All saved years|保存済みの全年度|저장된 모든 연도|所有已儲存年份
+Cộng các khoản tiết kiệm tháng đã lưu, gồm cả năm trước.|Sums saved monthly records, including previous years.|過年度を含む保存済みの月別積立額の合計です。|이전 연도를 포함해 저장된 월별 저축 기록을 합산합니다.|加總已儲存的每月儲蓄紀錄，包括往年。
 Bắt đầu theo dõi mới|Start a new ledger|新しい記録を開始|새 장부 시작|開始新的帳本
 Đặt lại dữ liệu tài chính|Reset financial data|財務データをリセット|재무 데이터 초기화|重設財務資料
 Xóa dữ liệu cũ và chọn ngày bắt đầu theo dõi mới cho cả hai khu vực.|Clear old data and select a new start date for both regional books.|両地域の既存データを消去し、新しい開始日を選びます。|두 지역 장부의 기존 데이터를 지우고 새 시작일을 선택합니다.|清除兩個地區的舊資料並選擇新的開始日期。

@@ -27,6 +27,7 @@ Kiểm tra: `npm test`, `npm run build`; trình duyệt dùng `scripts/check-res
 
 ## Công thức và thời gian
 
+- Tổng đã tiết kiệm đến hiện tại là tổng `savings[YYYY-MM]` đã được máy chủ xác nhận của sổ đang xem, từ mọi năm có dữ liệu đến tháng hiện tại ở Asia/Tokyo. Độc lập với năm/tháng đang chọn; không bỏ dữ liệu năm đã ẩn. Dữ liệu chỉ có tháng, không suy ra ngày gửi cụ thể. Loại tháng tương lai, mục tiêu năm và số dư `accounts.savings`; không quy đổi hoặc cộng hai khu vực/đồng tiền. Đây là lịch sử tích lũy, không phải một khoản tài sản được cộng thêm. Khi đang nhập/lưu lỗi, tổng giữ ảnh đã xác nhận; chỉ đổi sau ACK. Excel có bảng Tổng tiết kiệm theo ngày xem báo cáo (tối đa hôm nay). Kiểm tra bằng `scripts/check-savings-browser.mjs` với API giả lập.
 - Tài sản tiền = ngân hàng + tiền mặt + nguồn tiết kiệm thực có trong cùng sổ/đồng tiền.
 - Quỹ phân bổ trong `safety.funds` chỉ đánh dấu tiền trong nguồn; không cộng vào tài sản lần nữa. Lịch sử tiết kiệm/mục tiêu cũ có đơn vị riêng không tự trở thành nguồn tiền.
 - Thu nhập mới có trạng thái **Dự kiến chưa nhận / Đã thực nhận**. Dự kiến không tự trở thành thực nhận khi đến ngày. Các bản ghi ngày nhận cũ giữ cách đọc tương thích, không tự sửa lịch sử.
