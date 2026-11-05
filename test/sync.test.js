@@ -42,7 +42,7 @@ test('REST distinguishes conflict and missing schema without hiding server error
  await assert.rejects(client.request('/rest/v1/calendar_documents'),/supabase\/setup.sql/);
 });
 test('REST recognizes Postgres 40001 in HTTP 500 and document conflicts in HTTP 409',async()=>{
- for(const [status,body] of [[500,{code:'40001'}],[500,{code:40001}],[409,null]]){
+ for(const [status,body] of [[500,{code:'40001'}],[500,{code:40001}],[409,{code:'PT409'}],[409,null]]){
   const client=new SupabaseClient({url:'https://example.supabase.co',key:'public'},storage(),async()=>new Response(body?JSON.stringify(body):'',{status}));
   await assert.rejects(client.request('/rest/v1/rpc/save_calendar_document'),error=>error.code==='40001'&&error.message.includes('thiết bị khác'));
  }

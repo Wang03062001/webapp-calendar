@@ -18,6 +18,7 @@ await page.route('https://**/*',async route=>{const req=route.request(),url=req.
  else if(url.includes('calendar_documents')){if(readOffline){await route.abort('internetdisconnected');return;}body=[{data:doc,revision}];}
  else if(url.includes('save_calendar_document')){
   attempts++;const p=req.postDataJSON();
+  if(mode==='pt409'){await route.fulfill({status:409,json:{code:'PT409',message:'Document changed on another device'}});return;}
   if(mode==='conflict'||p.p_expected_revision!==revision){await route.fulfill({status:500,json:{code:'40001',message:'Document changed on another device'}});return;}
   if(mode==='opaque-conflict'){doc.regional.vietnam.days['2026-11-06']={note:'Other device updated VN',items:[]};revision++;await route.abort('failed');return;}
   doc=normalizeData(p.p_data);body={revision:++revision};if(mode==='lost-ack'){await route.abort('failed');return;}
@@ -47,4 +48,6 @@ try{
  console.log('PASS lost response after server commit: read-only ACK recovery, no duplicate write/expense, later typing survives reload and next explicit save');
  await newAccount('opaque-conflict-owner');await draft('Opaque conflict draft',30);mode='opaque-conflict';await submit();await banner().filter({hasText:'Không kết nối được Supabase'}).waitFor();const beforeOpaque=attempts;mode=null;await banner().locator('[data-action=cloud-retry]').click();await conflict();assert.equal(attempts,beforeOpaque);assert.equal(await field('title').inputValue(),'Opaque conflict draft');assert.equal(doc.regional.vietnam.days['2026-11-06'].note,'Other device updated VN');assert.equal(await assets().innerText(),'580 JPY');assert.deepEqual(errors,[]);
  console.log('PASS ambiguous network failure followed by differing VN data stops before another write; no real financial API calls');
+ await newAccount('pt409-owner');await draft('Application conflict',20);mode='pt409';const beforeCustom=attempts;await submit();await conflict();assert.equal(attempts,beforeCustom+1);await page.reload();await conflict();await page.evaluate(()=>dispatchEvent(new Event('online')));assert.equal(attempts,beforeCustom+1);assert.equal(await field('title').inputValue(),'Application conflict');assert.equal(await assets().innerText(),'580 JPY');assert.deepEqual(errors,[]);
+ console.log('PASS HTTP 409/PT409 maps to the same durable draft-preserving conflict block as the legacy server code');
 }finally{await browser.close();}

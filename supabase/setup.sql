@@ -45,7 +45,9 @@ begin
       returning revision into v_revision;
   end if;
   if v_revision is null then
-    raise exception 'Document changed on another device' using errcode = '40001';
+    -- Application revision conflicts must not use serialization_failure (40001):
+    -- older PostgREST/Hasql versions retry that SQLSTATE inside one HTTP request.
+    raise exception 'Document changed on another device' using errcode = 'PT409';
   end if;
   return jsonb_build_object('revision', v_revision);
 end;
