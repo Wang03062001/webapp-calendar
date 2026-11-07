@@ -1,7 +1,7 @@
 import {isTrackingCardPayment,CARD_PAYMENT_CATEGORY} from './credit-types.js';
 import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {normalizeSafety,validateFunds} from './safety-model.js';
-import { normalizeBookSettings,COUNTRIES } from './region-model.js';
+import { normalizeBookSettings,normalizeRegionVisibility,COUNTRIES } from './region-model.js';
 import { normalizeCashEntries, normalizeReceivables, receiptTotals } from './receipt-model.js';
 import { normalizeAccounts, validateSavingsLedger, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
 import { normalizeCurrencies } from './preferences.js';
@@ -222,8 +222,9 @@ export function normalizeData(input) {
   if(input.bookSettings!==undefined){result.bookSettings=normalizeBookSettings(input.bookSettings);if((result.currencies?.cash||'JPY')!==COUNTRIES[result.bookSettings.country].currency)throw Error('Quốc gia không khớp tiền tệ của sổ.');}
   if(input.receipts!==undefined)result.receipts=normalizeCashEntries(input.receipts);
   if(input.receivables!==undefined||result.receipts?.some(r=>r.type==='repayment'))result.receivables=normalizeReceivables(input.receivables||[],result.receipts||[]);
+  if(input.regionVisibility!==undefined)result.regionVisibility=normalizeRegionVisibility(input.regionVisibility);
   if(input.regional!==undefined){
-    if(!input.regional||typeof input.regional!=='object'||!input.regional.vietnam||input.regional.vietnam.regional)throw Error('Sổ Việt Nam không hợp lệ.');
+    if(!input.regional||typeof input.regional!=='object'||!input.regional.vietnam||input.regional.vietnam.regional||input.regional.vietnam.regionVisibility!==undefined)throw Error('Sổ Việt Nam không hợp lệ.');
     const vn=normalizeData(input.regional.vietnam);
     if(vn.bookSettings?.country!=='VN'||vn.currencies?.cash!=='VND')throw Error('Sổ Việt Nam phải dùng VND.');
     result.regional={vietnam:vn};

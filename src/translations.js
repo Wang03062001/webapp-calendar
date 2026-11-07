@@ -1,6 +1,19 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Quản lý khu vực|Manage regions|地域を管理|지역 관리|管理地區
+Xóa khu vực khỏi danh sách|Remove region from list|地域を一覧から削除|목록에서 지역 제거|從清單移除地區
+Xóa khỏi danh sách|Remove from list|一覧から削除|목록에서 제거|從清單移除
+Bật lại khu vực|Restore region|地域を再表示|지역 다시 표시|重新顯示地區
+Đang sử dụng|In use|使用中|사용 중|使用中
+Đã xóa khỏi danh sách|Removed from list|一覧から削除済み|목록에서 제거됨|已從清單移除
+Xác nhận xóa khỏi danh sách|Confirm removal from list|一覧からの削除を確認|목록 제거 확인|確認從清單移除
+Cần giữ ít nhất một khu vực đang sử dụng.|Keep at least one active region.|少なくとも1つの地域を使用状態にしてください。|하나 이상의 지역을 사용 상태로 유지하세요.|請保留至少一個使用中的地區。
+Đang sử dụng một khu vực. Có thể bật lại khu vực khác trong Quản lý khu vực.|One region is in use. Restore the other in Manage regions.|1つの地域を使用中です。「地域を管理」から他の地域を再表示できます。|한 지역을 사용 중입니다. 지역 관리에서 다른 지역을 다시 표시할 수 있습니다.|目前使用一個地區，可在管理地區中重新顯示另一地區。
+Xóa khỏi danh sách chỉ ẩn khu vực khỏi phần sử dụng. Mọi số dư, giao dịch, bản nháp và lịch sử vẫn được giữ; có thể bật lại tại đây. Báo cáo Excel và sao lưu JSON vẫn bao gồm dữ liệu được phép xem của cả hai khu vực.|Removing a region only hides it from use. Balances, transactions, drafts and history are kept and can be restored here. Excel reports and JSON backups still include permitted data from both regions.|一覧からの削除は地域を非表示にするだけです。残高・取引・下書き・履歴は保持され、ここから再表示できます。ExcelレポートとJSONバックアップには引き続き両地域の許可されたデータが含まれます。|목록에서 제거해도 지역만 숨겨집니다. 잔액, 거래, 초안 및 이력은 보존되며 여기서 복원할 수 있습니다. Excel 보고서와 JSON 백업에는 두 지역의 허용된 데이터가 계속 포함됩니다.|移除僅會隱藏地區。餘額、交易、草稿與歷史均保留，可在此重新顯示。Excel 報表與 JSON 備份仍包含兩個地區有權查看的資料。
+xóa khỏi danh sách sử dụng và giữ nguyên dữ liệu. Bạn có thể bật lại sau.|remove from the active list and keep all data. You can restore it later.|使用一覧から削除し、全データを保持します。後で再表示できます。|사용 목록에서 제거하고 모든 데이터를 유지합니다. 나중에 복원할 수 있습니다.|從使用清單移除並保留所有資料，之後可重新顯示。
+Hãy lưu bản nháp thành công trước khi thay đổi danh sách khu vực.|Save the draft successfully before changing the region list.|地域一覧を変更する前に下書きの保存を完了してください。|지역 목록을 변경하기 전에 초안을 저장하세요.|請先成功儲存草稿，再變更地區清單。
+Danh sách khu vực không hợp lệ.|Invalid region list.|地域一覧が無効です。|유효하지 않은 지역 목록입니다.|地區清單無效。
 Đặt lại Nền tảng an toàn|Reset safety planning|安全計画をリセット|안전 계획 초기화|重設安全規劃
 Đặt lại quỹ, ngân sách mọi tháng, lịch theo dõi, dự phòng và kế hoạch trả nợ thông thường của khu vực này.|Reset funds, all monthly budgets, tracked bills, reserves and ordinary debt plans in this book.|この地域の積立枠、全月の予算、支払予定、予備費、通常の返済計画をリセットします。|이 장부의 기금, 모든 월별 예산, 추적 일정, 예비비 및 일반 부채 계획을 초기화합니다.|重設此地區的專款、各月預算、追蹤帳單、預備金與一般還款規劃。
 Giữ nguyên số dư ngân hàng, tiền mặt, tiết kiệm, khoản đã chi, thu nhập, khoản vay, ghi chú và khu vực còn lại. Dữ liệu tín dụng cũ được giữ nguyên.|Keep bank, cash and savings balances, paid expenses, income, loans, notes and the other book. Legacy credit data is retained.|銀行・現金・貯蓄残高、支払済み支出、収入、借入、メモ、他地域は保持します。既存のクレジット情報も保持します。|은행, 현금, 저축 잔액과 지출 완료 내역, 수입, 대출, 메모 및 다른 장부를 유지합니다. 기존 신용 데이터도 유지합니다.|保留銀行、現金、儲蓄餘額、已支出款項、收入、貸款、備註及另一地區。舊信用資料亦保留。

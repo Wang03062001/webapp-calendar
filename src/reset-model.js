@@ -20,5 +20,6 @@ export function resetFinancialDocument(document,start=DEFAULT_TRACKING_START,tod
  };
  const old=readBook(document,'foreign'),foreign=fresh(old,countryOf(old));
  foreign.regional={vietnam:fresh(readBook(document,'vietnam'),'VN')};
+ if(document.regionVisibility)foreign.regionVisibility=structuredClone(document.regionVisibility);
  return normalizeData(foreign);
 }

@@ -367,3 +367,11 @@ Công thức kỳ lương giữ **thu nhập đã nhận − chi phí phát sinh
 Xuất Excel có trang riêng **Chênh lệch kỳ lương**, ghi ngày đầu/cuối kỳ, ngày tính đến và các thành phần số tiền theo từng sổ/tiền tệ/quyền xem. Trang **Tổng hợp tháng** giữ số dương lịch. Kỳ lương là phép xem dữ liệu, không tự lưu hoặc sửa ngày giao dịch/thu nhập.
 
 Kiểm tra: `node test/salary-cycle.test.js`, `npm test`, `npm run build` và kịch bản `scripts/check-stats-browser.mjs` bằng API/tài khoản mô phỏng như trên. Bao gồm đổi tháng, ngày 14/15, nhận sớm/muộn, thiếu lương, ngày thực nhận khác khóa tháng, giao năm/năm ẩn, sao kê, quyền admin, hai sổ, popup cũ và giao diện điện thoại/máy tính.
+
+### Chỉ dùng một khu vực
+
+Trong thanh khu vực, chọn **Quản lý khu vực** hoặc **Xóa khu vực khỏi danh sách**. Xác nhận để bỏ khu vực không dùng khỏi danh sách; ít nhất một khu vực phải còn hoạt động. Đây là thao tác ẩn có thể khôi phục, không xóa số dư hay lịch sử tài chính. Bật lại ngay trong **Quản lý khu vực**.
+
+Danh sách được lưu theo tài khoản sau xác nhận của máy chủ và đồng bộ giữa thiết bị. Hãy lưu bản nháp trước khi thay đổi danh sách. Excel và JSON vẫn giữ phạm vi dữ liệu của cả hai sổ theo quyền hiện có, kể cả khu vực đã bỏ khỏi danh sách. Không cần chạy SQL hoặc reset dữ liệu.
+
+Kiểm thử mô phỏng: `node --test test/region-visibility.test.js` và `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs CALENDAR_URL=http://127.0.0.1:5173 node scripts/check-region-visibility-browser.mjs`.

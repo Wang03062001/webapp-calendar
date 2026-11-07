@@ -10,8 +10,8 @@ import {downloadFile,showExportDialog} from './export-ui.js';
 import {expenseConfirmed, protectedExpense} from './expense-model.js';
 import {showExpenseDialog} from './expense-ui.js';
 import {safetyPanel,showSafetyDialog,budgetWarnings} from './safety-ui.js';
-import {COUNTRIES,countryOf,moduleEnabled,simpleCards,readBook,writeBook} from './region-model.js';
-import {regionBar,showRegionSettings,receiptsPanel,receivablesPanel,showCashEntry} from './region-ui.js';
+import {COUNTRIES,countryOf,moduleEnabled,simpleCards,readBook,writeBook,availableRegions,setRegionVisible} from './region-model.js';
+import {regionBar,showRegionManager,showRegionSettings,receiptsPanel,receivablesPanel,showCashEntry} from './region-ui.js';
 import { financeView, isCreditItem, creditSnapshot } from './credit-access.js';
 import { accountsPanel, showAccountLedger, showMonthReconciliation, showBalanceRequest, showSavingsOpening, sourceName } from './accounts-ui.js';
 import { accountSource, moneyKind, moneyOut, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
@@ -160,7 +160,7 @@ function render() {
     <main>
       <header class="topbar"><div class="breadcrumb">Không gian cá nhân <span>/</span> <strong>${pageTitle}</strong></div><div class="top-actions"><button class="button secondary small" data-action="theme" aria-label="Đổi giao diện sáng tối">${display.theme === 'dark' ? '☀' : '☾'}</button><button class="button secondary small" data-action="settings">⚙ <span>Cài đặt</span></button><button class="button secondary small" data-action="account">${icon('wallet')} <span id="account-label">Đăng nhập</span></button><button class="button secondary small" data-action="register">Đăng ký</button><button class="button small save-button" data-action="save" hidden>${icon('check')} Lưu thay đổi</button><button class="button secondary small" data-action="export" aria-label="Xuất dữ liệu Excel">${icon('down')} <span class="button-text">Xuất Excel</span></button><button class="icon-button" title="Nhập bản sao lưu JSON" aria-label="Nhập bản sao lưu JSON" data-action="import">${icon('up')}</button><input type="file" id="import-file" accept="application/json,.json" hidden /></div></header>
       <div id="cloud-notice" aria-live="polite"></div>
-      <div class="page">${regionBar(data,activeRegion,readBook(cloud.data,'foreign'))}${data.trackingStart?`<section class="card tracking-start"><p>Theo dõi từ ${data.trackingStart.split('-').reverse().join('/')}. ${!data.accounts?'Chưa thiết lập số dư đầu kỳ.':''}</p>${!data.accounts?'<button class="button" data-action="current-wallet-settings">Nhập số dư đầu kỳ</button>':''}</section>`:''}
+      <div class="page">${regionBar(data,activeRegion,cloud.data)}${data.trackingStart?`<section class="card tracking-start"><p>Theo dõi từ ${data.trackingStart.split('-').reverse().join('/')}. ${!data.accounts?'Chưa thiết lập số dư đầu kỳ.':''}</p>${!data.accounts?'<button class="button" data-action="current-wallet-settings">Nhập số dư đầu kỳ</button>':''}</section>`:''}
         <div class="page-heading"><h2 id="summary-period">${view === 'calendar' ? `Tổng kết tháng ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'year' ? `Tổng kết năm ${year}` : view === 'credit' ? `Thẻ & sao kê · ${String(month + 1).padStart(2, '0')} / ${year}` : view === 'safety' ? 'Nền tảng an toàn · __CASH__' : 'Khoản vay khác · __CASH__'}</h2>${view === 'debts' ? '' : `<div class="year-tools"><div class="year-select-wrap">${icon('calendar')}<select id="year-select" aria-label="Chọn năm">${years().map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('')}</select></div><button class="icon-button" data-action="add-year" aria-label="Thêm năm" title="Thêm năm">${icon('plus')}</button><button class="icon-button remove-year" data-action="remove-year" aria-label="Xóa năm" title="Xóa năm" ${years().length <= 1 ? 'disabled' : ''}>${icon('trash')}</button></div>`}</div>
         ${view==='safety'?safetyPanel(actualView(),selectedKey()):view === 'debts' ? debtsPanel(visibleData(), debtFilter) : `
           ${view === 'calendar' ? `${monthTabs()}<details id=ledger-tools class="card ledger-tools" ${ledgerExpanded?'open':''}><summary>Thiết lập / đối chiếu nguồn tiền theo ngày lịch</summary><div id=accounts-overview>${accountsPanel(actualView(),selectedKey(),hasCreditAccess())}</div></details>${canUseCredit()&&!simpleCards(data) ? `<div id="cashflow-overview">${salaryTimeline(actualData(), monthKey(year, month))}</div>` : ''}` : ''}
@@ -368,7 +368,7 @@ root.addEventListener('click', async event => {
   }
   if(button.dataset.editExpense){if(canEdit())showExpenseDialog(financeContext(),button.dataset.expenseDate,button.dataset.editExpense,expenseEditor);return;}
   if(button.dataset.safetyAction){if(!canEdit()||!moduleEnabled(data,'safety'))return;if(button.dataset.safetyAction==='payDebt'){openDebtDialog(button.dataset.safetyId);return;}showSafetyDialog(financeContext(),button.dataset.safetyAction,button.dataset.safetyId||'',selectedKey());return;}
-  if(button.dataset.region){if(!canEdit()||cloud.inFlight)return;document.querySelectorAll('dialog').forEach(d=>d.close());regionEpoch++;activeRegion=button.dataset.region==='vietnam'?'vietnam':'foreign';data=readBook(cloud.data,activeRegion);view='calendar';expenseQuery='';expenseCategory='';render();return;}
+  if(button.dataset.region){if(!canEdit()||cloud.inFlight||!availableRegions(cloud.data).includes(button.dataset.region))return;document.querySelectorAll('dialog').forEach(d=>d.close());regionEpoch++;activeRegion=button.dataset.region;data=readBook(cloud.data,activeRegion);view='calendar';expenseQuery='';expenseCategory='';render();return;}
   if(button.dataset.editReceipt){if(moduleEnabled(data,'receipts'))showCashEntry(financeContext(),selectedKey(),'editReceipt',button.dataset.editReceipt);return;}
   if(button.dataset.editReceivable){if(moduleEnabled(data,'receivables'))showCashEntry(financeContext(),selectedKey(),'editLoan',button.dataset.editReceivable);return;}
   if(button.dataset.removeReceivable){if(moduleEnabled(data,'receivables'))showCashEntry(financeContext(),selectedKey(),'removeLoan',button.dataset.removeReceivable);return;}
@@ -395,6 +395,8 @@ root.addEventListener('click', async event => {
     case 'theme': display.theme = display.theme === 'dark' ? 'light' : 'dark'; saveDisplay(display); render(); break;
     case 'safety-receivables': if(!moduleEnabled(data,'receivables')){notify('Bật Khoản phải thu trong Quốc gia & chức năng.');break;}view='calendar';render();focusEditor('.receivables-panel');break;
     case 'region-settings': showRegionSettings(financeContext(),activeRegion);break;
+    case 'manage-regions': showRegionManager(financeContext());break;
+    case 'remove-region': showRegionManager(financeContext(),activeRegion);break;
     case 'add-receipt': if(moduleEnabled(data,'receipts'))showCashEntry(financeContext(),selectedKey(),'receipt');break;
     case 'add-receivable': if(moduleEnabled(data,'receivables'))showCashEntry(financeContext(),selectedKey(),'receivable');break;
     case 'settings': showSettings(financeContext(), display, next => { display = next; saveDisplay(display); setLanguage(display.language); render(); }); break;
@@ -548,6 +550,10 @@ const cloud = new SyncController(authClient, localStorage, {
   onConfirmed: updateConfirmedExpenses,
   onData: next => {
     if(regionUser!==cloud.user?.id){regionUser=cloud.user?.id||null;activeRegion='foreign';}
+    if(!availableRegions(next).includes(activeRegion)){
+      document.querySelectorAll('dialog').forEach(d=>d.close());regionEpoch++;
+      activeRegion=availableRegions(next)[0];view='calendar';expenseQuery='';expenseCategory='';
+    }
     data = readBook(next,activeRegion); creditWritePending=false;
     syncAccountProfile(); syncCreditRole(); render();
 
@@ -615,6 +621,7 @@ function financeContext() {
   const region=activeRegion, actor=cloud.user?.id, epoch=cloud.epoch,scope=regionEpoch;
   const check=()=>{if(region!==activeRegion||actor!==cloud.user?.id||epoch!==cloud.epoch||scope!==regionEpoch)throw Error('Khu vực hoặc tài khoản đã thay đổi.');};
   return {getData:()=>{check();return data;},getActualData:()=>{check();return actualData();},getFinanceData:()=>{check();return visibleData();},getDocument:()=>{check();return cloud.data;},getUserId:()=>cloud.user?.id,canEdit:()=>scope===regionEpoch&&region===activeRegion&&actor===cloud.user?.id&&epoch===cloud.epoch&&canEdit(),canUseCredit,hasCreditAccess,isExpenseConfirmed:(date,item)=>{check();return !isExpenseDraft(date,item);},verifyCreditAccess:()=>refreshCreditRole(true),
+    setRegionVisible:async(key,visible)=>{check();if(cloud.inFlight||cloud.dirty)throw Error('Hãy lưu bản nháp thành công trước khi thay đổi danh sách khu vực.');await cloud.commitConfirmed(setRegionVisible(cloud.data,key,visible));},
     openIncomeMonth:date=>{check();if(!moduleEnabled(data,'salary'))return;const [y,m]=date.split('-').map(Number);if(!years().includes(y)){addYear(data,y);persist();}year=y;month=m-1;day=1;view='calendar';render();focusEditor('[data-income="salary"]');},
     onChange:next=>{check();const previous=data;data=next;if(!persist()){data=previous;throw Error('Chưa lưu được thay đổi.');}render();},
     commitConfirmed:async next=>{check();validateSpendingSources(data,next);validateActualDates(data,next,localToday());validateMoneyChanges(data,next);validateCreditEdits(data,next);const combined=writeBook(cloud.data,region,next);if(!hasCreditAccess()&&creditDocument(combined)!==creditDocument(cloud.data))throw Error('Chức năng Thẻ & sao kê chỉ dành cho admin.');await cloud.commitConfirmed(combined);},

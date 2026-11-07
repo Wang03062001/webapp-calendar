@@ -1,4 +1,4 @@
-import {COUNTRIES,MODULES,countryOf,moduleEnabled,configureBook} from './region-model.js';
+import {COUNTRIES,MODULES,REGIONS,availableRegions,regionLabel,countryOf,moduleEnabled,configureBook} from './region-model.js';
 import {RECEIPT_TYPES,receiptTotals,addReceipt,receivableRemaining,normalizeReceivables} from './receipt-model.js';
 import {formatAmount} from './model.js';
 import {currencyLabel} from './preferences.js';
@@ -8,7 +8,36 @@ import {subtractMoney} from './money.js';
 import {tokyoToday} from './finance-date.js';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=x=>`${formatAmount(x)} ${currencyLabel()}`;
-export function regionBar(data,region,foreign){return `<section class="region-bar card" aria-label="Khu vực tài chính"><div class="region-tabs"><button data-region="foreign" aria-pressed="${region==='foreign'}">${countryOf(foreign)==='VN'?'Sổ cũ (Việt Nam)':COUNTRIES[countryOf(foreign)].name} · ${foreign.currencies?.cash||'JPY'}</button><button data-region="vietnam" aria-pressed="${region==='vietnam'}">Việt Nam · VND</button></div><button class="button secondary" data-action="region-settings">Chọn quốc gia & chức năng</button><p>Mỗi khu vực có số dư riêng. Nhập tiền gửi và thực nhận thủ công; không quy đổi tỷ giá.</p></section>`;}
+export function regionBar(data,region,document){
+ const regions=availableRegions(document);
+ return `<section class="region-bar card" aria-label="Khu vực tài chính"><div class="region-tabs">${regions.map(key=>`<button data-region="${key}" aria-pressed="${region===key}">${esc(regionLabel(document,key))}</button>`).join('')}</div><button class="button secondary" data-action="region-settings">Chọn quốc gia & chức năng</button><button class="button secondary" data-action="manage-regions">Quản lý khu vực</button>${regions.length>1?'<button class="text-button danger" data-action="remove-region">Xóa khu vực khỏi danh sách</button>':''}<p>${regions.length===1?'Đang sử dụng một khu vực. Có thể bật lại khu vực khác trong Quản lý khu vực.':'Mỗi khu vực có số dư riêng. Nhập tiền gửi và thực nhận thủ công; không quy đổi tỷ giá.'}</p></section>`;
+}
+export function showRegionManager(context,removeRegion){
+ if(!context.canEdit())return;
+ const original=context.getDocument(),snapshot=JSON.stringify(original),actor=context.getUserId(),regions=availableRegions(original);
+ const d=modal('region-manager-dialog','Quản lý khu vực',`<p>Xóa khỏi danh sách chỉ ẩn khu vực khỏi phần sử dụng. Mọi số dư, giao dịch, bản nháp và lịch sử vẫn được giữ; có thể bật lại tại đây. Báo cáo Excel và sao lưu JSON vẫn bao gồm dữ liệu được phép xem của cả hai khu vực.</p><div class="region-manager-list">${REGIONS.map(key=>`<article><strong>${esc(regionLabel(original,key))}</strong><span>${regions.includes(key)?'Đang sử dụng':'Đã xóa khỏi danh sách'}</span><button type="button" class="button secondary" data-region-toggle="${key}" ${regions.includes(key)&&regions.length===1?'disabled':''}>${regions.includes(key)?'Xóa khỏi danh sách':'Bật lại khu vực'}</button></article>`).join('')}</div><p>Cần giữ ít nhất một khu vực đang sử dụng.</p><form hidden><p data-region-confirm></p><button class="account-submit">Xác nhận xóa khỏi danh sách</button><button type="button" class="button secondary" data-cancel-remove>Hủy</button></form>`);
+ d.setAttribute('aria-labelledby','region-manager-title');d.querySelector('h2').id='region-manager-title';
+ let selected=null;
+ const current=()=>{if(!d.open||!context.canEdit()||context.getUserId()!==actor||JSON.stringify(context.getDocument())!==snapshot)throw Error('Dữ liệu đã thay đổi. Đóng và mở lại để kiểm tra.');};
+ const apply=async(key,visible)=>{
+  if(d.busy)return;
+  try{current();d.busy=true;d.querySelectorAll('button').forEach(b=>b.disabled=true);await context.setRegionVisible(key,visible);d.close();}
+  catch(error){d.querySelector('[role=status]').textContent=error.message;}
+  finally{d.busy=false;d.querySelectorAll('button').forEach(b=>b.disabled=false);if(regions.length===1)d.querySelector(`[data-region-toggle="${regions[0]}"]`).disabled=true;}
+ };
+ const choose=key=>{
+  if(!regions.includes(key)){void apply(key,true);return;}
+  if(regions.length===1)return;
+  selected=key;d.querySelector('form').hidden=false;
+  d.querySelector('[data-region-confirm]').textContent=`${regionLabel(original,key)}: xóa khỏi danh sách sử dụng và giữ nguyên dữ liệu. Bạn có thể bật lại sau.`;
+  d.querySelector('form .account-submit').focus();
+ };
+ d.querySelectorAll('[data-region-toggle]').forEach(b=>b.onclick=()=>choose(b.dataset.regionToggle));
+ d.querySelector('[data-cancel-remove]').onclick=()=>{selected=null;d.querySelector('form').hidden=true;};
+ d.querySelector('form').onsubmit=e=>{e.preventDefault();if(selected)void apply(selected,false);};
+ if(removeRegion)choose(removeRegion);
+}
+
 function modal(id,title,contents){document.querySelector('#'+id)?.remove();const d=document.createElement('dialog');d.id=id;d.className='account-dialog ledger-dialog';d.innerHTML=`<button class="dialog-close" aria-label="Đóng">×</button><h2>${title}</h2>${contents}<p role="status" aria-live="polite"></p>`;document.body.append(d);d.showModal();d.querySelector('.dialog-close').onclick=()=>{if(!d.busy)d.close();};d.addEventListener('cancel',e=>{if(d.busy)e.preventDefault();});d.addEventListener('close',()=>d.remove());return d;}
 function bindForm(d,context,apply){const user=context.getUserId(),before=JSON.stringify(context.getDocument?.()||context.getData());d.querySelector('form').onsubmit=async e=>{e.preventDefault();if(d.busy)return;try{if(!d.open||!context.canEdit()||context.getUserId()!==user||JSON.stringify(context.getDocument?.()||context.getData())!==before)throw Error('Dữ liệu đã thay đổi. Đóng và mở lại để kiểm tra.');const next=structuredClone(context.getData());apply(next,e.target.elements);d.busy=true;d.querySelectorAll('button,input,select').forEach(x=>x.disabled=true);await context.commitConfirmed(next);d.close();}catch(error){d.querySelector('[role=status]').textContent=error.message;}finally{d.busy=false;d.querySelectorAll('button,input,select').forEach(x=>x.disabled=false);}};}
 export function showRegionSettings(context,region){
