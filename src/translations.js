@@ -1,6 +1,9 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Tín dụng|Credit|クレジット|신용|信用
+Tổng|Total|合計|합계|總計
+Đã thanh toán · gồm trả nợ và thanh toán thẻ theo quyền xem|Paid expenses, including debt and card payments permitted by your access|支払済み支出。閲覧権限に応じた返済・カード支払いを含みます|지출 완료 내역이며 조회 권한에 따른 부채 및 카드 상환을 포함합니다|已付款支出，包含依權限可查看的還款及信用卡付款
 Quản lý khu vực|Manage regions|地域を管理|지역 관리|管理地區
 Xóa khu vực khỏi danh sách|Remove region from list|地域を一覧から削除|목록에서 지역 제거|從清單移除地區
 Xóa khỏi danh sách|Remove from list|一覧から削除|목록에서 제거|從清單移除

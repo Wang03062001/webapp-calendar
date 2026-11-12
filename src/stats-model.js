@@ -1,10 +1,28 @@
 import {financeView} from './credit-access.js';
-import {monthKey,monthSummary,yearSummary,expenseStatus,categoryOf,validYear} from './model.js';
+import {monthKey,monthSummary,yearSummary,expenseStatus,categoryOf,validYear,CATEGORIES} from './model.js';
+import {cashPeriodDetails} from './cash-model.js';
+import {addMoney,sumMoney} from './money.js';
+import {CARD_PAYMENT_CATEGORY} from './credit-types.js';
 import {accountSource,isCardPayment,isInternalMovement} from './account-model.js';
 import {statementNumbers,roundCard,shiftMonth,cardDate} from './card-model.js';
 import {simpleCards,moduleEnabled} from './region-model.js';
 import {RECEIPT_TYPES} from './receipt-model.js';
 const total=rows=>roundCard(rows.reduce((sum,row)=>sum+row.amount,0));
+
+// Read-only cash-basis breakdown. Use canonical outflows so legacy linked
+// statement rows are not counted again and payments retain their actual source.
+export function sourceCategoryDetails(document,options={}){
+ const d=cashPeriodDetails(document,options),credit=options.creditAllowed===true;
+ const rows=[...d.outflows.filter(r=>['bank','cash'].includes(r.source)),...(credit?d.creditPurchases:[])];
+ const category=row=>row.type==='card-payment'?CARD_PAYMENT_CATEGORY:row.type==='debt'?'Trả nợ':categoryOf(row);
+ const categories=[...new Set([...CATEGORIES,...rows.map(category)])];
+ return ['bank','cash',...(credit?['card']:[])].map(source=>{
+  const amounts=new Map(categories.map(name=>[name,0]));
+  for(const row of rows)if(row.source===source){const name=category(row);amounts.set(name,addMoney(amounts.get(name)||0,row.amount));}
+  const entries=[...amounts].map(([category,amount])=>({category,amount}));
+  return {source,categories:entries,total:sumMoney(entries.map(r=>r.amount))};
+ });
+}
 
 // Read-only period detail. Cost recognition and actual source outflow are kept
 // separately: a purchase is a cost; its later statement payment is cashflow.

@@ -6,6 +6,7 @@ import {addMoney,sumMoney,wholeCurrencyMoney} from './money.js';
 import {salaryDate,plannedSalaryCycle} from './finance-date.js';
 import {currentWalletContent,localToday} from './current-wallet.js';
 import {showStatsDialog} from './stats-ui.js';
+import {sourceCategoryDetails} from './stats-model.js';
 import {downloadFile,showExportDialog} from './export-ui.js';
 import {expenseConfirmed, protectedExpense} from './expense-model.js';
 import {showExpenseDialog} from './expense-ui.js';
@@ -194,9 +195,9 @@ function statsContent() {
 }
 function dashboardCharts() {
  const d=periodCash(),values=[['Tiền vào thực tế',d.actualCashIn,'income'],['Chi trực tiếp từ ngân hàng',sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source==='bank').map(r=>r.amount)),'bank'],['Chi tiền mặt',sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source==='cash').map(r=>r.amount)),'cash'],...(d.savingsDeposited?[['Chuyển vào tiết kiệm',d.savingsDeposited,'savings']]:[]),...(hasCreditAccess()?[['Thanh toán thẻ',d.cardPaid,'payment']]:[]),['Trả nợ khác',d.debtTotal,'payment'],['Tài sản cuối kỳ',d.closingCash,'']];
- const chart=(title,rows)=>{const max=Math.max(1,...rows.map(([,n])=>Math.abs(n||0)));return `<section class="chart-card"><div class="chart-heading"><h2>${title}</h2><span class="tag">__CASH__</span></div><div class="category-chart">${rows.map(([label,value,kind])=>`<div><span>${escape(label)}</span><strong data-money-kind="${kind}">${value===null?'N/A':money(value)}</strong><i data-money-kind="${kind}" style="--share:${Math.abs(value||0)/max*100}%"></i></div>`).join('')}</div></section>`;};
- const groups=new Map();for(const p of d.creditPurchases){const key=categoryOf(p);groups.set(key,addMoney(groups.get(key)||0,p.amount));}
- return chart('Dòng tiền và tài sản',values)+(hasCreditAccess()?chart('Giao dịch tín dụng phát sinh',[...groups].map(([name,value])=>[name,value,'card'])):'');
+ const chart=(title,rows,{source,total,note}={})=>{const max=Math.max(1,...rows.map(([,n])=>Math.abs(n||0)));return `<section class="chart-card ${source?'source-category-chart':'cashflow-chart'}" ${source?`data-source-chart="${source}"`:''}><div class="chart-heading"><h2>${title}</h2><span class="tag">__CASH__</span></div>${note?`<p class="source-chart-note">${note}</p>`:''}<div class="category-chart">${rows.map(([label,value,kind])=>`<div ${source?`data-chart-category="${escape(label)}"`:''}><span>${escape(label)}</span><strong data-money-kind="${kind}">${value===null?'N/A':money(value)}</strong><i aria-hidden="true" data-money-kind="${kind}" style="--share:${Math.abs(value||0)/max*100}%"></i></div>`).join('')}</div>${source?`<div class="source-chart-total"><span>Tổng</span><strong data-source-total="${source}" data-money-kind="${source}">${money(total)}</strong></div>`:''}</section>`;};
+ const groups=sourceCategoryDetails(actualData(),{year,month:view==='year'?null:month,creditAllowed:hasCreditAccess()});
+ return chart('Dòng tiền và tài sản',values)+groups.map(group=>chart(({bank:'Ngân hàng',cash:'Tiền mặt',card:'Tín dụng'})[group.source],group.categories.map(r=>[r.category,r.amount,group.source]),{source:group.source,total:group.total,note:group.source==='card'?'Theo ngày mua · không trừ tài sản tiền':'Đã thanh toán · gồm trả nợ và thanh toán thẻ theo quyền xem'})).join('');
 }
 function focusEditor(selector) {
   const element = document.querySelector(selector);

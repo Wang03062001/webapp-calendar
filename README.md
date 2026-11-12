@@ -375,3 +375,7 @@ Trong thanh khu vực, chọn **Quản lý khu vực** hoặc **Xóa khu vực k
 Danh sách được lưu theo tài khoản sau xác nhận của máy chủ và đồng bộ giữa thiết bị. Hãy lưu bản nháp trước khi thay đổi danh sách. Excel và JSON vẫn giữ phạm vi dữ liệu của cả hai sổ theo quyền hiện có, kể cả khu vực đã bỏ khỏi danh sách. Không cần chạy SQL hoặc reset dữ liệu.
 
 Kiểm thử mô phỏng: `node --test test/region-visibility.test.js` và `PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs CALENDAR_URL=http://127.0.0.1:5173 node scripts/check-region-visibility-browser.mjs`.
+
+### Biểu đồ danh mục theo nguồn tiền
+
+Phần **Biểu đồ phân tích** ở tháng và **Tổng kết năm** giữ tổng quan dòng tiền, đồng thời liệt kê danh mục riêng cho **Ngân hàng**, **Tiền mặt** và **Tín dụng** (theo quyền admin được máy chủ xác minh). Mỗi nguồn có đủ danh mục mặc định, kể cả 0, danh mục riêng có phát sinh trong kỳ và tổng cuối. Trả nợ gồm gốc/lãi đã trả; thanh toán thẻ nằm trong nguồn tiền thực trả, không cộng lặp với giao dịch mua tín dụng. Không tính khoản dự kiến/hủy, giao dịch sau hôm nay, chuyển nội bộ hoặc chuyển vào tiết kiệm. Các biểu đồ chỉ dùng dữ liệu đã lưu thành công của khu vực đang xem; không thay đổi dữ liệu tài chính.
