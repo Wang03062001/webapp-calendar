@@ -1,3 +1,7 @@
+# Production hostname
+
+The owner reports the Vercel site is https://quanlychitieu03062001.vercel.app. The shorter quanlychitieu.vercel.app belongs to somebody else: never add it to trusted CORS origins, Auth redirects or recovery links. Server ALLOWED_ORIGINS/APP_SITE_URL and Supabase Auth settings require explicit deployment/configuration; a Git push alone does not apply them. See docs/VERCEL.md.
+
 # Compact interface
 
 Keep compact spacing without shrinking the shared typography tokens or financial accuracy. At widths <=1200px use stacked navigation/source rail and a full-width main; keep app matchMedia in sync with CSS at 1201px. The secondary source rail uses native details: collapsed initially on smaller screens, total remains in the summary, savings/fund management opens on demand. Remember manual expansion through projection refreshes using walletSecondaryExpanded; never write finance/display data merely to toggle. Use scripts/check-compact-layout-browser.mjs (read-only synthetic APIs) for all four views at 320/390/768/1024/1440px, five languages, light/dark and dialogs; withdrawal browser must open the secondary disclosure before its action. Preserve keyboard focus, scrollable tables/dialogs and 40px mobile buttons/44px inputs.
