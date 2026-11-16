@@ -192,13 +192,25 @@ html[data-theme=dark] .current-wallet{background:#211d2b;border-color:#453b55;co
 .savings-target-status .savings-progress-heading{margin-top:14px}
 
 /* Independent money stores share responsive cards and the existing theme palette. */
-.wallets-panel { margin-bottom: 20px; }
+.wallets-panel { margin-bottom: 20px; padding: 24px; }
+.wallets-panel > .card-heading { padding: 0; align-items: flex-start; }
+.wallets-panel > h2 { margin-bottom: 8px; }
+.wallets-panel > p + button { margin-top: 16px; }
 .wallets-panel p { color: var(--muted); line-height: 1.6; }
-.wallet-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 12px; margin: 16px 0; }
+.wallet-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 12px; margin: 24px 0; }
 .wallet-grid article { padding: 16px; border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
 .wallet-grid h3 { margin: 0 0 12px; overflow-wrap: anywhere; font-size: 14px; }
 .wallet-grid strong { display: block; font-size: 20px; color: var(--purple); overflow-wrap: anywhere; }
-.wallet-grid button { margin-top: 12px; }
+.wallet-grid button { margin-top: 18px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 7px; text-decoration: none; background: transparent; min-height: 40px; }
+.wallet-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; border-top: 1px solid var(--border); padding-top: 20px; }
+.wallet-summary > div { min-width: 0; display: grid; gap: 8px; }
+.wallet-summary span { font-size: var(--text-sm); color: var(--muted); }
+.wallet-summary strong { font-size: var(--text-title); overflow-wrap: anywhere; }
+.wallet-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.wallet-history { border-top: 1px solid var(--border); padding-top: 16px; }
+.wallet-history > summary { cursor: pointer; padding: 4px 0; font-size: var(--text-sm); }
+.wallet-history-empty { padding: 14px 0; font-size: var(--text-sm); }
+.wallets-panel > .account-note { margin-top: 16px; font-size: var(--text-xs); }
 .wallet-transfer-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding: 12px 0; flex-wrap: wrap; }
 .wallet-transfer-row > span { flex: 1 1 180px; overflow-wrap: anywhere; }
 .wallet-transfer-row small { display: block; }
@@ -208,4 +220,4 @@ html[data-theme=dark] .current-wallet{background:#211d2b;border-color:#453b55;co
 #wallet-dialog form > label { margin: 0; }
 #wallet-dialog .module-option { display: flex; align-items: flex-start; gap: 10px; }
 #wallet-dialog [type=checkbox] { width: auto; min-width: 18px; margin-top: 4px; }
-@media (max-width: 600px) { .wallets-panel .card-heading { align-items: stretch; flex-direction: column; } .wallet-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .wallet-grid article { padding: 12px; } }
+@media (max-width: 600px) { .wallets-panel { padding: 16px; } .wallet-summary { grid-template-columns: minmax(0,1fr); } .wallets-panel .card-heading { align-items: stretch; flex-direction: column; } .wallet-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .wallet-grid article { padding: 12px; } }
