@@ -1,6 +1,9 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Ngân hàng giảm, tiết kiệm riêng tăng cùng số tiền. Không tính vào tiền thực chi hoặc tự cộng lịch sử tiết kiệm tháng.|Bank decreases and the separate savings reserve increases by the same amount. Excluded from spending; monthly savings history is not updated automatically.|銀行残高が減り、同額が別枠の貯蓄残高に加算されます。支出には含めず、月別貯蓄履歴は自動更新しません。|은행 잔액이 줄고 같은 금액만큼 별도 저축 잔액이 늘어납니다. 실제 지출에 포함되지 않으며 월별 저축 이력은 자동 갱신하지 않습니다.|銀行減少，獨立儲蓄餘額增加相同金額。不計入實際支出，也不自動增加每月儲蓄紀錄。
+Chuyển vào tiết kiệm không được gắn với quỹ, tín dụng hoặc khoản phải trả.|A savings transfer cannot be linked to funds, credit or tracked bills.|貯蓄への振替に積立枠、クレジット、支払予定は関連付けられません。|저축 이체는 기금, 신용 또는 청구 일정과 연결할 수 없습니다.|轉入儲蓄不得連結專款、信用或應付款。
+Số dư ngân hàng không đủ để chuyển vào tiết kiệm.|Insufficient bank balance for the savings transfer.|貯蓄に振り替える銀行残高が不足しています。|저축으로 이체할 은행 잔액이 부족합니다.|銀行餘額不足以轉入儲蓄。
 Tiến độ tháng|Monthly progress|月の進捗|월별 진행률|每月進度
 Tiến độ tiết kiệm tháng|Monthly savings progress|月の貯蓄進捗|월 저축 진행률|每月儲蓄進度
 Đã đạt mục tiêu tháng!|Monthly target reached!|月の目標を達成しました！|월 목표를 달성했습니다!|已達成每月目標！

@@ -1,7 +1,7 @@
 import {isCardPaymentCategory} from './credit-types.js';
 import {amount, MAX_AMOUNT} from './model.js';
 import {isCreditItem} from './credit-access.js';
-import {isInternalMovement} from './account-model.js';
+import {isInternalMovement,movementSources,movementTitle} from './account-model.js';
 import {protectedExpense} from './expense-model.js';
 import {t} from './i18n.js';
 
@@ -36,7 +36,7 @@ export function showExpenseDialog(context, date, id, editor) {
       if (target.validity.valid) draft.amount = amount(raw);
       return;
     }
-    if (!target.checkValidity()) return;
+    if (!target.checkValidity()||draft.movement==='save'&&['category','paymentMethod','fundId'].includes(field)) return;
     if (field === 'fundId') {
       const fund = context.getData().safety?.funds.find(f => f.id === target.value && (!f.archived || f.id === original.fundId));
       if (target.value && !fund) return;
@@ -45,8 +45,8 @@ export function showExpenseDialog(context, date, id, editor) {
     } else if (field === 'movement') {
       if (draft.fundId && target.value) { status.textContent = t('Bỏ quỹ trước khi chuyển nguồn nội bộ.'); renderFields(); return; }
       if (target.value) {
-        delete draft.creditTracking;delete draft.creditPeriod;draft.movement = target.value; draft.paymentMethod = target.value === 'withdraw' ? 'bank' : 'cash'; draft.status = 'paid'; draft.category = 'Chuyển tiền nội bộ';
-        if (!draft.title || ['Rút tiền mặt', 'Nạp tiền vào ngân hàng'].includes(draft.title)) draft.title = target.value === 'withdraw' ? 'Rút tiền mặt' : 'Nạp tiền vào ngân hàng';
+        delete draft.creditTracking;delete draft.creditPeriod;draft.movement = target.value; draft.paymentMethod = movementSources({movement:target.value}).from; draft.status = 'paid'; draft.category = 'Chuyển tiền nội bộ';
+        if (!draft.title || ['Rút tiền mặt', 'Nạp tiền vào ngân hàng', 'Chuyển vào tiết kiệm'].includes(draft.title)) draft.title = movementTitle(target.value);
         delete draft.settlement; delete draft.billingMonth;
       } else { delete draft.movement; draft.category = 'Khác'; }
     } else if (field === 'paymentMethod') {
@@ -83,6 +83,7 @@ export function showExpenseDialog(context, date, id, editor) {
       busy = false; dialog.querySelectorAll('input,select,button').forEach(control => control.disabled = false);
       const source = fields.querySelector('[data-field=paymentMethod]');
       if (source) source.disabled = Boolean(draft.fundId || isInternalMovement(draft));
+      for(const field of ['category','fundId']){const control=fields.querySelector(`[data-field=${field}]`);if(control&&draft.movement==='save')control.disabled=true;}
     }
   }
   dialog.querySelector('form').onsubmit = event => { event.preventDefault(); void submit(); };

@@ -389,3 +389,11 @@ Khối kế hoạch hiển thị mục tiêu đã lưu, số đã ghi tiết ki�
 Đây là kế hoạch, không tự trừ ngân hàng/tiền mặt, tăng số dư tiết kiệm hoặc tăng tổng lịch sử tích lũy. Mỗi khu vực và tiền tệ tiết kiệm độc lập. JSON giữ đầy đủ mục tiêu; Excel bổ sung dòng **Mục tiêu tháng** trong sheet tiết kiệm hiện có. Không cần thay đổi Supabase/SQL.
 
 Thanh **Tiến độ tháng** trong mục tiêu tháng dùng số đã ghi tiết kiệm / mục tiêu tháng đã lưu. Chưa đặt mục tiêu hiển thị N/A; đạt/vượt mục tiêu có thông báo. Phần trăm có thể vượt 100%, còn thanh hiển thị tối đa 100%. Thanh chỉ cập nhật sau xác nhận lưu thành công, độc lập giữa các tháng và khu vực; tiến độ năm giữ nguyên.
+
+### Chuyển vào tiết kiệm từ chi tiêu ngày
+
+Trong **Chi tiêu trong ngày → Loại giao dịch**, chọn **Chuyển vào tiết kiệm**. Ứng dụng tự chọn và khóa **Danh mục: Chuyển tiền nội bộ**, **Nguồn: Ngân hàng**. Nhập số tiền theo tiền tệ thu chi của khu vực, kiểm tra trạng thái và Enter hoặc **Lưu thay đổi**. Khi máy chủ xác nhận, ngân hàng giảm và tiết kiệm riêng tăng đúng một lần; dòng đã lưu rời ô nhập và có thể sửa/hủy/xóa qua **Sửa nội dung** trong danh sách tháng.
+
+Khoản này không tính vào tiền thực chi, chi phí, ngân sách hoặc chi tiêu theo danh mục; biểu đồ dòng tiền và Excel ghi riêng chuyển vào tiết kiệm. Tiền mặt và tổng ngân hàng + tiền mặt + tiết kiệm không đổi ngoài hai vế chuyển. Cần thiết lập số dư nguồn tiết kiệm trước; ứng dụng kiểm tra số dư ngân hàng, tiền dành quỹ và các giao dịch sau đó. Không tự tạo số dư ban đầu hoặc giải phóng quỹ. Dự kiến/hủy chưa tác động số dư.
+
+**Tiết kiệm riêng** dùng cùng tiền tệ thu chi. Chuyển này không tự cộng lịch sử tiết kiệm tháng hay tiến độ mục tiêu vì chúng có thể dùng tiền tệ khác; không có quy đổi tự động. Giữ nguyên lịch sử nguồn và các chuyển tiền đã ghi bằng chức năng Phân bổ / chuyển nguồn tiền; không ghi cùng một lần chuyển ở cả hai nơi. Không cần thay đổi SQL.

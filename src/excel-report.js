@@ -6,7 +6,7 @@ import {statsDetails,salaryCycleDetails,salaryCycleEnabled} from './stats-model.
 import {readBook,countryOf} from './region-model.js';
 import {financeView} from './credit-access.js';
 import {monthSummary,categoryOf,expenseStatus,debtBalance,savingsToDate} from './model.js';
-import {accountBalances,accountSource,isCardPayment,isInternalMovement,moneyOut,sourceOpening} from './account-model.js';
+import {accountBalances,accountSource,isCardPayment,isInternalMovement,movementSources,moneyOut,sourceOpening} from './account-model.js';
 import {statementNumbers,roundCard,cardDate,shiftMonth,availableCredit} from './card-model.js';
 import {normalizeCurrencies} from './preferences.js';
 import {receivableRemaining,RECEIPT_TYPES} from './receipt-model.js';
@@ -91,7 +91,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
         if(legacy&&isTrackingCardPayment(item))cardPaymentHistory.push([...prefix,item.creditPeriod||'',item.id,date,source(accountSource(item)),actualItem(item)&&date<=cutoff?item.amount:0,null,null,null,item.id,'',item.status==='cancelled'?'Có':'Không',item.title]);
         const cost=!['card','savings'].includes(item.paymentMethod)&&!isInternalMovement(item)&&!item.cardFeeMonth;
         expenses.push([...prefix,date,item.id,item.title,categoryOf(item),status(item),source(accountSource(item)),kind(item),item.amount,cost&&expenseStatus(item)==='paid'&&date<=cutoff?item.amount:0,cost&&expenseStatus(item)==='planned'?item.amount:0,item.fundId||'',item.obligationId||'',item.debtId||'',item.debtPaymentId||'',...(legacy?[item.paymentMethod==='card'&&!item.creditTracking?item.settlement||'oneoff':'',item.paymentMethod==='card'&&!item.creditTracking?item.billingMonth||shiftMonth(date.slice(0,7),1):'',item.cardPaymentMonth||'',item.creditPeriod||'']:[])]);
-        if(isInternalMovement(item))transfers.push([...prefix,item.id,date,source(item.movement==='withdraw'?'bank':'cash'),source(item.movement==='withdraw'?'cash':'bank'),item.amount,'Giao dịch nội bộ']);
+        if(isInternalMovement(item)){const {from,to}=movementSources(item);transfers.push([...prefix,item.id,date,source(from),source(to),item.amount,'Giao dịch nội bộ']);}
       }
     }
     for(const [month,row]of entries(book.incomes))income.push([...prefix,month,row.earnedMonth||shiftMonth(month,-1),row.receivedOn||month+'-15',source(row.account||'bank'),row.salary,row.bonus,row.status==='planned'?'Dự kiến chưa nhận':'Đã ghi ngày thực nhận',row.note]);

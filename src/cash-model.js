@@ -18,6 +18,7 @@ export function cashEvents(book){
     if(t.from==='savings')rows.push({...t,id:'savings-release:'+t.id,direction:'in',source:t.to,type:'savings-withdrawal',title:'Rút tiết kiệm',economicIncome:false,internalTransfer:true});
     if(t.to==='savings')rows.push({...t,id:'savings-deposit:'+t.id,direction:'out',source:t.from,type:'savings-deposit',title:'Chuyển vào tiết kiệm',economicIncome:false,internalTransfer:true,savingsDeposit:true});
   }
+  for(const [date,entry]of Object.entries(book.days))for(const item of entry.items)if(item.movement==='save'&&actualItem(item))rows.push({...item,date,direction:'out',source:'bank',type:'savings-deposit',title:item.title||'Chuyển vào tiết kiệm',economicIncome:false,internalTransfer:true,savingsDeposit:true});
   for(const [date,entry]of Object.entries(book.days))for(const item of entry.items)if(actualItem(item)&&item.paymentMethod!=='card'&&!item.cardFeeMonth&&!isCardPayment(item)&&!isInternalMovement(item))rows.push({...item,date,direction:'out',type:item.debtPaymentId?'debt':isTrackingCardPayment(item)?'card-payment':'direct',source:accountSource(item)});
   for(const p of cardPayments(book))rows.push({...p,direction:'out',type:'card-payment',title:`Thanh toán thẻ · ${p.month}`});
   for(const r of book.cards?.adjustments||[])if(!r.voided&&r.type==='bank-refund')rows.push({...r,direction:'in',title:'Hoàn tiền về tài khoản',economicIncome:false});

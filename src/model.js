@@ -3,7 +3,7 @@ import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {normalizeSafety,validateFunds} from './safety-model.js';
 import { normalizeBookSettings,normalizeRegionVisibility,COUNTRIES } from './region-model.js';
 import { normalizeCashEntries, normalizeReceivables, receiptTotals } from './receipt-model.js';
-import { normalizeAccounts, validateSavingsLedger, isCardPayment, isInternalMovement, transferRows } from './account-model.js';
+import { normalizeAccounts, validateSavingsLedger, isCardPayment, isInternalMovement, movementSources, transferRows } from './account-model.js';
 import { normalizeCurrencies } from './preferences.js';
 import { cardMoney, normalizeCards, migrateLegacyPayments, validateCardLinks, validMonth, cardDate } from './card-model.js';
 export const YEARS = Array.from({ length: 8 }, (_, i) => 2026 + i);
@@ -171,12 +171,16 @@ export function normalizeData(input) {
   for (const [key, day] of Object.entries(input.days)) {
     const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(key);
     if (!match || !validYear(+match[1]) || +match[3] > daysInMonth(+match[1], +match[2] - 1) || !day || !Array.isArray(day.items)) continue;
+    for(const item of day.items)if(item?.movement==='save'&&(item.fundId||item.obligationId||item.debtId||item.debtPaymentId||item.cardFeeMonth||item.cardPaymentMonth||item.creditTracking||item.paymentMethod==='card'))throw Error('Chuyển vào tiết kiệm không được gắn với quỹ, tín dụng hoặc khoản phải trả.');
     result.days[key] = { note: String(day.note || '').slice(0, 20000), items: day.items.map((item, i) => ({ id: String(item.id || i), title: String(item.title || '').slice(0, 500), amount: cardMoney(item.amount??0), ...(item.creditTracking===true?{creditTracking:true}:{}),...(item.creditPeriod&&validMonth(item.creditPeriod)?{creditPeriod:item.creditPeriod}:{}),...(item.fundId?{fundId:String(item.fundId)}:{}),...(item.obligationId?{obligationId:String(item.obligationId)}:{}), ...(isInternalMovement(item)?{movement:item.movement}:{}), ...(item.status !== undefined ? { status: expenseStatus(item) } : {}), ...(item.category ? { category: String(item.category).slice(0, 100) } : {}), ...(['bank','cash','savings'].includes(item.paymentMethod) ? {paymentMethod:item.paymentMethod} : {}), ...(item.cardPaymentMonth && validMonth(item.cardPaymentMonth) ? {cardPaymentMonth:item.cardPaymentMonth,...(item.cardPaymentId?{cardPaymentId:String(item.cardPaymentId)}:{})} : {}), ...(item.paymentMethod === 'card' ? { paymentMethod:'card',...(item.creditTracking===true&&item.settlement===undefined?{}:{settlement:['oneoff','ribo','fee'].includes(item.settlement)?item.settlement:'oneoff'}), ...(item.billingMonth && validMonth(item.billingMonth) ? { billingMonth: item.billingMonth } : {}), ...(item.cardFeeMonth && validMonth(item.cardFeeMonth) ? { cardFeeMonth: item.cardFeeMonth } : {}) } : {}), ...(item.debtId && item.debtPaymentId ? { debtId: String(item.debtId), debtPaymentId: String(item.debtPaymentId) } : {}) })) };
   }
   for(const entry of Object.values(result.days)){const ids=new Set();for(const item of entry.items){if(ids.has(item.id))throw Error('Mã giao dịch trong ngày bị trùng.');ids.add(item.id);}}
   for(const entry of Object.values(result.days))for(const item of entry.items)if(isInternalMovement(item)){
     if(item.cardPaymentMonth||item.cardFeeMonth||item.debtPaymentId)throw Error('Chuyển tiền không được gắn với thanh toán nợ.');
-    item.paymentMethod=item.movement==='withdraw'?'bank':'cash';delete item.settlement;delete item.billingMonth;
+    if(item.movement==='save'){
+      item.category='Chuyển tiền nội bộ';
+    }
+    item.paymentMethod=movementSources(item).from;delete item.settlement;delete item.billingMonth;
   }
   for (const [key, income] of Object.entries(input.incomes)) {
     if (/^\d{4}-(0[1-9]|1[0-2])$/.test(key) && validYear(+key.slice(0, 4)) && income) result.incomes[key] = { salary: cardMoney(income.salary??0), bonus: cardMoney(income.bonus??0), note: String(income.note || '').slice(0, 20000), ...(['bank','cash','savings'].includes(income.account) ? {account:income.account} : {}), ...(income.earnedMonth && validMonth(income.earnedMonth) ? { earnedMonth: income.earnedMonth } : {}), ...(income.receivedOn && cardDate(income.receivedOn) ? { receivedOn: income.receivedOn } : {}),...(income.status!==undefined?{status:income.status}:{}) };

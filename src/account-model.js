@@ -5,7 +5,9 @@ import {validateFunds} from './safety-model.js';
 import { financeView } from './credit-access.js';
 import { cardMoney, cardDate, roundCard, statementNumbers, validMonth } from './card-model.js';
 export const accountSource = item => item.paymentMethod === 'card' ? 'card' : item.paymentMethod === 'bank' ? 'bank' : item.paymentMethod==='savings'?'savings':'cash';
-export const isInternalMovement = item => ['withdraw','deposit'].includes(item.movement);
+export const isInternalMovement = item => ['withdraw','deposit','save'].includes(item.movement);
+export const movementSources=item=>item.movement==='save'?{from:'bank',to:'savings'}:item.movement==='withdraw'?{from:'bank',to:'cash'}:{from:'cash',to:'bank'};
+export const movementTitle=movement=>({withdraw:'Rút tiền mặt',deposit:'Nạp tiền vào ngân hàng',save:'Chuyển vào tiết kiệm'})[movement];
 export const monthEnd = month => { if(!validMonth(month))throw Error('Tháng không hợp lệ.'); const [year,m]=month.split('-').map(Number); return `${month}-${String(new Date(Date.UTC(year,m,0)).getUTCDate()).padStart(2,'0')}`; };
 const signedMoney=value=>{const n=Number(value);if(!Number.isFinite(n)||roundCard(n)!==n)throw Error('Số tiền đối chiếu không hợp lệ.');return n;};
 export const moneyKind = item => item.cardPaymentMonth||isTrackingCardPayment(item) ? 'payment' : accountSource(item);
@@ -72,7 +74,10 @@ export function accountBalances(data, through, {ignoreReconciliationOn} = {}) {
   for(const [date,entry] of Object.entries(data.days))if(date<=through)for(const item of entry.items) {
     if(['planned','cancelled','draft'].includes(item.status)||isCardPayment(item))continue;
     if(isInternalMovement(item)){
-      if(includesMoney(date)){const from=item.movement==='withdraw'?'bank':'cash',to=from==='bank'?'cash':'bank';balances[from]=subtractMoney(balances[from],item.amount);balances[to]=addMoney(balances[to],item.amount);}
+      const {from,to}=movementSources(item);
+      if(to==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');
+      if(includesSource(from,date))balances[from]=subtractMoney(balances[from],item.amount);
+      if(includesSource(to,date))balances[to]=addMoney(balances[to],item.amount);
       continue;
     }
     const source=accountSource(item);if(source==='card'){if(!item.creditTracking&&includesCredit(date))balances.creditDebt=addMoney(balances.creditDebt,item.amount);}else if(includesSource(source,date)){if(source==='savings'&&a.savings===undefined)throw Error('Chưa thiết lập nguồn tiết kiệm.');balances[source]=subtractMoney(balances[source],item.amount);}
@@ -133,6 +138,8 @@ export function reconcileMonth(data,date,actual,{id,currency='JPY',today,manual=
 
 export function validateSavingsLedger(data){
  const a=data.accounts,dates=[];
+ const deposits=Object.entries(data.days).filter(([,entry])=>entry.items.some(i=>i.movement==='save'&&!['planned','cancelled','draft'].includes(i.status))).map(([date])=>date);
+ dates.push(...deposits);
  for(const [date,entry] of Object.entries(data.days))if(entry.items.some(i=>i.paymentMethod==='savings'&&!['planned','cancelled','draft'].includes(i.status)))dates.push(date);
  for(const [month,i] of Object.entries(data.incomes))if(i.account==='savings'&&(i.salary||i.bonus))dates.push(i.receivedOn||`${month}-15`);
  for(const r of data.receipts||[])if(r.source==='savings'||r.type==='savings-withdrawal')dates.push(r.date);
@@ -145,4 +152,9 @@ export function validateSavingsLedger(data){
  if(dates.some(d=>d<start))throw Error('Giao dịch tiết kiệm có trước ngày bắt đầu nguồn tiền.');
  dates.push(start,...(a.reconciliations||[]).map(r=>r.date));
  for(const date of new Set(dates))if((accountBalances(data,date)?.savings??0)<0)throw Error('Số dư tiết kiệm không đủ cho giao dịch.');
+ if(deposits.length){
+  const first=deposits.slice().sort()[0];
+  const bankDates=new Set([...dates,...Object.keys(data.days),...Object.entries(data.incomes).map(([m,i])=>i.receivedOn||m+'-15'),...(data.receipts||[]).map(r=>r.date),...(a.transfers||[]).map(t=>t.date),...cardPayments(data).map(p=>p.date),...(data.cards?.adjustments||[]).filter(r=>!r.voided).map(r=>r.date)]);
+  for(const date of bankDates)if(date>=first&&(accountBalances(data,date)?.bank??0)<0)throw Error('Số dư ngân hàng không đủ để chuyển vào tiết kiệm.');
+ }
 }

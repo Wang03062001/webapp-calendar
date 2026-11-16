@@ -2,7 +2,7 @@ import {isTrackingCardPayment} from './credit-types.js';
 import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {cardPayments,statementProgress} from './card-ledger.js';
 import {cardMoney,cardDate,validMonth,roundCard,statementNumbers} from './card-model.js';
-import {accountBalances,accountSource,isInternalMovement} from './account-model.js';
+import {accountBalances,accountSource,isInternalMovement,movementSources} from './account-model.js';
 const sources=['bank','cash','savings'];
 const fail=message=>{throw Error(message);};
 const text=x=>String(x??'').trim();
@@ -100,8 +100,8 @@ export function forecast30(data,asOf){
  for(const [month,i]of Object.entries(data.incomes))push({date:i.receivedOn||month+'-15',source:i.account||'bank',delta:addMoney(i.salary||0,i.bonus||0),title:'Lương & thưởng'});
  for(const r of data.receipts||[]){push({date:r.date,source:r.source,delta:r.amount,title:r.note||'Tiền nhận'});if(r.type==='savings-withdrawal')push({date:r.date,source:'savings',delta:-r.amount,title:'Rút tiết kiệm'});}
  for(const [date,day]of Object.entries(data.days))for(const i of day.items){
-  if(['planned','cancelled','draft'].includes(i.status)||i.paymentMethod==='card'||i.cardPaymentMonth||i.cardFeeMonth)continue;
-  if(isInternalMovement(i)){const from=i.movement==='withdraw'?'bank':'cash',to=from==='bank'?'cash':'bank';push({date,source:from,delta:-i.amount,title:i.title});push({date,source:to,delta:i.amount,title:i.title});}
+  if(['cancelled','draft'].includes(i.status)||i.status==='planned'&&i.movement!=='save'||i.paymentMethod==='card'||i.cardPaymentMonth||i.cardFeeMonth)continue;
+  if(isInternalMovement(i)){const {from,to}=movementSources(i);if(to==='savings'&&initial.savings===undefined){if(date>asOf&&date<=end)unknown.push({date,title:i.title||'Chuyển vào tiết kiệm'});continue;}push({date,source:from,delta:-i.amount,title:i.title,estimated:i.status==='planned'});push({date,source:to,delta:i.amount,title:i.title,estimated:i.status==='planned'});}
   else push({date,source:accountSource(i),delta:-i.amount,title:i.title,fundId:i.fundId||null});
  }
  for(const t of data.accounts.transfers){push({date:t.date,source:t.from,delta:-t.amount,title:'Chuyển nguồn'});push({date:t.date,source:t.to,delta:t.amount,title:'Chuyển nguồn'});}
