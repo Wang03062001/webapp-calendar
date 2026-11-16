@@ -17,7 +17,7 @@ await page.route('https://**/*',async route=>{const req=route.request(),url=req.
  else throw Error('Unexpected remote '+url);await route.fulfill({json:body});});
 await page.addInitScript(()=>localStorage.setItem('lich-auth:mjgxzzxmfifhoymvdaoe.supabase.co',JSON.stringify({access_token:'mock',refresh_token:'mock',expires_at:Date.now()/1000+3600})));
 const balance=k=>page.locator(`[data-current-balance=${k}]`),field=k=>page.locator(`#cash-entry-dialog [name=${k}]`);
-async function open(){await page.locator('[data-action=withdraw-savings]').click();await page.locator('#cash-entry-dialog').waitFor();assert.equal(await field('type').inputValue(),'savings-withdrawal');}
+async function open(){const details=page.locator('.current-wallet-secondary');if(!await details.evaluate(e=>e.open))await details.locator(':scope > summary').click();await page.locator('[data-action=withdraw-savings]').click();await page.locator('#cash-entry-dialog').waitFor();assert.equal(await field('type').inputValue(),'savings-withdrawal');}
 async function submit(){await page.locator('#cash-entry-dialog .account-submit').click();await page.locator('#cash-entry-dialog').waitFor({state:'detached'});}
 async function show(){
  const before=saves;await page.reload();await page.waitForFunction(()=>document.querySelector('[data-current-balance=assets]')?.textContent==='150 JPY');

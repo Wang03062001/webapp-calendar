@@ -50,7 +50,7 @@ input[data-money]:invalid{border-color:#d98d9b;background:#fff6f7}
 .account-dialog{width:560px;max-height:calc(100dvh - 32px);overflow:auto}.account-dialog h2{padding-right:22px}.admin-dialog{width:1280px}.admin-table{min-width:1200px}.admin-table input{min-width:190px}.admin-table td:nth-child(2) input{min-width:260px}
 .cloud-notice{flex-wrap:wrap}.page-heading{flex-wrap:wrap}.year-tools{flex-wrap:wrap}
 @media(max-width:1300px){.workspace-grid{grid-template-columns:1fr}.day-panel{position:static}.dashboard-welcome{grid-template-columns:1fr}.welcome-art{right:35px;opacity:.5}.dashboard-charts{grid-template-columns:1fr 1fr}.cashflow-card{grid-column:1/-1}}
-@media(max-width:1000px){#app{display:block}.sidebar{position:static;width:100%;padding:22px 24px 0;border-right:0;border-bottom:1px solid var(--border)}.brand{margin-bottom:19px}.workspace-label,.year-heading,.years,.sidebar-bottom{display:none}.sidebar nav{display:flex;gap:18px;flex-wrap:wrap}.nav-item{width:auto;border-radius:0;margin:0;padding:14px 4px;border-bottom:2px solid transparent}.nav-item.active{background:none;border-bottom-color:#ac87db;box-shadow:none}main{margin:0;width:100%}.top-actions{justify-content:flex-end;width:100%}.dashboard-welcome{grid-template-columns:1fr}.chart-heading{align-items:flex-start}.income-fields{grid-template-columns:1fr 1fr}}
+@media(max-width:1200px){#app{display:block}.sidebar{position:static;width:100%;padding:22px 24px 0;border-right:0;border-bottom:1px solid var(--border)}.brand{margin-bottom:19px}.workspace-label,.year-heading,.years,.sidebar-bottom{display:none}.sidebar nav{display:flex;gap:18px;flex-wrap:wrap}.nav-item{width:auto;border-radius:0;margin:0;padding:14px 4px;border-bottom:2px solid transparent}.nav-item.active{background:none;border-bottom-color:#ac87db;box-shadow:none}main{margin:0;width:100%}.top-actions{justify-content:flex-end;width:100%}.dashboard-welcome{grid-template-columns:1fr}.chart-heading{align-items:flex-start}.income-fields{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.sidebar{padding:20px 16px 0}.topbar{padding:12px 16px;min-height:76px}.top-actions{gap:8px;justify-content:flex-end}.page{padding:20px 16px 12px}.welcome-card{padding:25px 22px}.welcome-copy h1{overflow-wrap:anywhere}.quick-grid{gap:8px}.stats{grid-template-columns:1fr}.stat:last-child{grid-column:auto}.dashboard-charts{grid-template-columns:1fr}.cashflow-card{grid-column:auto}.donut{width:164px;height:164px}.donut>div{width:136px;height:136px}.chart-foot{gap:10px}.bar-chart{gap:5px;height:150px}.bar-pair{height:120px}.chart-legend{flex-wrap:wrap}.savings-inputs,.income-fields{grid-template-columns:1fr}.savings-progress-heading strong{overflow-wrap:anywhere}.month-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.calendar-days{grid-auto-rows:minmax(108px,auto)}.weekdays{padding-left:5px;padding-right:5px}.calendar-bottom{gap:12px}.calendar-bottom>span{flex-wrap:wrap;white-space:normal}.card-heading{gap:14px}.quick-grid button>span{width:46px;height:46px}.account-dialog{padding:28px 22px}.auth-tabs button{padding:12px 7px}.admin-dialog{padding:24px 16px}footer{overflow-wrap:anywhere}}
 
 @media(max-width:640px){.expense-table{display:block;min-width:0}.expense-table thead{display:none}.expense-table tbody{display:block}.expense-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr) 28px;gap:5px;border-bottom:1px solid #f0e1f8;padding:8px 0}.expense-table td{display:block;border:0;min-width:0!important;padding:4px 0}.expense-table td:first-child{grid-column:1;grid-row:1}.expense-table td:nth-child(2){grid-column:1;grid-row:2}.expense-table td:last-child{grid-column:2;grid-row:1/3;align-self:center}.expense-table td:nth-child(2)::before{content:"Số tiền · JPY";display:block;color:#90709f;margin-bottom:5px}.expense-table input{background:#fefbff;border-color:#edddf6;padding:10px}}
@@ -77,7 +77,7 @@ input::placeholder,textarea::placeholder{color:#756d80}.topbar{position:sticky;t
 .debt-filters{display:flex;gap:8px;flex-wrap:wrap;padding:0 22px 18px}.filter-chip{border:1px solid #d8cce8;color:#62516f;background:#fff;border-radius:20px;padding:9px 12px;font-size:var(--text-sm)}.filter-chip.active{background:#eee6fc;color:#583894;border-color:#b69adf}.filter-chip span{font-weight:650;margin-left:4px}.debt-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;max-width:145px}.debt-due{margin-top:10px;font-size:var(--text-sm)}.debt-due.overdue{color:#a22f4c}.debt-due.soon{color:#8c512b}.debt-due.paid{color:#267551}.text-button{font-size:var(--text-sm);padding:8px 5px;color:#6340a2;text-decoration:underline;background:none;min-height:36px}.text-button.danger{color:#a22f4c}.debt-history li{align-items:center;flex-wrap:wrap;font-size:var(--text-sm)}.debt-history summary{font-size:var(--text-sm)}.debt-history .payment-voided{background:#f4f1f6;color:#6b6278}.payment-voided strong{text-decoration:line-through}.debt-overview strong{font-size:var(--text-title);color:#67469c}.debt-amounts strong{font-size:var(--text-base);color:#514264}.debt-title h3{font-size:var(--text-lg)}.debt-tick{font-size:var(--text-sm)}.debt-row{grid-template-columns:minmax(140px,1fr) minmax(0,2fr) auto;gap:18px}.debt-amounts{gap:12px}.debt-dialog fieldset{font-size:var(--text-sm)}
 button,input,select,textarea,summary{scroll-margin-top:100px}footer{font-size:var(--text-xs);overflow-wrap:anywhere}
 @media(max-width:1300px){.workspace-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.debt-row{grid-template-columns:minmax(0,1fr) auto}.debt-title{grid-column:1}.debt-actions{grid-column:2;grid-row:1}.debt-amounts{grid-column:1/-1}.debt-history{grid-column:1/-1}}
-@media(max-width:1000px){.sidebar{padding:16px 20px 0}.brand{margin-bottom:10px}.topbar{min-height:66px}.workspace-grid{grid-template-columns:1fr}.day-panel{grid-row:1}.calendar-column{grid-row:2}.finance-panels{grid-template-columns:1fr 1fr}.top-actions{width:auto}.expense-filters{grid-template-columns:1fr 1fr}.expense-filters>label:first-child{grid-column:1/-1}}
+@media(max-width:1200px){.sidebar{padding:16px 20px 0}.brand{margin-bottom:10px}.topbar{min-height:66px}.workspace-grid{grid-template-columns:1fr}.day-panel{grid-row:1}.calendar-column{grid-row:2}.finance-panels{grid-template-columns:1fr 1fr}.top-actions{width:auto}.expense-filters{grid-template-columns:1fr 1fr}.expense-filters>label:first-child{grid-column:1/-1}}
 @media(max-width:640px){.page{padding:16px}.sidebar{padding:14px 16px 0}.brand{font-size:var(--text-title)}.sidebar nav{gap:10px}.nav-item{padding:10px 4px;font-size:var(--text-sm)}.topbar{padding:10px 12px}.top-actions{width:100%;gap:6px}.button.small{font-size:var(--text-sm);padding:9px}.topbar .icon-button{width:34px;height:38px}.page-heading>h2{font-size:var(--text-lg)}.year-tools{gap:6px}.year-select-wrap select{font-size:var(--text-sm)}.stats{grid-template-columns:1fr 1fr;gap:9px}.stat{padding:12px 10px 20px}.stat>strong,.stat:last-child>strong{font-size:var(--text-lg)}.stat-top{font-size:var(--text-xs)}.stat-icon{display:none}.stat>small{font-size:var(--text-xs)}.editor-actions{gap:7px}.editor-actions .button{font-size:var(--text-sm)}.workspace-grid{gap:14px}.day-panel{padding:16px}.expense-entry{padding:12px}.finance-panels{grid-template-columns:1fr;gap:14px}.dashboard-charts{grid-template-columns:1fr;padding:0 12px 12px}.period-bars{gap:8px}.chart-card{padding:12px}.expense-filters{padding:0 16px 14px;gap:8px}#expense-results{padding:0 16px 16px}.expense-result>button[data-open-day]{grid-template-columns:1fr auto;gap:7px}.expense-search-list time{grid-column:1/-1;font-size:var(--text-xs);color:var(--muted)}.debt-actions{max-width:130px;justify-content:flex-end}.debt-amounts{grid-template-columns:1fr;gap:10px}.debt-amounts>span{flex-direction:row;justify-content:space-between;gap:10px;font-size:var(--text-sm)}.debt-amounts strong{max-width:70%;text-align:right;font-size:var(--text-base)}.debt-list{padding:0 16px 10px}.debt-filters{padding:0 16px 14px}.debt-overview{grid-template-columns:1fr;gap:10px}.account-dialog{padding:25px 20px}.account-dialog h2{font-size:var(--text-title)}.account-dialog label,.account-dialog input,.account-dialog p,.account-submit{font-size:var(--text-base)}.auth-tabs button,.forgot-password{font-size:var(--text-sm)}.repayment-options label{font-size:var(--text-base)}.calendar-days{grid-auto-rows:minmax(90px,auto)}}
 
 /* Keep secondary text legible on pastel surfaces. */
@@ -164,9 +164,9 @@ html[data-theme=dark] .stat-detail-total[data-stat-total]{background:#30273e}htm
 @media(max-width:640px){.stat-top button.stat-icon{display:inline-grid;width:36px;height:36px}.stat-dialog .stat-detail-list article{grid-template-columns:1fr;gap:4px}.stat-detail-list article>b{max-width:100%;text-align:left}.stat-detail-total{gap:10px;flex-wrap:wrap}.stat-detail-total strong{max-width:100%}.stat-chart-row{grid-template-columns:1fr auto;gap:8px}.stat-chart-track{grid-column:1/-1;grid-row:2}.stat-dialog h2{font-size:var(--text-lg)}}
 
 .current-wallet{position:fixed;inset:0 0 0 auto;width:260px;padding:24px 18px;background:#fff;border-left:1px solid var(--border);overflow-y:auto;z-index:4}.current-wallet summary{list-style:none;cursor:pointer;padding:0 20px 16px 0;position:relative;border-bottom:1px solid var(--border)}.current-wallet summary::-webkit-details-marker{display:none}.current-wallet summary:after{content:'⌄';position:absolute;right:0;top:0;color:var(--muted)}.current-wallet details:not([open]) summary:after{content:'›'}.current-wallet-title{display:block;font-size:var(--text-lg);font-weight:650}.current-wallet-asset-total{display:block;font-size:var(--text-title);margin:14px 0 8px;overflow-wrap:anywhere}.current-wallet-date{display:block;color:var(--muted);font-size:var(--text-xs);line-height:1.7}.current-wallet-values{display:grid;gap:10px;margin:16px 0}.current-wallet-value{padding:12px;border:1px solid var(--border);border-radius:9px;background:#faf8fd;min-width:0}.current-wallet-value>span{display:block;font-size:var(--text-sm);margin-bottom:7px}.current-wallet-value strong{display:block;font-size:var(--text-lg);overflow-wrap:anywhere}.current-wallet-help,.current-wallet-empty,.current-wallet-pending,.current-wallet-draft{font-size:var(--text-xs);line-height:1.8;margin:12px 0;color:var(--muted)}.current-wallet-pending{padding:10px;background:#fff6df;border-radius:8px;color:#76582b}.current-wallet-draft{color:#8c512b}.current-wallet-settings{width:100%;margin:12px 0 0;white-space:normal}.current-wallet-body>.text-button{display:block;text-align:left}.ledger-tools{margin:16px 0}.ledger-tools>summary{padding:16px 20px;color:var(--muted);font-size:var(--text-sm);cursor:pointer}.ledger-tools .accounts-panel{margin:0;border:0;box-shadow:none}.ledger-tools .accounts-panel .card-heading{border-top:1px solid var(--border)}
-@media(min-width:1001px){main{margin-right:260px;width:calc(100% - 540px)}}
-@media(min-width:1001px) and (max-width:1399px){.current-wallet{width:240px;padding:20px 14px}main{margin-right:240px;width:calc(100% - 520px)}.workspace-grid,.finance-panels,.dashboard-charts{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
-@media(max-width:1000px){#app{display:flex;flex-direction:column}.sidebar{order:0}.current-wallet{position:static;order:1;width:100%;padding:14px 20px;border-left:0;border-bottom:1px solid var(--border);overflow:visible}main{order:2;margin:0;width:100%}.current-wallet summary{display:grid;grid-template-columns:1fr auto;gap:5px 15px;padding-right:22px}.current-wallet-asset-total{font-size:var(--text-lg);margin:0;text-align:right}.current-wallet-date{grid-column:1/-1}.current-wallet-values{grid-template-columns:repeat(2,minmax(0,1fr))}.current-wallet-body>.text-button{display:inline-block;margin-right:12px}.current-wallet-settings{width:auto;display:inline-block;margin-right:12px}}
+@media(min-width:1201px){main{margin-right:260px;width:calc(100% - 540px)}}
+@media(min-width:1201px) and (max-width:1399px){.current-wallet{width:240px;padding:20px 14px}main{margin-right:240px;width:calc(100% - 520px)}.workspace-grid,.finance-panels,.dashboard-charts{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:1200px){#app{display:flex;flex-direction:column}.sidebar{order:0}.current-wallet{position:static;order:1;width:100%;padding:14px 20px;border-left:0;border-bottom:1px solid var(--border);overflow:visible}main{order:2;margin:0;width:100%}.current-wallet summary{display:grid;grid-template-columns:1fr auto;gap:5px 15px;padding-right:22px}.current-wallet-asset-total{font-size:var(--text-lg);margin:0;text-align:right}.current-wallet-date{grid-column:1/-1}.current-wallet-values{grid-template-columns:repeat(2,minmax(0,1fr))}.current-wallet-body>.text-button{display:inline-block;margin-right:12px}.current-wallet-settings{width:auto;display:inline-block;margin-right:12px}}
 @media(max-width:640px){.current-wallet{padding:12px 16px}.current-wallet-title{font-size:var(--text-base)}.current-wallet-asset-total{font-size:var(--text-lg);max-width:180px}.current-wallet-value strong{font-size:var(--text-base)}}
 html[data-theme=dark] .current-wallet{background:#211d2b;border-color:#453b55;color:#eee8f7}html[data-theme=dark] .current-wallet-value{background:#2d2639;border-color:#453b55}html[data-theme=dark] :is(.current-wallet-help,.current-wallet-empty,.current-wallet-date,.ledger-tools>summary){color:#c4b7d5}html[data-theme=dark] .current-wallet-pending{background:#443823;color:#efcf8d}html[data-theme=dark] .current-wallet-draft{color:#efcf8d}
 /* Cash and credit have separate groups; keep the established layout and colors. */
@@ -221,3 +221,111 @@ html[data-theme=dark] .current-wallet{background:#211d2b;border-color:#453b55;co
 #wallet-dialog .module-option { display: flex; align-items: flex-start; gap: 10px; }
 #wallet-dialog [type=checkbox] { width: auto; min-width: 18px; margin-top: 4px; }
 @media (max-width: 600px) { .wallets-panel { padding: 16px; } .wallet-summary { grid-template-columns: minmax(0,1fr); } .wallets-panel .card-heading { align-items: stretch; flex-direction: column; } .wallet-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .wallet-grid article { padding: 12px; } }
+
+/* Compact spacing across the app; retain readable type and touch targets. */
+.page { padding: 18px 20px; }
+.button { padding: 8px 12px; min-height: 38px; }
+.card-heading { padding: 16px; gap: 12px; }
+.card-heading p { margin-top: 4px; }
+.sidebar { padding-top: 20px; }
+.brand { margin-bottom: 24px; }
+.nav-item { padding-top: 10px; padding-bottom: 10px; }
+.year-heading { margin-top: 20px; }
+.topbar { padding-left: 20px; padding-right: 20px; }
+.region-bar { padding: 12px; gap: 8px; margin-bottom: 12px; }
+.region-tabs button { padding: 8px 12px; min-height: 40px; }
+.region-bar p { line-height: 1.5; }
+.wallets-panel { padding: 16px; margin-bottom: 14px; }
+.wallet-grid { margin: 16px 0; gap: 10px; }
+.wallet-grid article { padding: 12px; display: flex; flex-direction: column; align-items: flex-start; }
+.wallet-grid h3 { margin-bottom: 8px; }
+.wallet-grid strong { font-size: var(--text-lg); margin-bottom: 10px; }
+.wallet-grid button { margin-top: auto; }
+.wallet-summary { padding-top: 12px; gap: 12px; }
+.wallet-summary > div { gap: 4px; }
+.wallet-summary strong { font-size: var(--text-lg); }
+.wallet-actions { margin: 12px 0; }
+.wallet-history { padding-top: 10px; }
+.wallets-panel > .account-note { margin-top: 10px; }
+.page-heading { margin-bottom: 12px; }
+.stats { gap: 10px; margin-bottom: 14px; }
+.stat { padding: 12px 14px 18px; }
+.stat > strong { margin: 6px 0; }
+.stat:after { bottom: 7px; }
+.month-tabs { margin-bottom: 10px; }
+.calendar-disclosure > summary,.analysis-panel > summary,.expense-browser > summary,.ledger-tools > summary,.salary-planning > summary { padding: 12px 16px; }
+.analysis-panel,.expense-browser,.ledger-tools,.salary-planning { margin: 12px 0; }
+.workspace-grid,.calendar-column,.finance-panels { gap: 14px; }
+.day-panel { min-height: 0; padding: 16px; }
+.day-panel-header { padding-bottom: 12px; }
+.day-panel-header .eyebrow { margin-bottom: 6px; }
+.day-panel-header h2 { font-size: var(--text-title); }
+.expense-heading { margin-bottom: 10px; }
+.expense-entry { padding: 12px; margin-bottom: 10px; }
+.note-section { margin: 14px 0; }
+.note-section textarea { min-height: 64px; padding: 10px; margin-top: 6px; }
+.day-total { padding: 12px; }
+.day-total strong { font-size: var(--text-lg); }
+.income-fields,.savings-layout { gap: 12px; }
+.income-note-label { margin-top: 12px; }
+.income-total { padding-top: 12px; padding-bottom: 14px; }
+.savings-panel { margin-bottom: 16px; }
+.savings-cumulative { padding: 12px 16px; margin-bottom: 14px; }
+.savings-cumulative > strong { font-size: var(--text-title); }
+.savings-target-status article { padding: 12px; }
+.savings-target-status article > strong { font-size: var(--text-lg); }
+.safety-section { margin: 12px 0; padding-bottom: 14px; }
+.safety-metrics,.fund-grid,.strategy-grid { gap: 10px; }
+.safety-metrics article,.fund-card,.strategy-grid > article { padding: 12px; }
+.fund-card h3,.fund-card p,.strategy-grid p { margin-bottom: 6px; line-height: 1.5; }
+.safety-list article,.receipt-list article { padding-top: 10px; padding-bottom: 10px; }
+.safety-table-wrap th,.safety-table-wrap td { padding: 9px 10px; }
+.account-dialog { padding: 22px; }
+.account-dialog h2 { margin: 8px 0 14px; }
+.account-dialog label { margin-top: 12px; margin-bottom: 12px; }
+.account-dialog input { padding: 10px 12px; }
+.account-submit { padding: 10px 12px; min-height: 42px; }
+.current-wallet { padding-top: 16px; }
+.current-wallet-value { padding: 10px; }
+.current-wallet-value > span { margin-bottom: 4px; }
+.current-wallet-help,.current-wallet-pending,.current-wallet-draft { margin: 8px 0; line-height: 1.5; }
+.current-savings { margin-top: 14px; padding-top: 12px; }
+.current-savings h3 { margin-bottom: 8px; }
+.current-savings .current-wallet-value { margin: 8px 0; }
+@media(max-width:1200px) {
+ .page { padding: 14px 16px; }
+ .current-wallet { padding: 12px 16px; }
+
+}
+@media(max-width:640px) {
+ .topbar { padding: 8px 12px; }
+ .page { padding: 12px; }
+ .button,.icon-button,.text-button,.nav-item,.month-tabs button { min-height: 40px; }
+ .card-heading { padding: 14px; }
+ .wallets-panel { padding: 14px; }
+ .wallet-grid { gap: 8px; margin: 14px 0; }
+ .wallet-grid article { padding: 10px; }
+ .wallet-grid button { padding: 8px 10px; }
+ .region-bar { padding: 10px; }
+ .stats { gap: 8px; }
+ .stat { padding: 10px 10px 16px; }
+ .day-panel { padding: 14px; }
+ .calendar-days { grid-auto-rows: minmax(78px,auto); }
+ .savings-layout { gap: 14px; }
+ .safety-section > p,.safety-section > details { margin-top: 10px; margin-bottom: 10px; }
+ .account-dialog { padding: 20px 16px; }
+ .account-dialog input,.account-dialog select { min-height: 44px; }
+ .current-wallet-value strong { font-size: var(--text-base); }
+}
+
+.current-wallet-secondary { margin-top: 12px; }
+.current-wallet-secondary > summary { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); font-size: var(--text-sm); }
+.current-wallet-secondary > summary:after { top: 12px; }
+.current-wallet-secondary > summary strong { font-size: var(--text-base); overflow-wrap: anywhere; }
+.current-wallet-secondary .current-savings:first-of-type { border-top: 0; margin-top: 0; }
+@media(max-width:640px) { .brand { margin-bottom: 12px; } }
+
+.current-wallet-secondary[open] > summary > strong { display: none; }
+@media(max-width:640px) {
+ .region-bar > .button { width: auto; min-width: 0; flex: 1 1 40%; white-space: normal; line-height: 1.4; }
+}
