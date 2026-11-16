@@ -1,0 +1,35 @@
+// Motion and interaction checks on synthetic read-only APIs; no production writes.
+import assert from 'node:assert/strict';
+import {newRegionalBook} from '../src/region-model.js';
+import {normalizeData,addDebt} from '../src/model.js';
+import {normalizeSafety} from '../src/safety-model.js';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright-core');
+const d=newRegionalBook('JP');d.accounts={openedOn:'2026-11-01',bank:1000000,cash:10000,savings:500000,creditDebt:0,creditLimit:null,transfers:[]};d.wallets={version:1,enabled:true,transfers:[]};d.safety=normalizeSafety({funds:[{id:'laptop',name:'Quỹ mua máy tính và phụ kiện làm việc',source:'bank',kind:'goal',target:300000,entries:[{id:'a',date:'2026-11-01',direction:'allocate',amount:100000,note:''}]}],budgets:[{month:'2026-11',category:'Ăn uống',amount:30000}]},d);d.days['2026-11-16']={note:'Ghi chú mô phỏng',items:[{id:'e',title:'Chi phí sinh hoạt mô phỏng',amount:12345,paymentMethod:'bank',status:'paid',category:'Ăn uống'},{id:'p',title:'Khoản dự kiến mô phỏng',amount:2000,paymentMethod:'cash',status:'planned',category:'Khác'}]};d.incomes['2026-11']={salary:190000,bonus:5000,receivedOn:'2026-11-15',note:''};d.savings={'2026-11':50000};d.monthlySavingsGoals={'2026-11':100000};addDebt(d,{id:'loan',title:'Khoản vay mô phỏng',amount:15000,type:'Khác',dueDate:'2026-11-25'});d.regional={vietnam:newRegionalBook('VN')};const doc=normalizeData(d);
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(10000);await page.clock.install({time:new Date('2026-11-16T03:00:00Z')});
+await page.route('https://**/*',async route=>{const url=route.request().url();let body;if(url.includes('/auth/v1/user'))body={id:'layout-fixture',email:'fixture@example.test',email_confirmed_at:'2026-01-01'};else if(url.includes('calendar_is_admin'))body=true;else if(url.includes('calendar_profiles'))body=[{username:'layout-fixture'}];else if(url.includes('calendar_documents'))body=[{data:doc,revision:1}];else throw Error('Unexpected external request (writes forbidden): '+url);await route.fulfill({json:body});});
+await page.addInitScript(()=>{localStorage.setItem('calendar-display',JSON.stringify({theme:'light',language:'vi'}));localStorage.setItem('lich-auth:mjgxzzxmfifhoymvdaoe.supabase.co',JSON.stringify({access_token:'mock',refresh_token:'mock',expires_at:Date.now()/1000+3600}));});
+await page.addInitScript(()=>{
+ window.motionCalls=[];const animate=Element.prototype.animate;
+ Element.prototype.animate=function(frames,options){window.motionCalls.push({classes:this.className,options});return animate.call(this,frames,options);};
+});
+const calls=()=>page.evaluate(()=>window.motionCalls.length);
+const finish=()=>page.evaluate(()=>document.getAnimations().forEach(a=>a.finish()));
+try{
+ await page.goto(process.env.CALENDAR_URL||'http://127.0.0.1:5194');await page.locator('[data-current-balance=bank]').waitFor({state:'attached'});await finish();
+ let count=await calls();await page.locator('nav [data-view=debts]').click();assert.equal(await calls(),count+2);await finish();
+ count=await calls();await page.locator('nav [data-view=calendar]').click();assert.equal(await calls(),count+2);await finish();
+ // Local entry rerenders must not replay view animation or write to the backend.
+ count=await calls();await page.locator('[data-action=quick-expense]').click();const row=page.locator('.day-panel .expense-entry').last();await row.locator('[data-field=title]').fill('Keep typed draft');await row.locator('[data-field=amount]').fill('123');await row.locator('[data-field=category]').selectOption('Khác');assert.equal(await calls(),count);assert.equal(await row.locator('[data-field=amount]').inputValue(),'123');
+ // Opening a disclosure is animated; closing is immediate and never awaits effects.
+ const disclosure=page.locator('.analysis-panel');count=await calls();await disclosure.locator(':scope > summary').click();assert.equal(await calls(),count+1);await disclosure.locator(':scope > summary').click();assert.equal(await disclosure.evaluate(e=>e.open),false);
+ await page.locator('.topbar [data-action=settings]').click();let dialog=page.locator('dialog[open]');await dialog.waitFor();assert.equal(await dialog.evaluate(e=>getComputedStyle(e).animationName),'calendar-dialog-in');await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+ // Turning the OS preference on cancels effects already in flight.
+ await page.locator('nav [data-view=year]').click();await page.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));assert.equal(await page.evaluate(()=>document.getAnimations().filter(a=>a.id==='calendar-motion').length),0);await page.locator('nav [data-view=debts]').click();await page.emulateMedia({reducedMotion:'reduce'});await page.waitForFunction(()=>!document.getAnimations().some(a=>a.id==='calendar-motion'));
+ count=await calls();await page.locator('nav [data-view=calendar]').click();assert.equal(await calls(),count);await page.locator('.topbar [data-action=settings]').click();dialog=page.locator('dialog[open]');assert.equal(await dialog.evaluate(e=>getComputedStyle(e).animationName),'none');await page.keyboard.press('Escape');
+ // Re-enable motion and check touch layouts/dark mode, with no horizontal drift.
+ await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:390,height:844});await page.locator('.topbar [data-action=theme]').click();await page.locator('#wallets-panel [data-wallet-action=transfer]').first().click();await finish();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'/tmp/motion-mobile-dialog.png'});await page.keyboard.press('Escape');
+ await page.setViewportSize({width:1440,height:1000});await page.locator('nav [data-view=year]').click();await finish();await page.screenshot({path:'/tmp/motion-desktop-year.png'});
+ // Motion is progressive enhancement: an older browser without WAAPI still works.
+ await page.addInitScript(()=>{Element.prototype.animate=undefined;});await page.reload();await page.locator('nav [data-view=safety]').click();await page.locator('.topbar [data-action=settings]').click();await page.locator('dialog[open]').waitFor();await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+ assert.deepEqual(errors,[]);console.log('PASS finite view/disclosure/dialog effects, no replay during draft typing/rerenders, immediate close/Escape, live reduced-motion cancellation, mobile/dark, keyboard and missing-WAAPI fallback; all APIs mocked, no financial writes');
+}finally{await browser.close();}

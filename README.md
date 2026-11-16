@@ -1,3 +1,5 @@
+> **Chuyển động giao diện:** Nút có phản hồi khi bấm, popup mở nhẹ và phần tổng kết có hiệu ứng khi đổi trang/tháng. Tôn trọng chế độ giảm chuyển động của thiết bị; không trì hoãn lưu hoặc đóng popup. Xem [quy tắc motion](docs/MOTION.md).
+
 > **Skill hỗ trợ Codex:** Đã cài UI/UX Pro Max và Modern Web Guidance trong `.agents/skills/`. Đây là hướng dẫn phát triển, không tự đổi giao diện hoặc dữ liệu và không được xuất lên Vercel. Xem [cách sử dụng](docs/DEVELOPMENT-SKILLS.md).
 
 > **Triển khai Vercel:** Có sẵn `vercel.json` cho static build. Xem [website quanlychitieu03062001.vercel.app và cấu hình Supabase](docs/VERCEL.md). Cấu hình trong Git không tự tạo dự án/domain hoặc deploy Edge Functions.

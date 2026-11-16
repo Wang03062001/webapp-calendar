@@ -1,3 +1,4 @@
+import {createMotion} from './motion.js';
 import {walletsPanel,showWalletDialog} from './wallet-ui.js';
 import {separateWallets,walletSource,walletName,fundWallet} from './wallet-model.js';
 import {showResetDialog} from './reset-ui.js';
@@ -55,6 +56,7 @@ let data = emptyData(), savedTimer, debtFilter = 'all', expenseQuery = '', expen
 const newExpense = () => ({ id: crypto.randomUUID(), title: '', amount: 0, status: 'planned', category: 'Khác', paymentMethod: 'bank' });
 let creditRole = { userId: null, allowed: false, checked: false, request: 0, pending: null };
 const root = document.querySelector('#app');
+const motion = createMotion(root);
 const walletMedia=matchMedia('(min-width: 1201px)');
 let walletExpanded=walletMedia.matches,walletSecondaryExpanded=walletMedia.matches,ledgerExpanded=false,walletNode=null,walletMarkup='',reportDay=localToday();
 let creditWritePending = false, activeRegion='foreign', regionUser=null,regionEpoch=0;
@@ -177,6 +179,7 @@ function render() {
   renderCloud();
   const tabs = root.querySelector('.month-tabs'), activeTab = tabs?.querySelector('.active');
   if (activeTab) tabs.scrollLeft += activeTab.getBoundingClientRect().left - tabs.getBoundingClientRect().left - (tabs.clientWidth - activeTab.offsetWidth) / 2;
+  motion.enter(JSON.stringify([cloud.user?.id,activeRegion,view,year,month]));
 }
 function refreshActualDay(){const current=localToday();if(current!==reportDay){reportDay=current;if(['calendar','year'].includes(view)&&root.querySelector('.stats'))refreshTotals();}}
 function renderCurrentWallet() {
@@ -184,7 +187,7 @@ function renderCurrentWallet() {
   const markup=currentWalletContent(actualData(),{asOf:localToday(),creditAllowed:hasCreditAccess(),signedIn:canEdit(),draft:cloud.dirty,expanded:walletExpanded,secondaryExpanded:walletSecondaryExpanded,updatedAt:cloud.confirmedAt});
   if(node===walletNode&&markup===walletMarkup)return;
   const active=document.activeElement,restoreFocus=node.contains(active),action=active?.dataset?.action;
-  node.innerHTML=markup;walletNode=node;walletMarkup=markup;
+  node.innerHTML=markup;walletNode=node;walletMarkup=markup;motion.registerDetails(node);
   if(restoreFocus)(action?node.querySelector(`[data-action="${action}"]`):node.querySelector('summary'))?.focus({preventScroll:true});
 }
 function periodCash(){return cashPeriodDetails(actualData(),{year,month:view==='year'?null:month,creditAllowed:hasCreditAccess()});}
@@ -566,6 +569,7 @@ root.addEventListener('keydown', event => {
   event.preventDefault(); saveChanges();
 });
 root.addEventListener('toggle', event => {
+  motion.disclosure(event.target);
   if(event.target.classList.contains('current-wallet-disclosure'))walletExpanded=event.target.open;
   if(event.target.classList.contains('current-wallet-secondary'))walletSecondaryExpanded=event.target.open;
   if(event.target.id==='ledger-tools')ledgerExpanded=event.target.open;
