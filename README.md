@@ -387,3 +387,5 @@ Trong **Quỹ tiết kiệm của bạn**, nhập **Số tiền cần tiết ki�
 Khối kế hoạch hiển thị mục tiêu đã lưu, số đã ghi tiết kiệm và số còn cần tiết kiệm. Chưa đặt mục tiêu thì chưa có số còn thiếu; đạt/vượt mục tiêu thì còn 0. Chỉ cập nhật khối này sau máy chủ xác nhận. Enter hoặc **Lưu thay đổi** lưu như các mục hiện có; lỗi/xung đột giữ bản nháp.
 
 Đây là kế hoạch, không tự trừ ngân hàng/tiền mặt, tăng số dư tiết kiệm hoặc tăng tổng lịch sử tích lũy. Mỗi khu vực và tiền tệ tiết kiệm độc lập. JSON giữ đầy đủ mục tiêu; Excel bổ sung dòng **Mục tiêu tháng** trong sheet tiết kiệm hiện có. Không cần thay đổi Supabase/SQL.
+
+Thanh **Tiến độ tháng** trong mục tiêu tháng dùng số đã ghi tiết kiệm / mục tiêu tháng đã lưu. Chưa đặt mục tiêu hiển thị N/A; đạt/vượt mục tiêu có thông báo. Phần trăm có thể vượt 100%, còn thanh hiển thị tối đa 100%. Thanh chỉ cập nhật sau xác nhận lưu thành công, độc lập giữa các tháng và khu vực; tiến độ năm giữ nguyên.

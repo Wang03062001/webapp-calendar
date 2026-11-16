@@ -232,8 +232,14 @@ function savingsPanel() {
 function savingsTargetsContent(){
   if(!cloud.user||!cloud.confirmedData)return '<p>Chưa có dữ liệu đã được máy chủ xác nhận.</p>';
   const targets=savingsTargets(actualData(),year,month);
-  const card=(scope,label)=>{const d=targets[scope];return `<article data-savings-target="${scope}"><h3>${label}</h3><strong data-target-value="${scope}">${d.goal===null?'Chưa đặt mục tiêu':dong(d.goal)}</strong><p>Đã ghi tiết kiệm: <span data-target-saved="${scope}">${dong(d.saved)}</span></p><p>Còn cần tiết kiệm: <strong data-target-remaining="${scope}">${d.remaining===null?'N/A':dong(d.remaining)}</strong></p></article>`;};
+  const card=(scope,label)=>{const d=targets[scope];return `<article data-savings-target="${scope}"><h3>${label}</h3><strong data-target-value="${scope}">${d.goal===null?'Chưa đặt mục tiêu':dong(d.goal)}</strong>${scope==='month'?monthlySavingsProgressContent(d):''}<p>Đã ghi tiết kiệm: <span data-target-saved="${scope}">${dong(d.saved)}</span></p><p>Còn cần tiết kiệm: <strong data-target-remaining="${scope}">${d.remaining===null?'N/A':dong(d.remaining)}</strong></p></article>`;};
   return (view==='calendar'?card('month',`Số tiền cần tiết kiệm tháng ${String(month+1).padStart(2,'0')} / ${year}`):'')+card('year',`Số tiền cần tiết kiệm năm ${year}`);
+}
+function monthlySavingsProgressContent({goal,saved}){
+  const percent=goal===null?null:Math.round(saved/goal*100),fill=percent===null?0:Math.min(100,percent);
+  return `<div class="savings-progress-heading"><span>Tiến độ tháng</span><strong data-monthly-savings-percent>${percent===null?'N/A':percent+'%'}</strong></div>
+    <div id="monthly-savings-progress" class="savings-progress-track" role="progressbar" aria-label="Tiến độ tiết kiệm tháng ${String(month+1).padStart(2,'0')} / ${year}" aria-valuemin="0" aria-valuemax="100" ${percent===null?'':`aria-valuenow="${fill}"`} aria-valuetext="${percent===null?'Chưa đặt mục tiêu':`${percent}% mục tiêu, đã tiết kiệm ${dong(saved)}`}"><span style="width:${fill}%"></span></div>
+    ${goal!==null&&saved>=goal?'<div class="savings-progress-caption">Đã đạt mục tiêu tháng!</div>':''}`;
 }
 function savingsCumulativeContent(){
   const title='<span>Tổng đã tiết kiệm đến hiện tại</span>';

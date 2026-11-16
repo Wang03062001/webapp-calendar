@@ -1,6 +1,9 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Tiến độ tháng|Monthly progress|月の進捗|월별 진행률|每月進度
+Tiến độ tiết kiệm tháng|Monthly savings progress|月の貯蓄進捗|월 저축 진행률|每月儲蓄進度
+Đã đạt mục tiêu tháng!|Monthly target reached!|月の目標を達成しました！|월 목표를 달성했습니다!|已達成每月目標！
 Số tiền cần tiết kiệm tháng|Monthly savings target|月の貯蓄目標額|월 저축 목표 금액|每月儲蓄目標金額
 Số tiền cần tiết kiệm năm|Annual savings target|年間貯蓄目標額|연간 저축 목표 금액|年度儲蓄目標金額
 Đã ghi tiết kiệm:|Recorded savings:|記録済みの貯蓄：|기록된 저축:|已記錄儲蓄：
