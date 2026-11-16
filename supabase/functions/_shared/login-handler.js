@@ -1,9 +1,9 @@
-export function createLoginHandler({ url, publicKey, serviceKey, fetcher = globalThis.fetch.bind(globalThis) }) {
+export function createLoginHandler({ url, publicKey, serviceKey, allowedOrigins = ['https://wang03062001.github.io'], fetcher = globalThis.fetch.bind(globalThis) }) {
   return async request => {
     const origin = request.headers.get('origin');
-    const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': 'https://wang03062001.github.io', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', Vary: 'Origin' };
+    const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', Vary: 'Origin', ...(allowedOrigins.includes(origin) ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'authorization, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } : {}) };
     const reply = (status, body) => new Response(JSON.stringify(body), { status, headers });
-    if (origin && origin !== 'https://wang03062001.github.io') return reply(403, { message: 'Website không được phép.' });
+    if (origin && !allowedOrigins.includes(origin)) return reply(403, { message: 'Website không được phép.' });
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     if (request.method !== 'POST') return reply(405, { message: 'Chỉ hỗ trợ POST.' });
     if (!url || !publicKey || !serviceKey) return reply(503, { message: 'Chưa cấu hình chức năng đăng nhập.' });

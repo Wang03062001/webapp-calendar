@@ -1,3 +1,5 @@
+> **Triển khai Vercel:** Có sẵn `vercel.json` cho static build. Xem [tạo dự án quanlychitieu và cấu hình Supabase](docs/VERCEL.md). Cấu hình trong Git không tự tạo dự án/domain hoặc deploy Edge Functions.
+
 > **Giao diện gọn:** Các mục dùng khoảng cách nhỏ hơn, giữ cỡ chữ dễ đọc. Trên điện thoại/máy tính bảng, bấm **Tổng tiền đang giữ** (hoặc **Tiết kiệm riêng** ở sổ chưa tách ví) trong khung số dư để mở tiết kiệm, quỹ và các nút quản lý; bấm lại để thu gọn. Việc mở/thu không thay đổi dữ liệu.
 
 > **Ví tiền độc lập (tùy chọn mới):** Chọn **Tách quỹ thành ví riêng**, kiểm tra số dư trước/sau và xác nhận. Mỗi khu vực bật riêng; cập nhật mã không tự sửa số dư. Ngân hàng, tiền mặt, tiết kiệm và từng quỹ có số dư riêng; **Chuyển tiền giữa các ví** giảm nơi gửi và tăng nơi nhận, không tạo thu nhập/chi phí. **Tổng tiền đang giữ** cộng mỗi ví một lần; **Tài sản chi tiêu** vẫn chỉ là ngân hàng + tiền mặt. Chi thẳng từ ví quỹ chỉ trừ quỹ đó. Hướng dẫn và quy tắc tương thích: [Ví tiền độc lập](docs/WALLETS.md). Các mô tả quỹ nằm trong nguồn và dòng tiền chỉ gồm ngân hàng/tiền mặt phía dưới vẫn áp dụng cho sổ chưa bật chế độ này.
