@@ -1,4 +1,4 @@
-> **Chuyển động giao diện:** Nút có phản hồi khi bấm, popup mở nhẹ và phần tổng kết có hiệu ứng khi đổi trang/tháng. Tôn trọng chế độ giảm chuyển động của thiết bị; không trì hoãn lưu hoặc đóng popup. Xem [quy tắc motion](docs/MOTION.md).
+> **Chuyển động giao diện:** Nút có phản hồi khi bấm, popup mở nhẹ, tiến/lùi tháng có hướng chuyển tương ứng và thanh biểu đồ xuất hiện mượt khi mở phân tích. Tôn trọng chế độ giảm chuyển động của thiết bị; không trì hoãn lưu hoặc đóng popup. Xem [quy tắc motion](docs/MOTION.md).
 
 > **Skill hỗ trợ Codex:** Đã cài UI/UX Pro Max và Modern Web Guidance trong `.agents/skills/`. Đây là hướng dẫn phát triển, không tự đổi giao diện hoặc dữ liệu và không được xuất lên Vercel. Xem [cách sử dụng](docs/DEVELOPMENT-SKILLS.md).
 

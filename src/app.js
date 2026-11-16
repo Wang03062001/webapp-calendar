@@ -179,7 +179,7 @@ function render() {
   renderCloud();
   const tabs = root.querySelector('.month-tabs'), activeTab = tabs?.querySelector('.active');
   if (activeTab) tabs.scrollLeft += activeTab.getBoundingClientRect().left - tabs.getBoundingClientRect().left - (tabs.clientWidth - activeTab.offsetWidth) / 2;
-  motion.enter(JSON.stringify([cloud.user?.id,activeRegion,view,year,month]));
+  motion.enter(JSON.stringify([cloud.user?.id,activeRegion,view,year,month]), {scope:JSON.stringify([cloud.user?.id,activeRegion,view]),period:year*12+month});
 }
 function refreshActualDay(){const current=localToday();if(current!==reportDay){reportDay=current;if(['calendar','year'].includes(view)&&root.querySelector('.stats'))refreshTotals();}}
 function renderCurrentWallet() {
@@ -200,7 +200,7 @@ function statsContent() {
 }
 function dashboardCharts() {
  const d=periodCash(),values=[['Tiền vào thực tế',d.actualCashIn,'income'],['Chi trực tiếp từ ngân hàng',sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source==='bank').map(r=>r.amount)),'bank'],['Chi tiền mặt',sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source==='cash').map(r=>r.amount)),'cash'],...(separateWallets(actualData())?['savings',...(actualData().safety?.funds||[]).map(f=>fundWallet(f.id))].map(key=>['Chi từ '+walletName(actualData(),key),sumMoney(d.outflows.filter(r=>r.type==='direct'&&r.source===key).map(r=>r.amount)),key]):[]),...(d.savingsDeposited&&!separateWallets(actualData())?[['Chuyển vào tiết kiệm',d.savingsDeposited,'savings']]:[]),...(hasCreditAccess()?[['Thanh toán thẻ',d.cardPaid,'payment']]:[]),['Trả nợ khác',d.debtTotal,'payment'],[separateWallets(actualData())?'Tổng tiền cuối kỳ':'Tài sản cuối kỳ',d.closingCash,'']];
- const chart=(title,rows,{source,total,note}={})=>{const max=Math.max(1,...rows.map(([,n])=>Math.abs(n||0)));return `<section class="chart-card ${source?'source-category-chart':'cashflow-chart'}" ${source?`data-source-chart="${escape(source)}"`:''}><div class="chart-heading"><h2 ${source?.startsWith('fund:')?'translate="no"':''}>${title}</h2><span class="tag">__CASH__</span></div>${note?`<p class="source-chart-note">${note}</p>`:''}<div class="category-chart">${rows.map(([label,value,kind])=>`<div ${source?`data-chart-category="${escape(label)}"`:''}><span>${escape(label)}</span><strong data-money-kind="${escape(kind)}">${value===null?'N/A':money(value)}</strong><i aria-hidden="true" data-money-kind="${escape(kind)}" style="--share:${Math.abs(value||0)/max*100}%"></i></div>`).join('')}</div>${source?`<div class="source-chart-total"><span>Tổng</span><strong data-source-total="${escape(source)}" data-money-kind="${escape(source)}">${money(total)}</strong></div>`:''}</section>`;};
+ const chart=(title,rows,{source,total,note}={})=>{const max=Math.max(1,...rows.map(([,n])=>Math.abs(n||0)));return `<section class="chart-card ${source?'source-category-chart':'cashflow-chart'}" ${source?`data-source-chart="${escape(source)}"`:''}><div class="chart-heading"><h2 ${source?.startsWith('fund:')?'translate="no"':''}>${title}</h2><span class="tag">__CASH__</span></div>${note?`<p class="source-chart-note">${note}</p>`:''}<div class="category-chart">${rows.map(([label,value,kind])=>`<div ${source?`data-chart-category="${escape(label)}"`:''}><span>${escape(label)}</span><strong data-money-kind="${escape(kind)}">${value===null?'N/A':money(value)}</strong><i aria-hidden="true" data-money-kind="${escape(kind)}" style="--share:${Math.abs(value||0)/max*100}%"><span class="chart-fill"></span></i></div>`).join('')}</div>${source?`<div class="source-chart-total"><span>Tổng</span><strong data-source-total="${escape(source)}" data-money-kind="${escape(source)}">${money(total)}</strong></div>`:''}</section>`;};
  const groups=sourceCategoryDetails(actualData(),{year,month:view==='year'?null:month,creditAllowed:hasCreditAccess()});
  return chart('Dòng tiền và tài sản',values)+groups.map(group=>chart(group.source==='card'?'Tín dụng':escape(walletName(actualData(),group.source)),group.categories.map(r=>[r.category,r.amount,group.source]),{source:group.source,total:group.total,note:group.source==='card'?'Theo ngày mua · không trừ tài sản tiền':'Đã thanh toán · gồm trả nợ và thanh toán thẻ theo quyền xem'})).join('');
 }
@@ -365,6 +365,7 @@ function refreshTotals() {
   const progress = document.querySelector('#savings-progress'); if (progress) progress.innerHTML = savingsProgressContent();
   const targets=document.querySelector('#savings-target-status');if(targets)targets.innerHTML=savingsTargetsContent();
   const cumulative=document.querySelector('#savings-cumulative');if(cumulative)cumulative.innerHTML=savingsCumulativeContent();
+  motion.registerDetails(root);
   if (view === 'year') return;
   document.querySelector('#day-money-out').textContent=money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut);
   document.querySelector('#day-total').textContent = money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut);

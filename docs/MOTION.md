@@ -24,3 +24,14 @@ Modern Web Guidance:
 ## Kiểm chứng
 
 `scripts/check-motion-browser.mjs` dùng API mô phỏng, cấm ghi backend. Kiểm tra đổi trang, thu/mở, không replay khi nhập, Esc/close, beforeprint, đổi reduced-motion trong lúc đang animate, mobile/dark và fallback không có Element.animate. Các browser script compact-layout/wallets/savings/conflict/connection vẫn kiểm tra luồng thật trên dữ liệu mô phỏng. Không test bằng giao dịch tài chính production.
+
+## Hiệu ứng mở rộng
+
+- Tiến/lùi tháng hoặc năm: tiêu đề và nhóm tổng kết trượt theo hướng tương ứng, 6–12px. Chỉ so sánh kỳ trong cùng tài khoản/khu vực/trang; chuyển tài khoản/khu vực/trang dùng hiệu ứng trung tính. Không dùng View Transition snapshot và không giữ hình ảnh dữ liệu cũ.
+- Mở phần phân tích: nền thanh biểu đồ đứng yên, phần màu được vẽ bằng scaleX/opacity. Chỉ animate thanh có giá trị khác 0, tối đa 24 thanh mỗi lần mở, thời gian hữu hạn; delay tối đa 120ms. Nhãn, tổng, trạng thái N/A và giá trị vẫn hiển thị đúng ngay. Đóng nhanh hủy tất cả hiệu ứng của phần đó.
+- Khi nhập liệu hoặc nhận ACK: biểu đồ thay dữ liệu theo cơ chế cũ, không tự phát lại animation. Các details được đăng ký lại sau refresh để lần mở tiếp theo vẫn có motion.
+- Thông báo hiện có thêm entry motion ngắn; không đổi thời gian chờ, nội dung thành công/thất bại hoặc tự tạo thông báo. Trường đang focus có viền bóng nhẹ bổ sung cho outline; thẻ chọn tháng phản hồi hover trên thiết bị có chuột.
+
+Hướng dẫn mới đã tham khảo: `directional-navigation-transitions` — “Determine if the user is moving \"forward\" or \"backward\" in the application flow.” Áp dụng nhận biết hướng trên DOM mới bằng WAAPI; không dùng API snapshot vì không cần chuyển hình ảnh dữ liệu tài chính giữa các tài khoản. Giữ đường lui tĩnh khi thiếu WAAPI/reduced-motion. `motion` — “Prefer to animate `opacity` and `transform`”: nền và chiều rộng tính toán giữ nguyên, chỉ scale phần trang trí, hủy giữa chừng vẫn về trạng thái cuối đọc được.
+
+Browser test kiểm tra cả hai hướng, cách ly khu vực, số thanh bị giới hạn/loại trừ số 0, đóng nhanh, chiều rộng cuối khớp đúng tỷ lệ, reduced-motion, giữ bản nháp, bàn phím và fallback.
