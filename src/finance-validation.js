@@ -21,7 +21,7 @@ export function validateMoneyChanges(before,next){
   if(Array.isArray(value)){for(const [index,row]of value.entries()){const prior=Array.isArray(old)?old.find((r,i)=>row?.id?r?.id===row.id:row?.month?r?.month===row.month:i===index):undefined;visit(row,prior,key,legacy,compat);}return;}
   if(value&&typeof value==='object')for(const [name,row]of Object.entries(value)){if(name==='regional')continue;visit(row,old?.[name],name,legacy,compat);}
  }
- visit(next,before);for(const key of ['savings','goals'])visit(next[key],before?.[key],key,true);
+ visit(next,before);for(const key of ['savings','goals','monthlySavingsGoals'])visit(next[key],before?.[key],key,true);
 }
 export function validateCreditEdits(before,next){
  for(const [date,entry]of Object.entries(next.days))for(const item of entry.items)if(isCardPaymentCategory(item.category)&&(item.paymentMethod==='card'||item.movement||item.debtPaymentId||item.obligationId)){const old=before.days[date]?.items.find(i=>i.id===item.id);if(!old||JSON.stringify(old)!==JSON.stringify(item))throw Error('Thanh toán thẻ phải dùng ngân hàng, tiền mặt hoặc tiết kiệm; không dùng nguồn tín dụng.');}

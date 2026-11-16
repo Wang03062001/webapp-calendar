@@ -109,6 +109,7 @@ export function reportSheets(document,{asOf,creditAllowed=false,draft=false}={})
     }
     for(const [month,value]of entries(book.savings))savings.push([label,currencies.savings,'Tiết kiệm tháng (cũ)',month,value]);
     for(const [year,value]of entries(book.goals))savings.push([label,currencies.savings,'Mục tiêu năm (cũ)',year,value]);
+    for(const [month,value]of entries(book.monthlySavingsGoals||{}))savings.push([label,currencies.savings,'Mục tiêu tháng',month,value]);
     for(const debt of book.debts){
       const b=debtBalance(debt);debts.push([...prefix,debt.id,debt.title,debt.type,debt.amount,b.paid,b.remaining,debt.dueDate||'']);
       for(const p of debt.payments)payments.push([...prefix,debt.id,p.id,p.date,p.amount,p.interest??null,roundCard(p.amount+(p.interest||0)),paymentSource(book,p),p.voided?'Có':'Không',p.expenseId||'']);

@@ -1,6 +1,12 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Số tiền cần tiết kiệm tháng|Monthly savings target|月の貯蓄目標額|월 저축 목표 금액|每月儲蓄目標金額
+Số tiền cần tiết kiệm năm|Annual savings target|年間貯蓄目標額|연간 저축 목표 금액|年度儲蓄目標金額
+Đã ghi tiết kiệm:|Recorded savings:|記録済みの貯蓄：|기록된 저축:|已記錄儲蓄：
+Còn cần tiết kiệm:|Still to save:|あと必要な貯蓄：|추가로 저축할 금액:|尚需儲蓄：
+Mục tiêu tháng và năm được đặt riêng; chỉ là kế hoạch, không tự chuyển tiền.|Monthly and annual targets are set independently; these are plans and do not transfer money.|月と年の目標は別々に設定します。計画のみで、自動振替は行いません。|월별 및 연간 목표는 별도로 설정하며 계획일 뿐 자동 이체되지 않습니다.|每月與年度目標分別設定，僅供規劃，不會自動轉帳。
+Mục tiêu tiết kiệm tháng không hợp lệ.|Invalid monthly savings target.|月の貯蓄目標が無効です。|유효하지 않은 월 저축 목표입니다.|每月儲蓄目標無效。
 Tín dụng|Credit|クレジット|신용|信用
 Tổng|Total|合計|합계|總計
 Đã thanh toán · gồm trả nợ và thanh toán thẻ theo quyền xem|Paid expenses, including debt and card payments permitted by your access|支払済み支出。閲覧権限に応じた返済・カード支払いを含みます|지출 완료 내역이며 조회 권한에 따른 부채 및 카드 상환을 포함합니다|已付款支出，包含依權限可查看的還款及信用卡付款

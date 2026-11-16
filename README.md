@@ -379,3 +379,11 @@ Kiểm thử mô phỏng: `node --test test/region-visibility.test.js` và `PLAY
 ### Biểu đồ danh mục theo nguồn tiền
 
 Phần **Biểu đồ phân tích** ở tháng và **Tổng kết năm** giữ tổng quan dòng tiền, đồng thời liệt kê danh mục riêng cho **Ngân hàng**, **Tiền mặt** và **Tín dụng** (theo quyền admin được máy chủ xác minh). Mỗi nguồn có đủ danh mục mặc định, kể cả 0, danh mục riêng có phát sinh trong kỳ và tổng cuối. Trả nợ gồm gốc/lãi đã trả; thanh toán thẻ nằm trong nguồn tiền thực trả, không cộng lặp với giao dịch mua tín dụng. Không tính khoản dự kiến/hủy, giao dịch sau hôm nay, chuyển nội bộ hoặc chuyển vào tiết kiệm. Các biểu đồ chỉ dùng dữ liệu đã lưu thành công của khu vực đang xem; không thay đổi dữ liệu tài chính.
+
+### Mục tiêu tiết kiệm tháng và năm
+
+Trong **Quỹ tiết kiệm của bạn**, nhập **Số tiền cần tiết kiệm tháng** cho tháng đang chọn và **Mục tiêu tiết kiệm năm**. Mục tiêu năm sử dụng dữ liệu đã có, không đổi giá trị cũ. Hai mục tiêu được đặt riêng, không tự chia năm thành tháng hoặc cộng tháng vào năm.
+
+Khối kế hoạch hiển thị mục tiêu đã lưu, số đã ghi tiết kiệm và số còn cần tiết kiệm. Chưa đặt mục tiêu thì chưa có số còn thiếu; đạt/vượt mục tiêu thì còn 0. Chỉ cập nhật khối này sau máy chủ xác nhận. Enter hoặc **Lưu thay đổi** lưu như các mục hiện có; lỗi/xung đột giữ bản nháp.
+
+Đây là kế hoạch, không tự trừ ngân hàng/tiền mặt, tăng số dư tiết kiệm hoặc tăng tổng lịch sử tích lũy. Mỗi khu vực và tiền tệ tiết kiệm độc lập. JSON giữ đầy đủ mục tiêu; Excel bổ sung dòng **Mục tiêu tháng** trong sheet tiết kiệm hiện có. Không cần thay đổi Supabase/SQL.

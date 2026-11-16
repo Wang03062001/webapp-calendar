@@ -66,6 +66,13 @@ export function savingsProgress(data, year) {
   const goal = amount(data.goals?.[year]);
   return { saved, goal, remaining: Math.max(0,subtractMoney(goal,saved)), percent: goal ? Math.round(saved / goal * 100) : 0 };
 }
+// Planning only: targets never enter cash balances or saved-history totals.
+export function savingsTargets(data,year,month){
+  if(!validYear(year)||!Number.isInteger(month)||month<0||month>11)throw Error('Kỳ tiết kiệm không hợp lệ.');
+  const key=monthKey(year,month),monthlyGoal=data.monthlySavingsGoals?.[key]||null,annualGoal=data.goals?.[year]||null;
+  const monthlySaved=amount(data.savings?.[key]),annualSaved=yearSummary(data,year).savings;
+  return {month:{goal:monthlyGoal,saved:monthlySaved,remaining:monthlyGoal===null?null:Math.max(0,subtractMoney(monthlyGoal,monthlySaved))},year:{goal:annualGoal,saved:annualSaved,remaining:annualGoal===null?null:Math.max(0,subtractMoney(annualGoal,annualSaved))}};
+}
 // Monthly history has no day-of-month: include saved months through the
 // current month, including archived years. Source balances/goals are separate.
 export function savingsToDate(data,asOf){
@@ -181,6 +188,15 @@ export function normalizeData(input) {
   for (const [key, value] of Object.entries(input.goals || {})) {
     if (/^\d{4}$/.test(key) && validYear(Number(key))) result.goals[key] = cardMoney(value);
   }
+  if(input.monthlySavingsGoals!==undefined){
+    const goals=input.monthlySavingsGoals;
+    if(!goals||typeof goals!=='object'||Array.isArray(goals))throw Error('Mục tiêu tiết kiệm tháng không hợp lệ.');
+    result.monthlySavingsGoals={};
+    for(const [key,value]of Object.entries(goals)){
+      if(!validMonth(key)||!validYear(Number(key.slice(0,4)))||typeof value!=='number')throw Error('Mục tiêu tiết kiệm tháng không hợp lệ.');
+      result.monthlySavingsGoals[key]=cardMoney(value);
+    }
+  }
   if (input.debts !== undefined) {
     if (!Array.isArray(input.debts)) throw new Error('Danh sách nợ không hợp lệ.');
     for (const debt of input.debts) {
@@ -213,7 +229,7 @@ export function normalizeData(input) {
     if (!Array.isArray(input.years) || !input.years.length || input.years.some(year => !validYear(year))) throw new Error('Danh sách năm không hợp lệ.');
     result.years = getYears(input);
   } else {
-    result.years = [...new Set([...YEARS, ...Object.keys(result.days).map(key => +key.slice(0, 4)), ...Object.keys(result.incomes).map(key => +key.slice(0, 4)), ...Object.keys(result.savings).map(key => +key.slice(0, 4)), ...Object.keys(result.goals).map(Number)])].sort((a, b) => a - b);
+    result.years = [...new Set([...YEARS, ...Object.keys(result.days).map(key => +key.slice(0, 4)), ...Object.keys(result.incomes).map(key => +key.slice(0, 4)), ...Object.keys(result.savings).map(key => +key.slice(0, 4)), ...Object.keys(result.goals).map(Number), ...Object.keys(result.monthlySavingsGoals||{}).map(key=>+key.slice(0,4))])].sort((a, b) => a - b);
   }
   if (input.cards !== undefined) result.cards = normalizeCards(input.cards);
   migrateLegacyPayments(result);
@@ -233,7 +249,7 @@ export function normalizeData(input) {
   if(result.trackingStart){
     const start=result.trackingStart,month=start.slice(0,7),a=result.accounts;
     const dates=[...Object.keys(result.days).filter(d=>result.days[d].items.length||result.days[d].note),...Object.entries(result.incomes).map(([m,r])=>r.receivedOn||m+'-15'),...(result.receipts||[]).map(r=>r.date),...result.debts.flatMap(d=>d.payments.map(p=>p.date)),...(a?[a.openedOn,a.savingsOpenedOn,...a.transfers.map(r=>r.date),...(a.reconciliations||[]).map(r=>r.date),...(a.openingHistory||[]).map(r=>r.date)]:[]),...(result.safety?.funds||[]).flatMap(f=>f.entries.map(e=>e.date))].filter(Boolean);
-    if(dates.some(d=>d<start)||Object.keys(result.savings).some(m=>m<month)||Object.keys(result.goals).some(y=>y<start.slice(0,4))||(result.safety?.budgets||[]).some(b=>b.month<month))throw Error('Giao dịch hoặc số dư nằm trước ngày bắt đầu theo dõi.');
+    if(dates.some(d=>d<start)||[...Object.keys(result.savings),...Object.keys(result.monthlySavingsGoals||{})].some(m=>m<month)||Object.keys(result.goals).some(y=>y<start.slice(0,4))||(result.safety?.budgets||[]).some(b=>b.month<month))throw Error('Giao dịch hoặc số dư nằm trước ngày bắt đầu theo dõi.');
     if(result.cards)throw Error('Sổ mới chỉ ghi giao dịch tín dụng, không lưu dữ liệu PayPay hoặc sao kê.');
   }
   validateSavingsLedger(result);

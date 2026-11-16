@@ -20,7 +20,7 @@ import { setCurrencies, currencyLabel, normalizeCurrencies, readDisplay, saveDis
 import { startTranslations, setLanguage, t } from './i18n.js';
 import { showSettings, needsCurrencySetup } from './settings-ui.js';
 import { showProfile } from './profile-ui.js';
-import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, monthSummary, yearSummary, savingsProgress, savingsToDate, emptyData, normalizeData, CATEGORIES, categoryOf, expenseStatus, expenseRows } from './model.js';
+import { YEARS, MIN_YEAR, MAX_YEAR, getYears, addYear, removeYear, MAX_AMOUNT, amount, formatAmount, dayKey, monthKey, daysInMonth, monthSummary, yearSummary, savingsProgress, savingsTargets, savingsToDate, emptyData, normalizeData, CATEGORIES, categoryOf, expenseStatus, expenseRows } from './model.js';
 import { supabaseConfig } from './config.js';
 import { SupabaseClient } from './supabase.js';
 import { SyncController } from './sync.js';
@@ -222,9 +222,18 @@ function savingsPanel() {
     <div id="savings-cumulative" class="savings-cumulative" aria-live="polite">${savingsCumulativeContent()}</div>
     <div class="savings-layout"><div class="savings-inputs">
       ${view === 'calendar' ? `<label for="monthly-savings">Tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>__SAVINGS__</span><input id="monthly-savings" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0" value="${amount(data.savings[monthKey(year, month)]) ? formatAmount(data.savings[monthKey(year, month)]) : ''}" /></label>` : ''}
-      ${view === 'year' ? `<label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>__SAVINGS__</span><input id="annual-savings-goal" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0" value="${amount(data.goals[year]) ? formatAmount(data.goals[year]) : ''}" /></label>` : ''}
+      ${view === 'calendar' ? `<label for="monthly-savings-goal">Số tiền cần tiết kiệm tháng ${String(month + 1).padStart(2, '0')} <span>__SAVINGS__</span><input id="monthly-savings-goal" type="text" inputmode="decimal" data-money maxlength="32" placeholder="Chưa đặt mục tiêu" value="${data.monthlySavingsGoals?.[monthKey(year,month)]?formatAmount(data.monthlySavingsGoals[monthKey(year,month)]):''}" /></label>` : ''}
+      <label for="annual-savings-goal">Mục tiêu tiết kiệm năm ${year} <span>__SAVINGS__</span><input id="annual-savings-goal" type="text" inputmode="decimal" data-money maxlength="32" placeholder="0" value="${amount(data.goals[year]) ? formatAmount(data.goals[year]) : ''}" /></label>
     </div>${view === 'year' ? `<div id="savings-progress">${savingsProgressContent()}</div>` : ''}</div>
+    <div id="savings-target-status" class="savings-target-status" aria-live="polite">${savingsTargetsContent()}</div>
+    <p class="savings-hint">Mục tiêu tháng và năm được đặt riêng; chỉ là kế hoạch, không tự chuyển tiền.</p>
     <p class="savings-hint">Số nhập theo tháng là lịch sử tích lũy, không tự tăng số dư nguồn tiết kiệm. Dùng Phân bổ / chuyển nguồn tiền để đưa tiền vào tiết kiệm. Dữ liệu tiết kiệm cũ __SAVINGS__ được giữ nguyên; nguồn tiết kiệm thực dùng __CASH__.</p></section>`;
+}
+function savingsTargetsContent(){
+  if(!cloud.user||!cloud.confirmedData)return '<p>Chưa có dữ liệu đã được máy chủ xác nhận.</p>';
+  const targets=savingsTargets(actualData(),year,month);
+  const card=(scope,label)=>{const d=targets[scope];return `<article data-savings-target="${scope}"><h3>${label}</h3><strong data-target-value="${scope}">${d.goal===null?'Chưa đặt mục tiêu':dong(d.goal)}</strong><p>Đã ghi tiết kiệm: <span data-target-saved="${scope}">${dong(d.saved)}</span></p><p>Còn cần tiết kiệm: <strong data-target-remaining="${scope}">${d.remaining===null?'N/A':dong(d.remaining)}</strong></p></article>`;};
+  return (view==='calendar'?card('month',`Số tiền cần tiết kiệm tháng ${String(month+1).padStart(2,'0')} / ${year}`):'')+card('year',`Số tiền cần tiết kiệm năm ${year}`);
 }
 function savingsCumulativeContent(){
   const title='<span>Tổng đã tiết kiệm đến hiện tại</span>';
@@ -342,6 +351,7 @@ function refreshTotals() {
   if(document.querySelector('#budget-warnings'))document.querySelector('#budget-warnings').innerHTML=budgetWarnings(actualView(),monthKey(year,month));
   document.querySelector('#dashboard-charts').innerHTML = dashboardCharts();
   const progress = document.querySelector('#savings-progress'); if (progress) progress.innerHTML = savingsProgressContent();
+  const targets=document.querySelector('#savings-target-status');if(targets)targets.innerHTML=savingsTargetsContent();
   const cumulative=document.querySelector('#savings-cumulative');if(cumulative)cumulative.innerHTML=savingsCumulativeContent();
   if (view === 'year') return;
   document.querySelector('#day-money-out').textContent=money(cashDayDetails(actualData(),selectedKey(),{creditAllowed:hasCreditAccess()}).actualCashOut);
@@ -469,10 +479,11 @@ async function handleInput(event) {
   if (target.hasAttribute('data-money')) {
     const value = target.value.trim();
     target.setCustomValidity(value && !/^\d[\d,]*(?:\.\d{0,3})?$/.test(value) ? 'Nhập số tiền dạng 1,000,000; có thể nhập tối đa 3 chữ số thập phân.' : Number(value.replace(/,/g, '')) > MAX_AMOUNT ? 'Số tiền vượt giới hạn cho phép.' : '');
-    if(target.validity.valid&&value){try{const legacy=target.dataset.field==='amount'?currentDay().items[+target.closest('[data-item]').dataset.item]?.amount:target.dataset.income?data.incomes[monthKey(year,month)]?.[target.dataset.income]:target.id==='monthly-savings'?data.savings[monthKey(year,month)]:target.id==='annual-savings-goal'?data.goals[year]:undefined;wholeCurrencyMoney(Number(value.replace(/,/g,'')),data.currencies?.[target.id==='monthly-savings'||target.id==='annual-savings-goal'?'savings':'cash']||'JPY',legacy);}catch(error){target.setCustomValidity(error.message);}}
+    if(target.validity.valid&&value){try{const legacy=target.dataset.field==='amount'?currentDay().items[+target.closest('[data-item]').dataset.item]?.amount:target.dataset.income?data.incomes[monthKey(year,month)]?.[target.dataset.income]:target.id==='monthly-savings'?data.savings[monthKey(year,month)]:target.id==='annual-savings-goal'?data.goals[year]:target.id==='monthly-savings-goal'?data.monthlySavingsGoals?.[monthKey(year,month)]:undefined;wholeCurrencyMoney(Number(value.replace(/,/g,'')),data.currencies?.[['monthly-savings','annual-savings-goal','monthly-savings-goal'].includes(target.id)?'savings':'cash']||'JPY',legacy);}catch(error){target.setCustomValidity(error.message);}}
     if (!target.validity.valid) {rememberExpenseInput(target);return;}
   }
   if (target.id === 'monthly-savings') { data.savings[monthKey(year, month)] = amount(target.value); persist(); refreshTotals(); }
+  if (target.id === 'monthly-savings-goal') { const key=monthKey(year,month);if(target.value.trim()){data.monthlySavingsGoals||={};data.monthlySavingsGoals[key]=amount(target.value);}else if(data.monthlySavingsGoals){delete data.monthlySavingsGoals[key];if(!Object.keys(data.monthlySavingsGoals).length)delete data.monthlySavingsGoals;}persist();refreshTotals(); }
   if (target.id === 'annual-savings-goal') { data.goals[year] = amount(target.value); persist(); refreshTotals(); }
   if (target.id === 'day-note') { ensureDay().note = target.value; persist(); document.querySelector('.calendar-panel').outerHTML = calendarPanel(); }
   if (target.dataset.field) {
