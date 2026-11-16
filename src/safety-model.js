@@ -3,6 +3,7 @@ import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {cardPayments,statementProgress} from './card-ledger.js';
 import {cardMoney,cardDate,validMonth,roundCard,statementNumbers} from './card-model.js';
 import {accountBalances,accountSource,isInternalMovement,movementSources} from './account-model.js';
+import {separateWallets,activeWalletTransfers,fundWallet,walletSource} from './wallet-model.js';
 const sources=['bank','cash','savings'];
 const fail=message=>{throw Error(message);};
 const text=x=>String(x??'').trim();
@@ -49,7 +50,8 @@ export function fundBalance(data,id,date){
  const f=data.safety?.funds.find(f=>f.id===id);if(!f)return 0;
  const allocated=sumMoney(f.entries.filter(e=>e.date<=date).map(e=>e.direction==='allocate'?e.amount:-e.amount));
  const spent=sumMoney(Object.entries(data.days).filter(([day])=>day<=date).flatMap(([,entry])=>entry.items.filter(i=>i.fundId===id&&!['planned','cancelled','draft'].includes(i.status))).map(i=>i.amount));
- return subtractMoney(allocated,spent);
+ const transfers=separateWallets(data)?sumMoney(activeWalletTransfers(data).filter(t=>t.date<=date).map(t=>t.to===fundWallet(id)?t.amount:t.from===fundWallet(id)?-t.amount:0)):0;
+ return addMoney(subtractMoney(allocated,spent),transfers);
 }
 export function reservedBySource(data,date){const result={bank:0,cash:0,savings:0};for(const f of data.safety?.funds||[])result[f.source]=addMoney(result[f.source],fundBalance(data,f.id,date));for(const key of sources)result[key]=roundCard(result[key]);return result;}
 export function validateFunds(data){
@@ -62,12 +64,14 @@ export function validateFunds(data){
  if(!funds.length)return;
  for(const r of data.receipts||[])dates.add(r.date);
  for(const t of data.accounts?.transfers||[])dates.add(t.date);
+ if(separateWallets(data))for(const t of activeWalletTransfers(data))dates.add(t.date);
  for(const r of data.accounts?.reconciliations||[])dates.add(r.date);
  for(const [month,i]of Object.entries(data.incomes))dates.add(i.receivedOn||month+'-15');
  for(const p of cardPayments(data))dates.add(p.date);
  for(const date of dates){
   for(const f of funds)if(fundBalance(data,f.id,date)<0)fail('Quỹ không đủ tiền.');
-  const reserved=reservedBySource(data,date),balances=accountBalances(data,date);
+  const reserved=reservedBySource(data,date),balances=accountBalances(data,date,{raw:true});
+  if(!balances&&separateWallets(data)&&data.accounts)continue; // Fund history carries into an explicitly confirmed later wallet baseline.
   for(const source of sources)if(reserved[source]>Math.max(0,balances?.[source]??0))fail('Tiền dành cho quỹ vượt số dư nguồn. Hãy giải phóng quỹ hoặc chọn đúng quỹ khi chi.');
  }
  for(const f of funds)if(f.archived&&fundBalance(data,f.id,'9999-12-31')!==0)fail('Chỉ đóng quỹ khi đã giải phóng hết tiền.');
@@ -80,7 +84,7 @@ export function budgetRows(data,month){return (data.safety?.budgets||[]).filter(
 });}
 export function upcomingObligations(data,asOf){
  const rows=[];
- for(const [date,day]of Object.entries(data.days))for(const item of day.items)if(item.status==='planned'&&item.amount>0&&item.paymentMethod!=='card'&&!item.cardFeeMonth&&!item.cardPaymentMonth&&!isInternalMovement(item))rows.push({id:'expense:'+date+':'+item.id,type:'expense',date,title:item.title||'Khoản dự kiến',amount:item.amount,source:accountSource(item),fundId:item.fundId||null,obligationId:item.obligationId||null});
+ for(const [date,day]of Object.entries(data.days))for(const item of day.items)if(item.status==='planned'&&item.amount>0&&item.paymentMethod!=='card'&&!item.cardFeeMonth&&!item.cardPaymentMonth&&!isInternalMovement(item))rows.push({id:'expense:'+date+':'+item.id,type:'expense',date,title:item.title||'Khoản dự kiến',amount:item.amount,source:walletSource(data,item),fundId:item.fundId||null,obligationId:item.obligationId||null});
  for(const d of data.debts){
   const term=data.safety?.debtTerms.find(t=>t.debtId===d.id),due=term?.nextDueDate||d.dueDate;if(!due||remainingDebt(d,asOf)<=0)continue;
   const paid=sumMoney(d.payments.filter(p=>!p.voided&&p.date<=asOf&&p.date>=due.slice(0,7)+'-01').map(p=>addMoney(p.amount,p.interest||0)));
@@ -92,7 +96,7 @@ export function upcomingObligations(data,asOf){
 }
 export function forecast30(data,asOf){
  const initial=accountBalances(data,asOf);if(!initial)return {ready:false,days:[],unknown:[],obligations:[]};
- const end=addDays(asOf,30),events=[],unknown=[];
+ const separate=separateWallets(data),end=addDays(asOf,30),events=[],unknown=[];
  const push=e=>{if(e.date>asOf&&e.date<=end)events.push(e);};
  const obligations=upcomingObligations(data,asOf).filter(o=>o.date<=end);
  // Planned expenses are represented by exactly one obligation row, not twice.
@@ -102,9 +106,14 @@ export function forecast30(data,asOf){
  for(const [date,day]of Object.entries(data.days))for(const i of day.items){
   if(['cancelled','draft'].includes(i.status)||i.status==='planned'&&i.movement!=='save'||i.paymentMethod==='card'||i.cardPaymentMonth||i.cardFeeMonth)continue;
   if(isInternalMovement(i)){const {from,to}=movementSources(i);if(to==='savings'&&initial.savings===undefined){if(date>asOf&&date<=end)unknown.push({date,title:i.title||'Chuyển vào tiết kiệm'});continue;}push({date,source:from,delta:-i.amount,title:i.title,estimated:i.status==='planned'});push({date,source:to,delta:i.amount,title:i.title,estimated:i.status==='planned'});}
-  else push({date,source:accountSource(i),delta:-i.amount,title:i.title,fundId:i.fundId||null});
+  else push({date,source:walletSource(data,i),delta:-i.amount,title:i.title,fundId:i.fundId||null});
  }
  for(const t of data.accounts.transfers){push({date:t.date,source:t.from,delta:-t.amount,title:'Chuyển nguồn'});push({date:t.date,source:t.to,delta:t.amount,title:'Chuyển nguồn'});}
+ if(separate){
+  for(const t of activeWalletTransfers(data)){push({date:t.date,source:t.from,delta:-t.amount,title:'Chuyển ví'});push({date:t.date,source:t.to,delta:t.amount,title:'Chuyển ví'});}
+  // Legacy allocations are internal wallet movements, never new income.
+  for(const f of data.safety?.funds||[])for(const e of f.entries){const amount=e.direction==='allocate'?e.amount:-e.amount;push({date:e.date,source:f.source,delta:-amount,title:f.name});push({date:e.date,source:fundWallet(f.id),delta:amount,title:f.name});}
+ }
  for(const p of cardPayments(data))push({date:p.date,source:p.source,delta:-p.amount,title:'Trả sao kê'});
  for(const r of data.cards?.adjustments||[])if(!r.voided&&r.type==='bank-refund')push({date:r.date,source:r.source,delta:r.amount,title:'Hoàn tiền về tài khoản'});
  // A future actual loan payment already entered replaces its forecast minimum.
@@ -112,11 +121,16 @@ export function forecast30(data,asOf){
   const d=data.debts.find(d=>d.id===o.debtId);const future=sumMoney(d.payments.filter(p=>!p.voided&&p.date>asOf&&p.date<=end&&p.date>=o.date.slice(0,7)+'-01').map(p=>addMoney(p.amount,p.interest||0)));
   const event=events.find(e=>e.id===o.id);if(event)event.delta=-Math.max(0,subtractMoney(o.amount,future));
  }
- const balances={bank:initial.bank,cash:initial.cash,savings:initial.savings||0},days=[];
+ const balances={bank:initial.bank,cash:initial.cash,savings:initial.savings||0,...(separate?Object.fromEntries(Object.entries(initial.funds||{}).map(([id,n])=>[fundWallet(id),n])):{})},days=[];
  const plannedFundSpending=new Map();
  for(let n=1;n<=30;n++){
   const date=addDays(asOf,n);if(date<=asOf||date===days.at(-1)?.date)break;const today=events.filter(e=>e.date===date&&e.delta!==0);
   for(const e of today){balances[e.source]=addMoney(balances[e.source],e.delta);if(e.fundId&&e.type==='expense')plannedFundSpending.set(e.fundId,addMoney(plannedFundSpending.get(e.fundId)||0,Math.max(0,-e.delta)));}
+  if(separate){
+   const keys=Object.keys(balances),funds=Object.fromEntries(keys.filter(k=>k.startsWith('fund:')).map(k=>[k.slice(5),balances[k]])),free=Object.fromEntries(sources.map(s=>[s,balances[s]]));
+   const fundShortage=Object.values(funds).some(n=>n<0),shortage=keys.some(k=>balances[k]<0);
+   days.push({date,...balances,funds,total:sumMoney(Object.values(balances)),free,shortage,fundShortage,reservedShortage:shortage,events:today});continue;
+  }
   const earmarked={bank:0,cash:0,savings:0};let fundShortage=false;
   for(const f of data.safety?.funds||[]){const left=subtractMoney(fundBalance(data,f.id,date),plannedFundSpending.get(f.id)||0);if(left<0)fundShortage=true;earmarked[f.source]=addMoney(earmarked[f.source],Math.max(0,left));}
   const free=Object.fromEntries(sources.map(s=>[s,subtractMoney(balances[s],earmarked[s])]));

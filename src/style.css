@@ -190,3 +190,22 @@ html[data-theme=dark] .current-wallet{background:#211d2b;border-color:#453b55;co
 
 .savings-target-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:0 20px 18px}.savings-target-status article{min-width:0;padding:16px;border:1px solid var(--border);border-radius:10px}.savings-target-status h3{font-size:var(--text-sm);line-height:1.6;margin-bottom:8px}.savings-target-status article>strong{display:block;font-size:var(--text-title);color:var(--text);overflow-wrap:anywhere}.savings-target-status p{font-size:var(--text-sm);line-height:1.7;margin-top:8px;overflow-wrap:anywhere}@media(max-width:640px){.savings-target-status{margin-left:16px;margin-right:16px}}
 .savings-target-status .savings-progress-heading{margin-top:14px}
+
+/* Independent money stores share responsive cards and the existing theme palette. */
+.wallets-panel { margin-bottom: 20px; }
+.wallets-panel p { color: var(--muted); line-height: 1.6; }
+.wallet-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 12px; margin: 16px 0; }
+.wallet-grid article { padding: 16px; border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
+.wallet-grid h3 { margin: 0 0 12px; overflow-wrap: anywhere; font-size: 14px; }
+.wallet-grid strong { display: block; font-size: 20px; color: var(--purple); overflow-wrap: anywhere; }
+.wallet-grid button { margin-top: 12px; }
+.wallet-transfer-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding: 12px 0; flex-wrap: wrap; }
+.wallet-transfer-row > span { flex: 1 1 180px; overflow-wrap: anywhere; }
+.wallet-transfer-row small { display: block; }
+.wallet-preview { padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+#wallet-dialog { max-width: min(540px,calc(100vw - 24px)); }
+#wallet-dialog form { display: grid; gap: 14px; margin-top: 20px; }
+#wallet-dialog form > label { margin: 0; }
+#wallet-dialog .module-option { display: flex; align-items: flex-start; gap: 10px; }
+#wallet-dialog [type=checkbox] { width: auto; min-width: 18px; margin-top: 4px; }
+@media (max-width: 600px) { .wallets-panel .card-heading { align-items: stretch; flex-direction: column; } .wallet-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .wallet-grid article { padding: 12px; } }

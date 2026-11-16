@@ -3,6 +3,7 @@ import {monthKey,monthSummary,yearSummary,expenseStatus,categoryOf,validYear,CAT
 import {cashPeriodDetails} from './cash-model.js';
 import {addMoney,sumMoney} from './money.js';
 import {CARD_PAYMENT_CATEGORY} from './credit-types.js';
+import {separateWallets,walletSources} from './wallet-model.js';
 import {accountSource,isCardPayment,isInternalMovement} from './account-model.js';
 import {statementNumbers,roundCard,shiftMonth,cardDate} from './card-model.js';
 import {simpleCards,moduleEnabled} from './region-model.js';
@@ -13,10 +14,11 @@ const total=rows=>roundCard(rows.reduce((sum,row)=>sum+row.amount,0));
 // statement rows are not counted again and payments retain their actual source.
 export function sourceCategoryDetails(document,options={}){
  const d=cashPeriodDetails(document,options),credit=options.creditAllowed===true;
- const rows=[...d.outflows.filter(r=>['bank','cash'].includes(r.source)),...(credit?d.creditPurchases:[])];
+ const sources=separateWallets(document)?walletSources(document,{includeArchived:true}):['bank','cash'];
+ const rows=[...d.outflows.filter(r=>sources.includes(r.source)),...(credit?d.creditPurchases:[])];
  const category=row=>row.type==='card-payment'?CARD_PAYMENT_CATEGORY:row.type==='debt'?'Trả nợ':categoryOf(row);
  const categories=[...new Set([...CATEGORIES,...rows.map(category)])];
- return ['bank','cash',...(credit?['card']:[])].map(source=>{
+ return [...sources,...(credit?['card']:[])].map(source=>{
   const amounts=new Map(categories.map(name=>[name,0]));
   for(const row of rows)if(row.source===source){const name=category(row);amounts.set(name,addMoney(amounts.get(name)||0,row.amount));}
   const entries=[...amounts].map(([category,amount])=>({category,amount}));

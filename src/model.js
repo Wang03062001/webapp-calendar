@@ -1,9 +1,10 @@
 import {isTrackingCardPayment,CARD_PAYMENT_CATEGORY} from './credit-types.js';
+import {normalizeWallets,separateWallets,activeWalletTransfers} from './wallet-model.js';
 import {sumMoney,addMoney,subtractMoney} from './money.js';
 import {normalizeSafety,validateFunds} from './safety-model.js';
 import { normalizeBookSettings,normalizeRegionVisibility,COUNTRIES } from './region-model.js';
 import { normalizeCashEntries, normalizeReceivables, receiptTotals } from './receipt-model.js';
-import { normalizeAccounts, validateSavingsLedger, isCardPayment, isInternalMovement, movementSources, transferRows } from './account-model.js';
+import { normalizeAccounts, validateSavingsLedger, isCardPayment, isInternalMovement, movementSources, transferRows, accountBalances as accountBalancesForWallets, sourceOpening as sourceOpeningForWallets } from './account-model.js';
 import { normalizeCurrencies } from './preferences.js';
 import { cardMoney, normalizeCards, migrateLegacyPayments, validateCardLinks, validMonth, cardDate } from './card-model.js';
 export const YEARS = Array.from({ length: 8 }, (_, i) => 2026 + i);
@@ -250,13 +251,25 @@ export function normalizeData(input) {
     result.regional={vietnam:vn};
   }
   if(input.safety!==undefined||Object.values(result.days).some(d=>d.items.some(i=>i.fundId||i.obligationId)))result.safety=normalizeSafety(input.safety||{},result);
+  if(input.wallets!==undefined)result.wallets=normalizeWallets(input.wallets,result);
   if(result.trackingStart){
     const start=result.trackingStart,month=start.slice(0,7),a=result.accounts;
-    const dates=[...Object.keys(result.days).filter(d=>result.days[d].items.length||result.days[d].note),...Object.entries(result.incomes).map(([m,r])=>r.receivedOn||m+'-15'),...(result.receipts||[]).map(r=>r.date),...result.debts.flatMap(d=>d.payments.map(p=>p.date)),...(a?[a.openedOn,a.savingsOpenedOn,...a.transfers.map(r=>r.date),...(a.reconciliations||[]).map(r=>r.date),...(a.openingHistory||[]).map(r=>r.date)]:[]),...(result.safety?.funds||[]).flatMap(f=>f.entries.map(e=>e.date))].filter(Boolean);
+    const dates=[...Object.keys(result.days).filter(d=>result.days[d].items.length||result.days[d].note),...Object.entries(result.incomes).map(([m,r])=>r.receivedOn||m+'-15'),...(result.receipts||[]).map(r=>r.date),...result.debts.flatMap(d=>d.payments.map(p=>p.date)),...(a?[a.openedOn,a.savingsOpenedOn,...a.transfers.map(r=>r.date),...(a.reconciliations||[]).map(r=>r.date),...(a.openingHistory||[]).map(r=>r.date)]:[]),...(result.safety?.funds||[]).flatMap(f=>f.entries.map(e=>e.date)),...(result.wallets?.transfers||[]).flatMap(t=>[t.date,t.voidedOn].filter(Boolean))].filter(Boolean);
     if(dates.some(d=>d<start)||[...Object.keys(result.savings),...Object.keys(result.monthlySavingsGoals||{})].some(m=>m<month)||Object.keys(result.goals).some(y=>y<start.slice(0,4))||(result.safety?.budgets||[]).some(b=>b.month<month))throw Error('Giao dịch hoặc số dư nằm trước ngày bắt đầu theo dõi.');
     if(result.cards)throw Error('Sổ mới chỉ ghi giao dịch tín dụng, không lưu dữ liệu PayPay hoặc sao kê.');
   }
   validateSavingsLedger(result);
   validateFunds(result);
+  if(!separateWallets(result)&&[...(result.accounts?.openingHistory||[]),...(result.accounts?.reconciliations||[])].some(r=>r.walletMode))throw Error('Mốc ví riêng cần giữ thiết lập ví riêng.');
+  if(separateWallets(result)){
+    const transfers=activeWalletTransfers(result),first=result.wallets.transfers.map(t=>t.date).sort()[0];
+    if(first){
+      const dates=new Set([first,...Object.keys(result.days),...transfers.map(t=>t.date),...(result.accounts?.transfers||[]).map(t=>t.date),...(result.accounts?.reconciliations||[]).map(t=>t.date),...(result.receipts||[]).map(r=>r.date),...Object.entries(result.incomes).map(([m,i])=>i.receivedOn||m+'-15'),...(result.safety?.funds||[]).flatMap(f=>f.entries.map(e=>e.date)),...(result.cards?.statements||[]).flatMap(s=>[s.paidOn,...(s.payments||[]).map(p=>p.date)].filter(Boolean))]);
+      const opening=sourceOpeningForWallets(result.accounts);
+      if(!opening)throw Error('Cần thiết lập số dư trước ngày chuyển ví.');
+      for(const t of transfers)if(!opening||t.date<(result.trackingStart||[opening.date,result.accounts.openedOn].sort()[0]))throw Error('Cần thiết lập số dư trước ngày chuyển ví.');
+      for(const date of dates)if(date>=first&&date>=opening.date){const b=accountBalancesForWallets(result,date);if(!b)throw Error('Chưa thiết lập nguồn tiền.');if([b.bank,b.cash,b.savings??0,...Object.values(b.funds||{})].some(n=>n<0))throw Error('Ví không đủ tiền cho giao dịch hoặc các giao dịch sau đó.');}
+    }
+  }
   return result;
 }

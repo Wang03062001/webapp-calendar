@@ -1,3 +1,4 @@
+import {separateWallets,fundWallet} from './wallet-model.js';
 import {normalizeData} from './model.js';
 import {cardDate} from './card-model.js';
 import {normalizeSafety} from './safety-model.js';
@@ -7,7 +8,7 @@ const creditDebt=(data,id)=>data.debts.some(d=>d.id===id&&d.type==='Thẻ tín d
 const linkedItem=(data,o)=>data.days[o.date]?.items.find(i=>i.id===o.expenseId&&i.obligationId===o.id);
 export function safetyCleanupPreview(data){
  const s=data.safety;
- return {funds:s?.funds.length||0,budgets:s?.budgets.length||0,planned:(s?.obligations||[]).filter(o=>linkedItem(data,o)?.status==='planned').length,retained:(s?.obligations||[]).filter(o=>linkedItem(data,o)?.status!=='planned').length,debtTerms:(s?.debtTerms||[]).filter(t=>!creditDebt(data,t.debtId)).length};
+ return {funds:separateWallets(data)?0:s?.funds.length||0,budgets:s?.budgets.length||0,planned:(s?.obligations||[]).filter(o=>linkedItem(data,o)?.status==='planned').length,retained:(s?.obligations||[]).filter(o=>linkedItem(data,o)?.status!=='planned').length,debtTerms:(s?.debtTerms||[]).filter(t=>!creditDebt(data,t.debtId)).length};
 }
 
 // A scoped, explicit removal. Snapshots are audit text only, never financial inputs.
@@ -33,7 +34,7 @@ export function cleanupSafety(data,{action,id='',date,removePlanned=true,auditId
  };
  if(action==='reset'){
   for(const o of [...s.obligations])removeLink(o);
-  for(const f of [...s.funds])removeFund(f);
+  if(!separateWallets(next))for(const f of [...s.funds])removeFund(f);
   snapshot.budgets=structuredClone(s.budgets);s.budgets=[];
   snapshot.debtTerms=structuredClone(s.debtTerms.filter(t=>!creditDebt(next,t.debtId)));
   s.debtTerms=s.debtTerms.filter(t=>creditDebt(next,t.debtId));
@@ -41,7 +42,7 @@ export function cleanupSafety(data,{action,id='',date,removePlanned=true,auditId
   s.essentialMonthly=0;s.reserveMonths=3;s.monthlyDebtBudget=0;
   // Legacy credit settings are protected by creditSnapshot and their original UI.
  }else if(action==='fund'){
-  const f=s.funds.find(x=>x.id===id);if(!f)throw Error('Quỹ đã thay đổi.');label=f.name;removeFund(f);
+  const f=s.funds.find(x=>x.id===id);if(!f)throw Error('Quỹ đã thay đổi.');if(separateWallets(next)&&(f.entries.length||next.wallets.transfers.some(t=>t.from===fundWallet(id)||t.to===fundWallet(id))||Object.values(next.days).some(d=>d.items.some(i=>i.fundId===id))))throw Error('Ví quỹ đã có lịch sử. Hãy chuyển hết tiền rồi đóng quỹ; không xóa lịch sử.');label=f.name;removeFund(f);
  }else if(action==='obligation'){
   const o=s.obligations.find(x=>x.id===id);if(!o)throw Error('Lịch phải trả đã thay đổi.');label=linkedItem(next,o)?.title||'';removeLink(o);
  }else if(action==='planned'){

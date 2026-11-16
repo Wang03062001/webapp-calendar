@@ -1,3 +1,4 @@
+import {separateWallets} from './wallet-model.js';
 import {normalizeData} from './model.js';
 import {newRegionalBook,readBook,countryOf,COUNTRIES} from './region-model.js';
 import {cardDate} from './card-model.js';
@@ -10,6 +11,7 @@ export function resetFinancialDocument(document,start=DEFAULT_TRACKING_START,tod
  const fresh=(old,country)=>{
   const next=newRegionalBook(country);
   next.trackingStart=start;
+  if(separateWallets(old))next.wallets={version:1,enabled:true,transfers:[]};
   next.years=Array.from({length:Math.min(8,10000-Number(start.slice(0,4)))},(_,i)=>Number(start.slice(0,4))+i);
   if(old.currencies)next.currencies=structuredClone(old.currencies);
   if(old.bookSettings)next.bookSettings=structuredClone(old.bookSettings);

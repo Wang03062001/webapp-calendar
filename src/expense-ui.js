@@ -1,3 +1,4 @@
+import {separateWallets,fundWallet} from './wallet-model.js';
 import {isCardPaymentCategory} from './credit-types.js';
 import {amount, MAX_AMOUNT} from './model.js';
 import {isCreditItem} from './credit-access.js';
@@ -50,6 +51,7 @@ export function showExpenseDialog(context, date, id, editor) {
         delete draft.settlement; delete draft.billingMonth;
       } else { delete draft.movement; draft.category = 'Khác'; }
     } else if (field === 'paymentMethod') {
+      if(separateWallets(context.getData())&&target.value.startsWith('fund:')){const f=context.getData().safety?.funds.find(f=>fundWallet(f.id)===target.value&&!f.archived);if(!f)return;draft.fundId=f.id;draft.paymentMethod=f.source;delete draft.movement;delete draft.creditTracking;delete draft.creditPeriod;delete draft.settlement;delete draft.billingMonth;renderFields();return;}
       if (isInternalMovement(draft) || draft.fundId || target.value === 'card' && !context.canUseCredit() || target.value === 'savings' && context.getData().accounts?.savings === undefined) return;
       draft.paymentMethod = target.value;
       if (target.value === 'card') { draft.creditTracking=true;delete draft.settlement;delete draft.billingMonth;delete draft.creditPeriod; }

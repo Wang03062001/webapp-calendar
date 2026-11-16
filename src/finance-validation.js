@@ -2,8 +2,10 @@ import {isCardPaymentCategory} from './credit-types.js';
 import {wholeCurrencyMoney} from './money.js';
 import {statementProgress} from './card-ledger.js';
 import {shiftMonth} from './card-model.js';
+import {separateWallets} from './wallet-model.js';
 const moneyFields=new Set(['amount','salary','bonus','bank','cash','savings','creditDebt','creditLimit','oneOff','priorBalance','newRibo','principal','fees','interest','target','essentialMonthly','monthlyDebtBudget','minimum','expectedBank','expectedCash','expectedSavings','deltaBank','deltaCash','deltaSavings','statementAmount','estimatedPrincipal','estimatedFees','monthlyPrincipal']);
 export function validateSpendingSources(before,next){
+ if(separateWallets(next))return;
  const prior=Object.values(before.days).flatMap(d=>d.items),current=Object.values(next.days).flatMap(d=>d.items);
  for(const [date,day]of Object.entries(next.days))for(const item of day.items)if(item.paymentMethod==='savings'){
   const old=before.days[date]?.items.find(r=>r.id===item.id);
@@ -41,4 +43,5 @@ export function validateActualDates(before,next,today){
  }
  for(const [month,row]of Object.entries(next.incomes))if(row.status!=='planned'&&(row.receivedOn||month+'-15')>today&&!same(before.incomes[month],row,['salary','bonus','receivedOn','status','account']))throw Error('Chưa đến ngày thực nhận. Hãy chọn Dự kiến chưa nhận.');
  for(const row of next.receipts||[])if(row.date>today&&!same((before.receipts||[]).find(r=>r.id===row.id),row,['amount','date','source','type']))throw Error('Chưa thể ghi tiền thực nhận cho ngày tương lai.');
+ for(const row of next.wallets?.transfers||[])if((row.date>today||row.voidedOn>today)&&!same(before.wallets?.transfers.find(r=>r.id===row.id),row,['amount','date','from','to','voided','voidedOn']))throw Error('Chưa thể xác nhận chuyển ví cho ngày tương lai.');
 }

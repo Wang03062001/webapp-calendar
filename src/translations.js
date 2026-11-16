@@ -1,6 +1,30 @@
 // Vietnamese source strings, then English / Japanese / Korean / Traditional Chinese (Taiwan).
 // Translation affects interface copy only; user-entered financial records remain unchanged.
 const rows = `
+Tách quỹ thành ví riêng|Separate funds into wallets|積立枠を独立ウォレットへ|기금을 독립 지갑으로 분리|將專款分為獨立錢包
+Các nơi giữ tiền|Money stores|資金の保管先|자금 보관처|資金存放處
+Chuyển tiền giữa các ví|Transfer between wallets|ウォレット間の振替|지갑 간 이체|錢包間轉帳
+Tổng tiền đang giữ|Total money held|保有資金合計|보유 자금 합계|持有資金總額
+Biến động tổng tiền đang giữ|Change in total money held|保有資金合計の増減|보유 자금 총액 변동|持有資金總額變動
+Tất cả các ví|All wallets|すべてのウォレット|모든 지갑|所有錢包
+Lịch sử chuyển giữa các ví|Wallet transfer history|ウォレット間振替履歴|지갑 간 이체 내역|錢包轉帳紀錄
+Hủy chuyển|Void transfer|振替の取消|이체 취소|取消轉帳
+Hủy chuyển tiền|Void wallet transfer|ウォレット間振替の取消|지갑 이체 취소|取消錢包轉帳
+Lưu chuyển tiền|Save transfer|振替を保存|이체 저장|儲存轉帳
+Xác nhận dùng ví riêng|Confirm separate wallets|独立ウォレットを確定|독립 지갑 확인|確認啟用獨立錢包
+Lấy tiền từ|Take money from|振替元|출금 지갑|轉出來源
+Chuyển vào|Transfer to|振替先|입금 지갑|轉入目標
+Ngày chuyển|Transfer date|振替日|이체일|轉帳日期
+Tổng trước|Total before|変更前の合計|변경 전 합계|變更前總額
+Tổng sau|Total after|変更後の合計|변경 후 합계|變更後總額
+Tôi đã kiểm tra các số dư trước và sau|I checked the balances before and after|変更前後の残高を確認しました|변경 전후 잔액을 확인했습니다|我已核對變更前後的餘額
+Sao lưu JSON trước khi tách|Back up JSON before separating|分離前のJSONバックアップ|분리 전 JSON 백업|分開前備份 JSON
+Nhận tiền vào quỹ|Transfer money into fund|積立ウォレットへの入金|기금으로 이체|轉入專款
+Chuyển tiền ra|Transfer money out|資金を振替出金|자금 이체 출금|轉出資金
+Ví độc lập|Separate wallet|独立ウォレット|독립 지갑|獨立錢包
+Ví không đủ tiền cho giao dịch hoặc các giao dịch sau đó.|Insufficient wallet balance for this or later transactions.|この取引または後続取引に必要なウォレット残高が不足しています。|이 거래 또는 이후 거래에 필요한 지갑 잔액이 부족합니다.|錢包餘額不足以支付本筆或後續交易。
+Hãy lưu bản nháp thành công trước khi chuyển tiền giữa các ví.|Save your draft successfully before transferring between wallets.|ウォレット間の振替前に下書きを保存してください。|지갑 간 이체 전에 초안을 저장하세요.|請先成功儲存草稿，再進行錢包轉帳。
+
 Ngân hàng giảm, tiết kiệm riêng tăng cùng số tiền. Không tính vào tiền thực chi hoặc tự cộng lịch sử tiết kiệm tháng.|Bank decreases and the separate savings reserve increases by the same amount. Excluded from spending; monthly savings history is not updated automatically.|銀行残高が減り、同額が別枠の貯蓄残高に加算されます。支出には含めず、月別貯蓄履歴は自動更新しません。|은행 잔액이 줄고 같은 금액만큼 별도 저축 잔액이 늘어납니다. 실제 지출에 포함되지 않으며 월별 저축 이력은 자동 갱신하지 않습니다.|銀行減少，獨立儲蓄餘額增加相同金額。不計入實際支出，也不自動增加每月儲蓄紀錄。
 Chuyển vào tiết kiệm không được gắn với quỹ, tín dụng hoặc khoản phải trả.|A savings transfer cannot be linked to funds, credit or tracked bills.|貯蓄への振替に積立枠、クレジット、支払予定は関連付けられません。|저축 이체는 기금, 신용 또는 청구 일정과 연결할 수 없습니다.|轉入儲蓄不得連結專款、信用或應付款。
 Số dư ngân hàng không đủ để chuyển vào tiết kiệm.|Insufficient bank balance for the savings transfer.|貯蓄に振り替える銀行残高が不足しています。|저축으로 이체할 은행 잔액이 부족합니다.|銀行餘額不足以轉入儲蓄。

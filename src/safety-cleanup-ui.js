@@ -1,3 +1,4 @@
+import {separateWallets} from './wallet-model.js';
 import {cleanupSafety,safetyCleanupPreview} from './safety-cleanup.js';
 import {tokyoToday} from './finance-date.js';
 import {downloadFile} from './export-ui.js';
@@ -13,9 +14,10 @@ export function showSafetyCleanupDialog(context,action,id){
  if(action==='resetSafety'){
   title='Đặt lại Nền tảng an toàn';planned=counts.planned;
   description='<p>Đặt lại quỹ, ngân sách mọi tháng, lịch theo dõi, dự phòng và kế hoạch trả nợ thông thường của khu vực này.</p><p>Giữ nguyên số dư ngân hàng, tiền mặt, tiết kiệm, khoản đã chi, thu nhập, khoản vay, ghi chú và khu vực còn lại. Dữ liệu tín dụng cũ được giữ nguyên.</p>';
+  if(separateWallets(data))description='<p>Đặt lại ngân sách và kế hoạch. Giữ nguyên các ví quỹ, số dư, lịch sử chuyển tiền, thu nhập và khoản đã chi.</p>';
  }else if(action==='removeFund'){
   if(!fund)return;title='Xóa quỹ';label=fund.name;
-  description='<p>Xóa phần tiền dành riêng và bỏ liên kết quỹ. Giữ nguyên số dư thực, các khoản chi và ghi chú; không tạo giao dịch chuyển tiền.</p>';
+  description=separateWallets(data)?'<p>Chỉ xóa ví quỹ trống chưa có lịch sử. Với ví đã dùng, chuyển hết tiền rồi đóng quỹ để giữ lịch sử.</p>':'<p>Xóa phần tiền dành riêng và bỏ liên kết quỹ. Giữ nguyên số dư thực, các khoản chi và ghi chú; không tạo giao dịch chuyển tiền.</p>';
  }else if(action==='removeObligation'){
   if(!item)return;title='Xóa lịch phải trả';label=item.title;planned=item.status==='planned'?1:0;
   description='<p>Bỏ lịch theo dõi và liên kết. Khoản đã chi vẫn giữ nguyên ngày, số tiền và nguồn tiền.</p>';
