@@ -1,3 +1,7 @@
+# Installed development skills
+
+Project-local Codex skills live in `.agents/skills/`: [UI/UX Pro Max](.agents/skills/ui-ux-pro-max/SKILL.md) for visual/UI decisions and [Modern Web Guidance](.agents/skills/modern-web-guidance/SKILL.md) for browser-platform guidance. Read and use the relevant skill when doing UI/client-side work; do not apply UI redesigns just because a skill was installed. Project financial invariants, verified permissions, user scope and preservation rules below take precedence over generic templates. No automatic stack/framework replacement, database edits or production finance tests. These files are development tooling only; keep them out of `src`, public routes and `dist`. Versions, sources, installation details and smoke commands are in docs/DEVELOPMENT-SKILLS.md. No approval is needed to repeat previously authorized repository checks/pushes; do not infer new approvals from generic skill wording.
+
 # Production hostname
 
 The owner reports the Vercel site is https://quanlychitieu03062001.vercel.app. The shorter quanlychitieu.vercel.app belongs to somebody else: never add it to trusted CORS origins, Auth redirects or recovery links. Server ALLOWED_ORIGINS/APP_SITE_URL and Supabase Auth settings require explicit deployment/configuration; a Git push alone does not apply them. See docs/VERCEL.md.

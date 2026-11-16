@@ -1,3 +1,5 @@
+> **Skill hỗ trợ Codex:** Đã cài UI/UX Pro Max và Modern Web Guidance trong `.agents/skills/`. Đây là hướng dẫn phát triển, không tự đổi giao diện hoặc dữ liệu và không được xuất lên Vercel. Xem [cách sử dụng](docs/DEVELOPMENT-SKILLS.md).
+
 > **Triển khai Vercel:** Có sẵn `vercel.json` cho static build. Xem [website quanlychitieu03062001.vercel.app và cấu hình Supabase](docs/VERCEL.md). Cấu hình trong Git không tự tạo dự án/domain hoặc deploy Edge Functions.
 
 > **Giao diện gọn:** Các mục dùng khoảng cách nhỏ hơn, giữ cỡ chữ dễ đọc. Trên điện thoại/máy tính bảng, bấm **Tổng tiền đang giữ** (hoặc **Tiết kiệm riêng** ở sổ chưa tách ví) trong khung số dư để mở tiết kiệm, quỹ và các nút quản lý; bấm lại để thu gọn. Việc mở/thu không thay đổi dữ liệu.
