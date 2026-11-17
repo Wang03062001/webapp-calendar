@@ -18,9 +18,9 @@ try{
   if(theme==='dark')await page.locator('.topbar [data-action=theme]').click();await finish();
   const primary=page.locator('#wallets-panel .save-button'),semantic=page.locator('[data-current-balance=bank]');const original=await semantic.evaluate(e=>getComputedStyle(e).color);
   const tokens=await page.evaluate(()=>{const s=getComputedStyle(document.documentElement);return Object.fromEntries(['--fx-primary-a','--fx-primary-b','--fx-ring','--fx-edge'].map(k=>[k,s.getPropertyValue(k).trim()]));});
-  assert(contrast('#ffffff',tokens['--fx-primary-a'])>=4.5);assert(contrast('#ffffff',tokens['--fx-primary-b'])>=4.5);assert(contrast(tokens['--fx-ring'],theme==='light'?'#ffffff':'#211d2b')>=3);
+  assert(contrast('#ffffff',tokens['--fx-primary-a'])>=4.5);assert(contrast('#ffffff',tokens['--fx-primary-b'])>=4.5);assert(contrast(tokens['--fx-ring'],theme==='light'?'#ffffff':'#1d242b')>=3);
   assert.match(await primary.evaluate(e=>getComputedStyle(e).backgroundImage),/linear-gradient/);assert.equal(await primary.evaluate(e=>getComputedStyle(e).color),'rgb(255, 255, 255)');
-  const button=page.locator('.wallet-grid button').first();await button.hover();await finish();assert.equal(await button.evaluate(e=>getComputedStyle(e).backgroundColor),theme==='light'?'rgb(242, 235, 252)':'rgb(52, 39, 67)');assert.equal(await semantic.evaluate(e=>getComputedStyle(e).color),original);
+  const button=page.locator('.wallet-grid button').first();await button.hover();await finish();assert.equal(await button.evaluate(e=>getComputedStyle(e).backgroundColor),theme==='light'?'rgb(231, 241, 248)':'rgb(32, 57, 75)');assert.equal(await semantic.evaluate(e=>getComputedStyle(e).color),original);
   await page.keyboard.press('Tab');await primary.focus();assert(await primary.evaluate(e=>getComputedStyle(e).outlineStyle!=='none'));await page.screenshot({path:`/tmp/color-effects-${theme}-desktop.png`});
   await primary.click();const dialog=page.locator('#wallet-dialog');await dialog.locator('.account-submit').click();await finish();const amount=dialog.locator('[name=amount]');assert.equal(await amount.evaluate(e=>e.validity.valueMissing),true);assert.equal(await amount.evaluate(e=>getComputedStyle(e).borderTopColor),theme==='light'?'rgb(173, 40, 67)':'rgb(255, 156, 173)');await dialog.locator('[data-cancel]').click();
  }

@@ -1,4 +1,4 @@
-> **Hiệu ứng màu:** Nút chính có gradient tím, thẻ và ô nhập có viền nhấn khi tương tác; đồng bộ sáng/tối và chế độ tương phản cao. Màu tiền theo nguồn, thu/chi và dữ liệu giữ nguyên. Xem [quy tắc màu tương tác](docs/COLOR-EFFECTS.md).
+> **Hiệu ứng màu:** Nút chính có gradient xanh dương – xanh ngọc, thẻ và ô nhập có viền nhấn khi tương tác; đồng bộ sáng/tối và chế độ tương phản cao. Màu tiền theo nguồn, thu/chi và dữ liệu giữ nguyên. Xem [quy tắc màu tương tác](docs/COLOR-EFFECTS.md).
 
 > **Chuyển động giao diện:** Nút có phản hồi khi bấm, popup mở nhẹ, tiến/lùi tháng có hướng chuyển tương ứng và thanh biểu đồ xuất hiện mượt khi mở phân tích. Tôn trọng chế độ giảm chuyển động của thiết bị; không trì hoãn lưu hoặc đóng popup. Xem [quy tắc motion](docs/MOTION.md).
 
