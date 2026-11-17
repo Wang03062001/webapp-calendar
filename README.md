@@ -1,3 +1,5 @@
+> **Hiệu ứng màu:** Nút chính có gradient tím, thẻ và ô nhập có viền nhấn khi tương tác; đồng bộ sáng/tối và chế độ tương phản cao. Màu tiền theo nguồn, thu/chi và dữ liệu giữ nguyên. Xem [quy tắc màu tương tác](docs/COLOR-EFFECTS.md).
+
 > **Chuyển động giao diện:** Nút có phản hồi khi bấm, popup mở nhẹ, tiến/lùi tháng có hướng chuyển tương ứng và thanh biểu đồ xuất hiện mượt khi mở phân tích. Tôn trọng chế độ giảm chuyển động của thiết bị; không trì hoãn lưu hoặc đóng popup. Xem [quy tắc motion](docs/MOTION.md).
 
 > **Skill hỗ trợ Codex:** Đã cài UI/UX Pro Max và Modern Web Guidance trong `.agents/skills/`. Đây là hướng dẫn phát triển, không tự đổi giao diện hoặc dữ liệu và không được xuất lên Vercel. Xem [cách sử dụng](docs/DEVELOPMENT-SKILLS.md).

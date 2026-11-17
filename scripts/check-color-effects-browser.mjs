@@ -1,0 +1,31 @@
+// Read-only synthetic layout coverage: no external financial writes allowed.
+import assert from 'node:assert/strict';
+import {newRegionalBook} from '../src/region-model.js';
+import {normalizeData,addDebt} from '../src/model.js';
+import {normalizeSafety} from '../src/safety-model.js';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright-core');
+const d=newRegionalBook('JP');d.accounts={openedOn:'2026-11-01',bank:1000000,cash:10000,savings:500000,creditDebt:0,creditLimit:null,transfers:[]};d.wallets={version:1,enabled:true,transfers:[]};d.safety=normalizeSafety({funds:[{id:'laptop',name:'Quỹ mua máy tính và phụ kiện làm việc',source:'bank',kind:'goal',target:300000,entries:[{id:'a',date:'2026-11-01',direction:'allocate',amount:100000,note:''}]}],budgets:[{month:'2026-11',category:'Ăn uống',amount:30000}]},d);d.days['2026-11-16']={note:'Ghi chú mô phỏng',items:[{id:'e',title:'Chi phí sinh hoạt mô phỏng',amount:12345,paymentMethod:'bank',status:'paid',category:'Ăn uống'},{id:'p',title:'Khoản dự kiến mô phỏng',amount:2000,paymentMethod:'cash',status:'planned',category:'Khác'}]};d.incomes['2026-11']={salary:190000,bonus:5000,receivedOn:'2026-11-15',note:''};d.savings={'2026-11':50000};d.monthlySavingsGoals={'2026-11':100000};addDebt(d,{id:'loan',title:'Khoản vay mô phỏng',amount:15000,type:'Khác',dueDate:'2026-11-25'});d.regional={vietnam:newRegionalBook('VN')};const doc=normalizeData(d);
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(10000);await page.clock.install({time:new Date('2026-11-16T03:00:00Z')});
+await page.route('https://**/*',async route=>{const url=route.request().url();let body;if(url.includes('/auth/v1/user'))body={id:'layout-fixture',email:'fixture@example.test',email_confirmed_at:'2026-01-01'};else if(url.includes('calendar_is_admin'))body=true;else if(url.includes('calendar_profiles'))body=[{username:'layout-fixture'}];else if(url.includes('calendar_documents'))body=[{data:doc,revision:1}];else throw Error('Unexpected external request (writes forbidden): '+url);await route.fulfill({json:body});});
+await page.addInitScript(()=>{localStorage.setItem('calendar-display',JSON.stringify({theme:'light',language:'vi'}));localStorage.setItem('lich-auth:mjgxzzxmfifhoymvdaoe.supabase.co',JSON.stringify({access_token:'mock',refresh_token:'mock',expires_at:Date.now()/1000+3600}));});
+const rgb=hex=>hex.replace('#','').match(/../g).map(x=>parseInt(x,16));
+const luminance=hex=>rgb(hex).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
+const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+const finish=()=>page.evaluate(()=>document.getAnimations().forEach(a=>a.finish()));
+try{
+ await page.goto(process.env.CALENDAR_URL||'http://127.0.0.1:5198');await page.locator('[data-current-balance=bank]').waitFor({state:'attached'});await finish();
+ for(const theme of ['light','dark']){
+  if(theme==='dark')await page.locator('.topbar [data-action=theme]').click();await finish();
+  const primary=page.locator('#wallets-panel .save-button'),semantic=page.locator('[data-current-balance=bank]');const original=await semantic.evaluate(e=>getComputedStyle(e).color);
+  const tokens=await page.evaluate(()=>{const s=getComputedStyle(document.documentElement);return Object.fromEntries(['--fx-primary-a','--fx-primary-b','--fx-ring','--fx-edge'].map(k=>[k,s.getPropertyValue(k).trim()]));});
+  assert(contrast('#ffffff',tokens['--fx-primary-a'])>=4.5);assert(contrast('#ffffff',tokens['--fx-primary-b'])>=4.5);assert(contrast(tokens['--fx-ring'],theme==='light'?'#ffffff':'#211d2b')>=3);
+  assert.match(await primary.evaluate(e=>getComputedStyle(e).backgroundImage),/linear-gradient/);assert.equal(await primary.evaluate(e=>getComputedStyle(e).color),'rgb(255, 255, 255)');
+  const button=page.locator('.wallet-grid button').first();await button.hover();await finish();assert.equal(await button.evaluate(e=>getComputedStyle(e).backgroundColor),theme==='light'?'rgb(242, 235, 252)':'rgb(52, 39, 67)');assert.equal(await semantic.evaluate(e=>getComputedStyle(e).color),original);
+  await page.keyboard.press('Tab');await primary.focus();assert(await primary.evaluate(e=>getComputedStyle(e).outlineStyle!=='none'));await page.screenshot({path:`/tmp/color-effects-${theme}-desktop.png`});
+  await primary.click();const dialog=page.locator('#wallet-dialog');await dialog.locator('.account-submit').click();await finish();const amount=dialog.locator('[name=amount]');assert.equal(await amount.evaluate(e=>e.validity.valueMissing),true);assert.equal(await amount.evaluate(e=>getComputedStyle(e).borderTopColor),theme==='light'?'rgb(173, 40, 67)':'rgb(255, 156, 173)');await dialog.locator('[data-cancel]').click();
+ }
+ await page.setViewportSize({width:390,height:844});await page.locator('#wallets-panel').scrollIntoViewIfNeeded();await finish();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'/tmp/color-effects-dark-mobile.png'});
+ await page.emulateMedia({reducedMotion:'reduce'});await page.locator('nav [data-view=year]').click();assert.equal(await page.evaluate(()=>document.getAnimations().filter(a=>a.id==='calendar-motion').length),0);assert.match(await page.locator('#wallets-panel .save-button').evaluate(e=>getComputedStyle(e).backgroundImage),/linear-gradient/);
+ await page.emulateMedia({forcedColors:'active'});const active=page.locator('nav [data-view=year]');assert.equal(await active.evaluate(e=>getComputedStyle(e).backgroundImage),'none');assert.equal(await active.evaluate(e=>getComputedStyle(e).outlineStyle),'solid');await page.screenshot({path:'/tmp/color-effects-forced-colors.png'});
+ assert.deepEqual(errors,[]);console.log('PASS light/dark gradients and hover, keyboard focus, primary text contrast >=4.5 and focus >=3, unchanged financial colors, required-field error, mobile overflow, reduced motion and forced colors; read-only mocked APIs');
+}finally{await browser.close();}

@@ -372,3 +372,57 @@ html[data-theme=dark] .current-wallet{background:#211d2b;border-color:#453b55;co
   .month-card:active { transform: translateY(0); }
  }
 }
+
+/* Interactive color accents. Financial role colors stay on their own tokens. */
+:root {
+ --fx-soft: #f2ebfc;
+ --fx-ink: #563582;
+ --fx-edge: #9576c3;
+ --fx-ring: #7353cc;
+ --fx-wash: #7353cc0b;
+ --fx-glow: #7353cc24;
+ --fx-primary-a: #6540b8;
+ --fx-primary-b: #8b3fa9;
+ --fx-error: #ad2843;
+}
+html[data-theme=dark] {
+ --fx-soft: #342743;
+ --fx-ink: #efe6fc;
+ --fx-edge: #a98bd5;
+ --fx-ring: #bd9cf1;
+ --fx-wash: #b795ee12;
+ --fx-glow: #b795ee28;
+ --fx-primary-a: #7348b3;
+ --fx-primary-b: #8b3fa9;
+ --fx-error: #ff9cad;
+}
+:is(.save-button,.account-submit:not(.danger),.region-tabs [aria-pressed=true],.month-tabs button.active) {
+ background-color: var(--fx-primary-a);
+ background-image: linear-gradient(115deg,var(--fx-primary-a),var(--fx-primary-b));
+ color: #fff;
+}
+:is(.nav-item.active,.year-button.selected) {
+ background: linear-gradient(100deg,var(--fx-soft),transparent);
+ color: var(--fx-ink);
+}
+.wallet-grid article { background-image: radial-gradient(ellipse at top right,var(--fx-wash),transparent 75%); }
+:is(.stat,.wallet-grid article,.fund-card,.expense-entry):focus-within { border-color: var(--fx-edge); box-shadow: 0 0 0 2px var(--fx-glow); }
+:is(button,summary,input,select,textarea):focus-visible { outline-color: var(--fx-ring); }
+html[data-theme] :is(.account-dialog,.expense-entry) :is(input,select,textarea):focus-visible { border-color: var(--fx-ring); box-shadow: 0 0 0 3px var(--fx-glow); }
+html[data-theme] :is(.account-dialog,.expense-entry) :is(input,select,textarea):user-invalid { border-color: var(--fx-error); }
+.calendar-day.selected { border-color: var(--fx-edge); box-shadow: inset 0 0 0 1px var(--fx-edge); }
+.calendar-day.selected .day-number { background: linear-gradient(135deg,var(--fx-primary-a),var(--fx-primary-b)); color: #fff; }
+@media(hover:hover) and (pointer:fine) {
+ :is(.button.secondary,.text-button,.icon-button,.wallet-grid button):hover:not(:disabled) { background-color: var(--fx-soft); border-color: var(--fx-edge); color: var(--fx-ink); }
+ :is(.stat,.wallet-grid article,.fund-card):hover { border-color: var(--fx-edge); box-shadow: 0 4px 18px var(--fx-glow); }
+ :is(.save-button,.account-submit:not(.danger)):hover:not(:disabled) { box-shadow: 0 4px 16px var(--fx-glow); }
+}
+@media(prefers-reduced-motion:no-preference) {
+ :is(.nav-item,.year-button,.region-tabs button,.month-tabs button,.account-submit) { transition: background-color 160ms ease-out,color 160ms ease-out,border-color 160ms ease-out,box-shadow 160ms ease-out,transform var(--motion-fast) var(--motion-ease); }
+}
+@media(forced-colors:active) {
+ :is(.save-button,.account-submit,.region-tabs [aria-pressed=true],.month-tabs button.active,.nav-item.active,.year-button.selected,.calendar-day.selected .day-number) { background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; }
+ :is(.nav-item.active,.year-button.selected,.region-tabs [aria-pressed=true],.month-tabs button.active,.calendar-day.selected) { outline: 2px solid Highlight; outline-offset: -2px; }
+ :is(button,summary,input,select,textarea):focus-visible { outline: 3px solid Highlight; }
+ .wallet-grid article { background-image: none; }
+}
