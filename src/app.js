@@ -150,7 +150,7 @@ function render() {
   const pageTitle = ({ calendar: 'Thu chi & kỳ lương', year: 'Tổng kết năm', debts: 'Khoản vay khác', credit: 'Thẻ & sao kê', safety:'Nền tảng an toàn' })[view];
   root.innerHTML = `
     <aside class="sidebar">
-      <a class="brand" href="#" aria-label="Lịch của tôi">${icon('calendar')}<span>Lịch của tôi<span class="brand-sub">TÀI CHÍNH CÁ NHÂN</span></span></a>
+      <a class="brand" href="#" aria-label="Chi tiêu & thu nhập">${icon('calendar')}<span>Lịch của tôi<span class="brand-sub">TÀI CHÍNH CÁ NHÂN</span></span></a>
       <div class="workspace-label">KHÔNG GIAN CÁ NHÂN</div>
       <nav aria-label="Điều hướng chính">
         <button class="nav-item ${view === 'calendar' ? 'active' : ''}" data-view="calendar">${icon('calendar')} Thu chi & kỳ lương</button>
