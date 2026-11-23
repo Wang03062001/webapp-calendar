@@ -41,5 +41,5 @@ export function translatePage() {
   });
   observer?.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','placeholder','aria-label','aria-valuetext']});
 }
-export function setLanguage(value) { language=['vi',...languages].includes(value)?value:'vi'; if(typeof document!=='undefined'){document.documentElement.lang=language;document.title=t('Lịch của tôi');translatePage();} }
+export function setLanguage(value) { language=['vi',...languages].includes(value)?value:'vi'; if(typeof document!=='undefined'){document.documentElement.lang=language;document.title=t('Chi tiêu và thu nhập');translatePage();} }
 export function startTranslations(value) { observer=new MutationObserver(translatePage); setLanguage(value); document.addEventListener('invalid',event=>{ if(event.target.validity?.customError)event.target.setCustomValidity(t(event.target.validationMessage)); },true); }
