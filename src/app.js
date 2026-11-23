@@ -150,7 +150,7 @@ function render() {
   const pageTitle = ({ calendar: 'Thu chi & kỳ lương', year: 'Tổng kết năm', debts: 'Khoản vay khác', credit: 'Thẻ & sao kê', safety:'Nền tảng an toàn' })[view];
   root.innerHTML = `
     <aside class="sidebar">
-      <a class="brand" href="#" aria-label="Chi tiêu & thu nhập">${icon('calendar')}<span>Lịch của tôi<span class="brand-sub">TÀI CHÍNH CÁ NHÂN</span></span></a>
+      <a class="brand" href="#" aria-label="Chi tiêu & thu nhập">${icon('calendar')}<span>Chi tiêu & thu nhập<span class="brand-sub">TÀI CHÍNH CÁ NHÂN</span></span></a>
       <div class="workspace-label">KHÔNG GIAN CÁ NHÂN</div>
       <nav aria-label="Điều hướng chính">
         <button class="nav-item ${view === 'calendar' ? 'active' : ''}" data-view="calendar">${icon('calendar')} Thu chi & kỳ lương</button>
@@ -172,7 +172,7 @@ function render() {
           <div class="stats">${statsContent(totals)}</div>${moduleEnabled(data,'safety')?`<div id="budget-warnings">${budgetWarnings(actualView(),monthKey(year,month))}</div>`:''}
           ${view === 'calendar' ? `<div class="editor-actions"><button class="button save-button" data-action="quick-expense">${icon('plus')} Thêm khoản chi</button>${moduleEnabled(data,'salary')?'<button class="button secondary" data-action="quick-income">Thu nhập</button>':''}${moduleEnabled(data,'savings')?'<button class="button secondary" data-action="quick-savings">Tiết kiệm</button>':''}${moduleEnabled(data,'debts')?'<button class="button secondary" data-view="debts">Nợ phải trả</button>':''}</div>${calendarView()}${expenseBrowser()}${moduleEnabled(data,'receipts')?receiptsPanel(data,monthKey(year,month)):''}${moduleEnabled(data,'receivables')?receivablesPanel(data):''}<div class="finance-panels">${moduleEnabled(data,'salary')?incomePanel():''}${moduleEnabled(data,'savings')?savingsPanel():''}</div>` : `${yearView()}${moduleEnabled(data,'savings')?savingsPanel():''}`}
           <details class="analysis-panel card" ${analysisExpanded ? 'open' : ''}><summary>Biểu đồ phân tích · ${view === 'year' ? year : `tháng ${month + 1} / ${year}`}</summary><div class="dashboard-charts" id="dashboard-charts">${dashboardCharts()}</div></details>`}
-        <footer><span>${icon('calendar')} Lịch của tôi <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Thu chi __CASH__ · Tiết kiệm __SAVINGS__</span></footer>
+        <footer><span>${icon('calendar')} Chi tiêu & thu nhập <span class="footer-divider">/</span> Cho những kế hoạch của bạn</span><span id="storage-description">Thu chi __CASH__ · Tiết kiệm __SAVINGS__</span></footer>
       </div>
     </main><aside id="current-wallet" class="current-wallet" aria-label="Tài sản và tiết kiệm"></aside>`;
   restoreExpenseInputs();
